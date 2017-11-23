@@ -7,3 +7,8 @@
     %2F%2F%0D%0A payload = //+回车
 ```
 ### 换行导致payload逃逸出注释而执行
+
+
+## 修复 
+`thinkphp\library\think\cache\driver\File.php`
+`public function set($name, $value, $expire = null)` 方法
