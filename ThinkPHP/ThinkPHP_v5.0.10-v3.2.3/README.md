@@ -8,7 +8,7 @@
 ```
 ### 换行导致payload逃逸出注释而执行
 
-
+![Mr5m1th](2.png)
 ## 修复 
 `thinkphp\library\think\cache\driver\File.php`
 
