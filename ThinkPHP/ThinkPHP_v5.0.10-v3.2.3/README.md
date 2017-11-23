@@ -10,5 +10,6 @@
 
 
 ## 修复 
-`thinkphp\library\think\cache\driver\File.php`
-`public function set($name, $value, $expire = null)` 方法
+thinkphp\library\think\cache\driver\File.php
+public function set($name, $value, $expire = null)方法
+
