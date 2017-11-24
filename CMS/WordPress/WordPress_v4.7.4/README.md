@@ -16,4 +16,5 @@
 `http://local.target/wp-admin/upload.php`
 
 `local.target/wp-admin/upload.php?_wpnonce=daab7cfabf&action=delete&media%5B%5D=5%20%251%24%25s%20hello`
+
 hello换成我们的Payload
