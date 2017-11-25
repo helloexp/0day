@@ -4,7 +4,7 @@
 ## 分析
 * [https://www.leavesongs.com/PENETRATION/joomla-unserialize-code-execute-vulnerability.html](https://www.leavesongs.com/PENETRATION/joomla-unserialize-code-execute-vulnerability.html)
 * PHP Session 序列化及反序列化处理器设置使用不当带来的安全隐患[https://github.com/80vul/phpcodz/blob/master/research/pch-013.md](https://github.com/80vul/phpcodz/blob/master/research/pch-013.md)
-
+### 利用(%F0%9D%8C%86)字符
 ## EXP
 ```php
 <?php
