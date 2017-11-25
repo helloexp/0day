@@ -1,4 +1,6 @@
 # Joomla远程代码执行漏洞
+## 影响范围
+* `Joomla 1.5 to 3.4 all version`
 ## 分析
 * [https://www.leavesongs.com/PENETRATION/joomla-unserialize-code-execute-vulnerability.html](https://www.leavesongs.com/PENETRATION/joomla-unserialize-code-execute-vulnerability.html)
 * PHP Session 序列化及反序列化处理器设置使用不当带来的安全隐患[https://github.com/80vul/phpcodz/blob/master/research/pch-013.md](https://github.com/80vul/phpcodz/blob/master/research/pch-013.md)
