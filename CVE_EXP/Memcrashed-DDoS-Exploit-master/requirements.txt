@@ -1,0 +1,2 @@
+scapy==2.4.0rc5
+shodan==1.7.7
