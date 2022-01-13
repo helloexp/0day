@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_auth_file</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_auth_file</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+This module is contained in the <code>mod_auth_file.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is compiled by default.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#AuthFileOptions">AuthFileOptions</a>
+  <li><a href="#AuthGroupFile">AuthGroupFile</a>
+  <li><a href="#AuthUserFile">AuthUserFile</a>
+</ul>
+
+<hr>
+<h3><a name="AuthFileOptions">AuthFileOptions</a></h3>
+<strong>Syntax:</strong> AuthFileOptions <em>opt1 ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_auth_file<br>
+<strong>Compatibility:</strong> 1.3.7rc1
+
+<p>
+The <code>AuthFileOptions</code> directive is used to configure various optional
+behavior of <code>mod_auth_file</code>.
+
+<p>
+Example:
+<pre>
+  AuthFileOptions InsecurePerms
+</pre>
+
+<p>
+The currently implemented options are:
+<ul>
+  <p>
+  <li><code>InsecurePerms</code><br>
+    <p>
+    When this option is used, <code>mod_auth_file</code> will ignore insecure
+    permissions (<i>i.e.</i> group- or world-readable) on
+    <code>AuthUserFile</code> and <code>AuthGroupFile</code> files.  <b>Note</b>
+    that this option <b>must</b> appear <em>before</em> any
+    <code>AuthUserFile</code> and <code>AuthGroupFile</code> directives in
+    order to function properly, for the option changes the behavior of the
+    <code>mod_auth_file</code> module at <i>parse</i> time.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.7rc1</code>.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h3><a name="AuthGroupFile">AuthGroupFile</a></h3>
+<strong>Syntax:</strong> AuthGroupFile <em>path [id min-max] [name regex]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_auth_file<br>
+<strong>Compatibility:</strong> 1.2.7rc2
+
+<p>
+The <code>AuthGroupFile</code> directive configures an alternate group file for
+providing group membership information; the specified file must have the same
+format as the system <code>/etc/group</code> file, and if specified is used
+during authentication and group lookups for directory/access control
+operations. The <em>path</em> argument should be the full path to the specified
+file. This directive can be configured on a per-server basis, so that virtual
+FTP servers can each have their own authentication file, often in conjunction
+with an <a href="#AuthUserFile"><code>AuthUserFile</code></a>.
+
+<p>
+Note that this file does <i>not</i> need to reside inside a
+<code>chroot()</code>ed directory structure for anonymous or
+<code>DefaultRoot</code> logins, as it is held open for the duration of a
+session.
+
+<p>
+The optional parameters are used to set restrictions on the contents of
+the specified file.  The <em>id</em> restriction is used to specify a range
+of GIDs that may appear in the file; when doing a lookup, if a group entry
+has a GID that is less than the minimum or greater than the maximum is
+encountered, that entry is ignored.  The <em>name</em> restriction is used
+to specify a regular expression that is applied to the name of a group
+entry.  If the group name does not match the regular expression, the group
+entry is ignored.  A leading <code>!</code> in the regular expression can
+be used to negate the given expression.
+
+<p>
+Example:
+<pre>
+  # This makes an AuthGroupFile that can only have GIDs 2000 to 4000, and
+  # whose groups must start with 'cust'
+  AuthGroupFile /etc/ftpd/group id 2000-4000 name ^cust
+</pre>
+
+<p>
+<b>Note</b>: In order to prevent other users from modifying the
+<code>AuthGroupFile</code>, the <code>mod_auth_file</code> module
+<b>requires</b> that the permissions on the file <b>not</b> be world-readable
+<b>or</b> world-writable, <b>and</b> that the directory containing the
+file <b>not</b> be world-writable.  In addition, if the file is not a file
+(<i>e.g.</i> the path points to a symlink, or a FIFO, <i>etc</i>), a warning
+will be logged on server startup/restart.
+
+<p>
+<hr>
+<h3><a name="AuthUserFile">AuthUserFile</a></h3>
+<strong>Syntax:</strong> AuthUserFile <em>path [id min-max] [home regex] [name regex]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_auth_file<br>
+<strong>Compatibility:</strong> 1.2.7rc2
+
+<p>
+The <code>AuthUserFile</code> directive configures an alternate passwd file for
+providing user account information; the specified file must have the same
+format as the system <code>/etc/passwd</code> file, and if specified is used
+during authentication and user lookups for directory/access control operations.
+The <em>path</em> argument should be the full path to the specified file. This
+directive can be configured on a per-server basis, so that virtual FTP servers
+can each have their own authentication file, often in conjunction with an
+<a href="#AuthGroupFile"><code>AuthGroupFile</code></a>.
+
+<p>
+Note that this file does <i>not</i> need to reside inside a
+<code>chroot()</code>ed directory structure for anonymous or
+<code>DefaultRoot</code> logins, as it is held open for the duration of a
+session.
+
+<p>
+The optional parameters are used to set restrictions on the contents of
+the specified file.  The <em>id</em> restriction is used to specify a range
+of UIDs that may appear in the file; when doing a lookup, if a user entry
+has a UID that is less than the minimum or greater than the maximum is
+encountered, that entry is ignored.  The <em>home</em> restriction is used
+to specify a regular expression that is applied to the home directory of a user
+entry.  If the home does not match the regular expression, the user entry
+is ignored.  The <em>name</em> restriction is used to specify a regular
+expression that is applied to the name of a user entry.  If the user name does
+not match the regular expression, the user entry is ignored.  A leading
+<code>!</code> in these regular expressions can be used to negate the given
+expression.
+
+<p>
+Example:
+<pre>
+  # This makes an AuthUserFile whose user names must start with 'ftp', and
+  # whose homes cannot start with /home.
+  AuthUserFile /etc/ftpd/passwd name ^ftp home !^/home
+</pre>
+
+<p>
+<b>Note</b>: In order to prevent other users from modifying the
+<code>AuthUserFile</code>, the <code>mod_auth_file</code> module
+<b>requires</b> that the permissions on the file <b>not</b> be world-readable
+<b>or</b> world-writable, <b>and</b> that the directory containing the
+file <b>not</b> be world-writable.  In addition, if the file is not a file
+(<i>e.g.</i> the path points to a symlink, or a FIFO, <i>etc</i>), a warning
+will be logged on server startup/restart.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_auth_file</code> module is compiled by default.
+
+<p>
+<b>Logging</b><br>
+The <code>mod_auth_file</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>auth.file
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace auth.file:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="Password8Characters">
+<font color=red>Question</font>: I found that only the first 8 characters of
+passwords are used! This is a security bug!<br>
+<font color=blue>Answer</font>: No, it is not.
+
+<p>
+The default Unix password hashing scheme uses the <a href="http://en.wikipedia.org/wiki/Data_Encryption_Standard">Data Encryption Standard</a> (DES) algorithm.
+As per the <code>crypt(3)</code> man page, <b>only the first 8 characters
+of the password are used</b>.  Thus this 8 character limitation comes from
+the underlying system authentication, <b>not</b> from proftpd.  The whole
+purpose of the PAM system was to enable replacing the use of DES with other
+authentication algorithms, which do not have this 8 character limitation.
+
+<p>
+Later, other <code>crypt(3)</code> implementations were made which can also
+support algorithms such as MD5, or Blowfish.  Some platforms support these
+enhanced versions of <code>crypt(3)</code>, some do not.  The
+<a href="../utils/ftpasswd.html"><code>ftpasswd</code></a> script can generate
+<code>AuthUserFiles</code> which use the MD5 algorithm instead of DES.
+
+<p><a name="AuthFilePermissions">
+<font color=red>Question</font>: Why does <code>mod_auth_file</code> refuse
+to use an <code>AuthUserFile</code> (or <code>AuthGroupFile</code>) that is
+world-readable/writable?  I see messages like the following logged:
+<pre>
+  mod_auth_file/1.0: unable to use world-readable AuthUserFile '/etc/proftpd/ftpd.passwd'
+</pre>
+or:
+<pre>
+  mod_auth_file/1.0: unable to use world-writable AuthUserFile '/etc/proftpd/ftpd.passwd'
+</pre>
+<br>
+<font color=blue>Answer</font>:  If an <code>AuthUserFile</code> or
+<code>AuthGroupFile</code> is world-writable, then <b>any user on the system
+can edit that file</b>.  They can create new users, or change the entries
+for existing users such that those users have different privileges, perhaps
+even root privileges.  In short, having <code>AuthUserFile</code> or
+<code>AuthGroupFile</code> with world-writable permissions is an unsafe
+configuration, and now <code>mod_auth_file</code> prevents this.
+
+<p>
+If the <code>AuthUserFile</code> is world-readable, then <b>any user on the
+system can read that file</b>, including the hashed password.  This can allow
+for offline dictionary/cracking attempts against those hashes.  This is also an
+unsafe configuration, and thus <code>mod_auth_file</code> does not allow
+world-readable <code>AuthUserFiles</code>.
+
+<p>
+Similarly, <code>mod_auth_file</code> will refuse to use an
+<code>AuthUserFile</code> or <code>AuthGroupFile</code> if that file lives
+in a directory, and that directory has world-writable permissions (even if
+the configured file itself is <b>not</b> world-writable).  A world-writable
+directory would allow <b>any system user to delete the <code>AuthUserFile</code></b>, and add their own, or to add a symlink, <i>etc</i>.  It is another
+unsafe configuration against which <code>mod_auth_file</code> now guards.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2002-2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

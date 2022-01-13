@@ -1,0 +1,57 @@
+ROUTERS:
+
+The yield of a router is one of:
+
+  OK              the address was routed and either added to one of the
+                  addr_local or addr_remote chains, or one or more new
+                  addresses were added to addr_new. The original may be added
+                  to addr_succeed.
+
+  REROUTED        this is used when a child address is created and added to
+                  addr_new as a consequence of a domain widening or because
+                  "self = reroute" was encountered. The only time it is handled
+                  differently from OK is when verifying, to force it to
+                  continue with the child address.
+
+  DECLINE         the address was not routed; pass to next router unless
+                  no_more is set. It is permitted for additional addresses to
+                  have been added to addr_new (or indeed for addresses to have
+                  been put on the other chains).
+
+  PASS            the address was not routed, but might have been modified;
+                  pass to the next router unconditionally.
+
+  DISCARD         the address was discarded (:blackhole: or "seen finish")
+
+  FAIL            the address was not routed; do not pass to any subsequent
+                  routers, i.e. cause routing to fail.
+
+  DEFER           retry this address later.
+
+Both ERROR and DEFER cause the message to be kept on the queue; either may
+request freezing, but nowadays we try not to request freezing from routers
+because it may hold up other addresses in the message.
+
+
+When routing succeeds, the following field in the address can be set:
+
+  transport       points to the transport instance control block
+
+  uid, gid        are the uid and gid under which a local transport is to be
+                  run if the transport does not itself specify them.
+
+  initgroups      is set true if initgroups() is to be called when using the
+                  uid and gid set up by the router.
+
+  fallback_hosts  fallback host list - relevant only if the router sets up
+                  a remote transport for the address.
+
+  errors_address  where to send error messages for this address.
+
+  extra_headers   additional headers to be added to the message for this
+                  address.
+
+  remove_headers  the names of headers to be removed from the message for this
+                  address
+
+****

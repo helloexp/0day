@@ -1,0 +1,21 @@
+# Exim: OS-specific make file for BSDI aka BSD/OS. Its antique link editor
+# cannot handle the TextPop overriding.
+
+CFLAGS=-O
+CHOWN_COMMAND=/usr/sbin/chown
+
+HAVE_SA_LEN=YES
+
+X11=/usr/X11
+XINCLUDE=-I$(X11)/include
+XLFLAGS=-L$(X11)/lib
+X11_LD_LIB=$(X11)/lib
+
+LIBS_EXIMON=-lSM -lICE -lipc -lm
+EXIMON_TEXTPOP=
+
+EXIWHAT_PS_ARG=-ax
+EXIWHAT_EGREP_ARG='/exim( |$$)'
+EXIWHAT_KILL_SIGNAL=-USR1
+
+# End

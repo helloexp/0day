@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_wrap2_sql</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_wrap2_sql</code></b></h2>
+</center>
+<hr>
+
+<p>
+This submodule provides the SQL database &quot;driver&quot; for storing
+IP/DNS-based access control information in SQL tables.
+
+<p>
+This <code>mod_wrap2</code> submodule is contained in the
+<code>mod_wrap2_sql.c</code> file, and is not compiled by default.  See the
+<code>mod_wrap2</code> <a href="mod_wrap2.html#Installation">installation</a>
+instructions.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<p>
+<hr><h2><a name="SQLTables">SQL Access Tables</a></h2>
+The <code>mod_wrap2_sql</code> module supports the &quot;sql&quot; string
+for the <em>source-type</em> parameter of the
+<a href="mod_wrap2.html#WrapUserTables"><code>WrapUserTables</code></a>,
+<a href="mod_wrap2.html#WrapGroupTables"><code>WrapGroupTables</code></a>,
+and
+<a href="mod_wrap2.html#WrapTables"><code>WrapTables</code></a>,
+configuration directives. If the &quot;sql&quot; <em>source-type</em> is used,
+then the <em>source-info</em> parameter must be as described below.  Note
+that support for SQL-based access tables <b>requires</b> the use of
+<code>mod_sql</code>.
+
+<p>
+<code>mod_wrap2_sql</code> requires two to four SQL-related configuration
+directives: <code>SQLConnectInfo</code>, and two, possibly four,
+<code>SQLNamedQuery</code> directives.  The <code>SQLConnectInfo</code> is
+necessary to allow the module to connect to the SQL database.  The other
+directives define the SQL queries that will be used by <code>mod_wrap2</code>
+for its retrieval operations involving access data.
+
+<p>
+When using SQL tables and <code>mod_sql</code>, the access tables should appear
+in the database named by the <code>SQLConnectInfo</code> directive, which
+will probably also contain the authentication information tables.  This way
+your <code>proftpd</code>-specific tables are kept together.  Also, it is
+probably better to use a connection policy of PERSESSION, otherwise there will
+be more overhead associated with each new connection made to the database for
+each transaction.
+
+<p>
+One <code>SQLNamedQuery</code> is needed to <code>SELECT</code> access
+information from the allow table, and one to <code>SELECT</code> access
+information from the deny table.  These queries should return a list of words,
+where each word is a host name, host address, pattern, or wildcard (see
+<a href="mod_wrap2.html#AccessRules">here</a> for how these things are
+defined).  Failure to define either of these <code>SQLNamedQuery</code>
+directives will cause an error during <code>mod_wrap2_sql</code>'s operation.
+
+<p>
+Optionally, other <code>SQLNamedQuery</code> directives can be defined
+to look up access <a href="mod_wrap2.html#AccessOptions">options</a> from
+the allow and deny tables.
+
+<p>
+For SQL tables, the format for the <code>WrapUserTables</code>,
+<code>WrapGroupTables</code>, and <code>WrapTables</code> directives is:
+<pre>
+  WrapTables sql:/<i>allow-<code>SQLNamedQuery</code></i>[/<i>allow-options-<code>SQLNamedQuery</code></i>] \
+    sql:<i>deny-<code>SQLNamedQuery</code></i>[/<i>deny-options-<code>SQLNamedQuery</code></i>]
+</pre>
+where the <i>allow-options-<code>SQLNamedQuery</code></i> and
+<i>deny-options-<code>SQLNamedQuery</code></i> portions of the string are
+optional.
+
+<p>
+<b>SQL Access Tables Example</b><br>
+Here are example <code>SQLNamedQuery</code> directives to help demonstrate
+how the <code>mod_sql</code> hooks are used by <code>mod_wrap2_sql</code>.
+These example SQL statements assume the existence of two tables: a
+<code>wrapallow</code> table that defines allowed clients, and a
+<code>wrapdeny</code> table that defines the denied clients.
+
+<pre>
+  SQLNamedQuery get-allowed-clients SELECT "allowed FROM wrapallow WHERE name = '%{0}'"
+  SQLNamedQuery get-denied-clients SELECT "denied FROM wrapdeny WHERE name = '%{0}'"
+  ...
+  SQLNamedQuery get-all-allowed-clients SELECT "allowed FROM wrapallow"
+  SQLNamedQuery get-all-denied-clients SELET "denied FROM wrapdeny"
+</pre>
+These define the SQL statements to return the required list of words. The
+<code>%{0}</code> meta sequence will be substituted with the name being looked
+up (<i>e.g.</i> user name for <code>WrapUserTables</code>, primary group name
+for <code>WrapGroupTables</code>, or the empty string for
+<code>WrapTables</code>).
+
+<p>
+If the administrator wants to make use of access options, then queries for
+those options would need to be similarly defined:
+<pre>
+  SQLNamedQuery get-allowed-options SELECT "options FROM wrapallow WHERE name = '%{0}'"
+  SQLNamedQuery get-denied-options SELECT "options FROM wrapdeny WHERE name = '%{0}'"
+</pre>
+
+<p>
+Now, using the above defined queries, the table configuration directives would
+be:
+<pre>
+  # Access tables for users (with options)
+  WrapUserTables user1,user2 sql:/get-allowed-clients/get-allowed-options \
+    sql:/get-denied-clients/get-denied-options
+
+  # Access tables for groups (with options).  Note that this directive
+  # uses the same SELECT queries used for looking up users.  If group
+  # access information is in a different table, then separate group-specific
+  # SQLNamedQuery directives will need to be used.
+  WrapGroupTables group1,group2 sql:/get-allowed-clients/get-allowed-options \
+    sql:/get-denied-clients/get-denied-options
+
+  # Access tables for everyone else (without options).  Note that these
+  # query names are different, since these tables are global, not
+  # per-user/group.
+  WrapTables sql:/get-all-allowed-clients sql:/get-all-denied-clients
+</pre>
+One thing to keep in mind, however, is that the <code>%{0}</code> part of an
+SQL query will only be expanded with the client's <code>USER</code> argument
+for <code>WrapUserTables</code> queries.  For <code>WrapGroupTables</code>
+queries, that <code>%{0}</code> will be expanded to contain the primary group
+name of the connecting client's <code>USER</code>.  For <code>WrapTables</code>
+queries, an empty string is used.  This means that the same query cannot
+often be easily reused.
+
+<p>
+<b>Example Schema</b><br>
+Here are some example table schema for SQL-based access tables:
+<ul>
+  <li><b><i>Per-User/Group Allow Table</i></b><br>
+<pre>
+  CREATE TABLE wrapallow (
+    name VARCHAR(64) PRIMARY KEY,
+    allowed VARCHAR(255) NOT NULL,
+    options VARCHAR(255)
+  );
+</pre>
+  </li>
+
+  <p>
+  <li><b><i>Per-User/Group Deny Table</i></b><br>
+<pre>
+  CREATE TABLE wrapdeny (
+    name VARCHAR(64) PRIMARY KEY,
+    denied VARCHAR(255) NOT NULL,
+    options VARCHAR(255)
+  );
+</pre>
+  </li>
+
+  <p>
+  <li><b><i>Per-IP Allow Table</i></b><br>
+<pre>
+  CREATE TABLE wrapallowip (
+    allowed VARCHAR(128) PRIMARY KEY
+  );
+</pre>
+  The idea here is that the <code>allowed</code> column would contain the IP
+  address of the client to be allowed; one row per IP address.  The
+  <code>SQLNamedQuery</code> for this would then be:
+<pre>
+  SQLNamedQuery get-allowed-client-ip SELECT "allowed FROM wrapallowip WHERE allowed = '%a'"
+</pre>
+  Yes, this looks odd, to be returning the value that is used for the lookup,
+  but this interface is necessary due to the <code>mod_wrap2</code> engine.
+  </li>
+
+  <p>
+  <li><b><i>Per-IP Deny Table</i></b><br>
+<pre>
+  CREATE TABLE wrapdenyip (
+    denied VARCHAR(128) PRIMARY KEY
+  );
+</pre>
+  The idea here is that the <code>denied</code> column would contain the IP
+  address of the client to be denied; one row per IP address.  The
+  <code>SQLNamedQuery</code> for this would then be:
+<pre>
+  SQLNamedQuery get-denied-client-ip SELECT "denied FROM wrapdenyip WHERE denied = '%a'"
+</pre>
+  Yes, this looks odd, to be returning the value that is used for the lookup,
+  but this interface is necessary due to the <code>mod_wrap2</code> engine.
+  </li>
+</ul>
+
+<p>
+When constructing the client and options lists to return to
+<code>mod_wrap2</code>'s access control engine, <code>mod_wrap2_sql</code> will
+parse each returned row separately, handling both comma- and space-limited
+names in a row, into client list items.  This means that the administrator can
+store multiple client and option tokens in multiple rows, as in the above
+schema, or the administrator can choose to store all of the clients and/or
+options in a single row, in an appropriately formatted string.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

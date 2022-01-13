@@ -1,0 +1,8 @@
+# Exim: OS-specific make file for HI-OSF/1-MJ and HI-UX/MPP
+
+CC=cc
+CFLAGS=-O
+RANLIB=@true
+EXIWHAT_EGREP_ARG='/exim( |$$)'
+
+# End

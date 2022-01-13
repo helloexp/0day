@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Translations</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Translations</b></h2></center>
+<hr>
+
+<p>
+<b>Translations</b><br>
+ProFTPD has support for translating the messages sent to clients in the
+FTP responses.  To enable use of these translations in your
+<code>proftpd</code>, you must compile proftpd using the <code>--enable-nls</code> configure option.  This causes the <a href="../modules/mod_lang.html"><code>mod_lang</code></a> module to be compiled into your <code>proftpd</code>.
+
+<p>
+ProFTPD uses the <a href="http://www.gnu.org/software/gettext/manual/gettext.html"><code>gettext</code></a> code package for translation support.
+
+<p>
+<b>Adding a New Translation</b><br>
+To add a new language translation to <code>proftpd</code>, first check to see
+if the language in question already has a translation.  ProFTPD's translations
+are kept, in the source distribution, under the <code>locale/</code> directory,
+<i>e.g.</i>:
+<pre>
+  $ ls /path/to/proftpd-<i>version</i>/locale/*.po
+</pre>
+
+<p>
+To create a new translation, you first initialize a <code>.po</code> file
+for your translation using the template PO file (<code>proftpd.pot</code>):
+<pre>
+  $ cd proftpd-<i>version</i>/locale/
+  $ msginit -i proftpd.pot -o <i>lang</i>.po -l <i>lang</i>
+</pre>
+Then you simply use an editor to edit the generated <code><i>lang</i>.po</code>
+file, adding in the translated versions of the English messages.  There are
+some good editors out there which greatly aid in editing <code>.po</code>
+files:
+<ul>
+  <li><a href="http://code.google.com/p/poeditor/">POEditor</a>
+  <li><a href="http://kbabel.kde.org/">KBabel</a>
+</ul>
+
+<p>
+<b>Testing a Translation</b><br>
+Once you think your <code>.po</code> file is ready, you should run some
+quick checks to make sure.  First, compare your <code>.po</code> file against
+the template <code>.pot</code> file to see if you translated all of the
+messages in the template.  This is accomplished using the <code>msgcmp</code>
+command:
+<pre>
+  $ cd proftpd-<i>version</i>/locale/
+  $ msgcmp <i>lang</i>.po proftpd.pot
+</pre>
+
+<p>
+Finally, compile your <code>.po</code> file into the machine-specific
+<code>.mo</code> file; this is what the <code>gettext</code> library uses
+in the running code:
+<pre>
+  $ msgfmt --check-format <i>lang</i>.po -o <i>lang</i>.mo
+</pre>
+The <code>--check-format</code> option checks that your <code>.po</code> is
+properly formatted, and can be compiled without errors.
+
+<p>
+<b>Submitting Translations</b><br>
+Once your <code>.po</code> file has been tested and looks ready, simply
+open a feature request at:
+<pre>
+  <a href="http://bugs.proftpd.org/">http://bugs.proftpd.org/</a>
+</pre>
+to request that the new translation be added to ProFTPD.  Upload your
+<code>.po</code> file as an attachment to the opened feature request.
+
+<p>
+<b>Keeping Translations Updated</b><br>
+Note that as ProFTPD is developed, new messages may be added to the template
+<code>.pot</code> file, or existing messages may be changed slightly.
+It is important to keep ProFTPD's translations up-to-date.  You can help
+by periodically checking the existing translations:
+<pre>
+  $ cd proftpd-<i>version</i>/locale/
+  $ make check
+</pre>
+If you see that a language translation is out of date and you can help,
+simply update the <code>.po</code> file that language, and open a bug request
+and attach the diff, or send the diff to the ProFTPD developers mailing list.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

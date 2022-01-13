@@ -1,0 +1,41 @@
+TRANSPORTS:
+
+A delivery attempt results in one of the following values being placed in
+addr->transport_return:
+
+    OK          success
+    DEFER       temporary failure
+    FAIL        permanent failure
+    PANIC       disaster - causes exim to bomb
+
+The field is initialized to DEFER when the address is created, in order that
+unexpected process crashes or other problems don't cause the message to be
+deleted.
+
+For non-OK values, additional information is placed in addr->errno,
+addr->more_errno, and optionally in addr->message. These are inspected only if
+the status is not OK, with one exception (see below).
+
+In addition, the addr->special_action field can be set to request a non-default
+action. The default action after FAIL is to return to sender; the default
+action after DEFER is nothing. The alternatives are:
+
+  SPECIAL_NONE       (default) no special action
+  SPECIAL_FREEZE     freeze the message
+  SPECIAL_WARN       send warning message
+
+The SPECIAL_WARN action is the exception referred to above. It is picked up
+only after a *successful* delivery; it causes a warning message to be sent
+containing the text of warn_message to warn_to. It can be used in appendfile,
+for example, to send a warning message when the mailbox size crosses a given
+threshold.
+
+If the transport is handling a batch of several addresses, it may either put an
+individual value in each address structure, and return TRUE, or it may put a
+common value in the first address, and return FALSE.
+
+Remote transports usually return TRUE and local transports usually return
+FALSE; however, the lmtp transport may return either value, depending on what
+happens inside it.
+
+****

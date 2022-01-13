@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_rlimit</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_rlimit</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_rlimit</code> module handles setting and enforcement of
+resource limits such as CPU, memory, and file descriptor usage.
+
+<p>
+By default, the <code>mod_rlimit</code> module will impose one resource
+restriction on new session processes: the <code>RLIMIT_NPROC</code> (see
+<code>getrlimit(2)</code> limit, which controls the number of processes
+which can be forked from this process, is set to zero.  There is absolutely
+no reason for a <code>proftpd</code> session process to need to create a new
+process via <code>fork(2)</code>.
+
+<p>
+This module is contained in the <code>mod_rlimit.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is compiled by default.  See the
+<a href="#Installation">installation</a> section for more details.
+
+<p>
+The most current version of <code>mod_rlimit</code> can be found in the
+ProFTPD source distribution:
+<pre>
+  <a href="http://www.proftpd.org/">http://www.proftpd.org/</a>
+</pre>
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#RLimitChroot">RLimitChroot</a>
+  <li><a href="#RLimitCPU">RLimitCPU</a>
+  <li><a href="#RLimitMemory">RLimitMemory</a>
+  <li><a href="#RLimitOpenFiles">RLimitOpenFiles</a>
+</ul>
+
+<p>
+<hr>
+<h3><a name="RLimitChroot">RLimitChroot</a></h3>
+<strong>Syntax:</strong> RLimitChroot <em>on|off</em><br>
+<strong>Default:</strong> RLimitChroot on<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_rlimit<br>
+<strong>Compatibility:</strong> 1.3.5rc5
+
+<p>
+The <code>RLimitChroot</code> directive is used to enable/disable checks
+for modifications to "sensitive" directories when a session is chrooted.  These
+checks are designed to mitigate and guard against attacks such as the
+"Roaring Beast" attack; see:
+<ul>
+  <li><a href="https://auscert.org.au/15286">https://auscert.org.au/15286</a>
+  <li><a href="https://auscert.org.au/15526">https://auscert.org.au/15526</a>
+</ul>
+
+<p>
+When a session is chrooted, <i>e.g.</i> via the <code>DefaultRoot</code>
+directive <i>or</i> by <code>&lt;Anonymous&gt;</code> login, the checks
+for the "sensitive" directories are automatically enabled.  To disable these
+checks, use:
+<pre>
+  RLimitChroot off
+</pre>
+<b>Note</b>: We <b>strongly recommend</b> that you do <b>not</b> disable
+these checks.
+
+<p>
+The checks in question will specifically prevent any attempts to upload
+files into the <code>/etc</code> and <code>/lib</code> directories, or
+attempts to delete, create, rename, link, or otherwise try to change anything
+in these directories.  All attempts to make modifications will be rejected
+with "Permission denied" errors.  In addition, the following message will
+be logged (at debug level 2):
+<pre>
+  WARNING: attempt to use sensitive path '<i>/etc/file</i>' within chroot '<i>/home/user</i>', rejecting
+</pre>
+
+<p>
+The <code>RLimitChroot</code> directive is <b>not</b> intended to <b>prevent</b>
+"Roaring Beast" style attacks entirely; the guarded <code>/etc</code> and
+<code>/lib</code> directories might be created via other means, outside of
+ProFTPD, which would also allow for the attack.  The <code>RLimitChroot</code>
+directive is meant to <em>mitigate</em> (not <em>prevent</em>) the attacks by
+making sure it cannot be done using <i>just</i> ProFTPD.
+
+<p>
+<hr>
+<h3><a name="RLimitCPU">RLimitCPU</a></h3>
+<strong>Syntax:</strong> RLimitCPU <em>[scope] soft-limit|"max" [hard-limit|"max"]</em><br>
+<strong>Default:</strong> <em>System defaults</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_rlimit<br>
+<strong>Compatibility:</strong> 1.3.5rc2
+
+<p>
+The <code>RLimitCPU</code> directive is used to set a limit on the CPU usage,
+expressed as a maximum number of seconds.
+
+<p>
+<code>RLimitCPU</code> takes from one to three parameters. The first parameter
+is an optional <em>scope</em> parameter, indicating the scope of the resource
+limit.  The <em>scope</em> parameter may be one of:
+<ul>
+  <li>"daemon" (applies the resource limit only to the <i>daemon</i> process)
+  <li>"session" (which applies the limit only to <i>session</i> processes handling each client)
+  <li>"none" (which disables any possibly inherited limits)
+</ul>
+If none of these keywords are used, the resource limit is assumed to apply to
+both daemon and session processes.
+
+<p>
+The next parameters indicate the actual resource limits, both the so-called
+"soft limit" and any "hard limit".  These parameters may be a number
+(indicating the number of seconds), or the value "max" to indicate that
+maximum resource limit value allowed is to be used.
+
+<p>
+Example:
+<pre>
+  # Limit a given session to 30 minutes of CPU time (which can take
+  # considerably longer than 30 minutes of wall time, due to CPU scheduling)
+  RLimitCPU 1800
+</pre>
+
+<p>
+<hr>
+<h3><a name="RLimitMemory">RLimitMemory</a></h3>
+<strong>Syntax:</strong> RLimitMemory <em>[scope] soft-limit|"max" [hard-limit|"max"]</em><br>
+<strong>Default:</strong> <em>System defaults</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_rlimit<br>
+<strong>Compatibility:</strong> 1.3.5rc2
+
+<p>
+The <code>RLimitMemory</code> directive is used to set a limit on the
+memory usage, expressed as a maximum number of bytes.
+
+<p>
+<code>RLimitMemory</code> takes from one to three parameters. The first
+parameter is an optional <em>scope</em> parameter, indicating the scope of the
+resource limit.  The <em>scope</em> parameter may be one of:
+<ul>
+  <li>"daemon" (applies the resource limit only to the <i>daemon</i> process)
+  <li>"session" (which applies the limit only to <i>session</i> processes handling each client)
+  <li>"none" (which disables any possibly inherited limits)
+</ul>
+If none of these keywords are used, the resource limit is assumed to apply to
+both daemon and session processes.
+
+<p>
+The next parameters indicate the actual resource limits, both the so-called
+"soft limit" and any "hard limit".  These parameters may be a number
+(indicating the number of bytes), or the value "max" to indicate that
+maximum resource limit value allowed is to be used.
+
+<p>
+Example:
+<pre>
+  # Limit a given session to 128MB minutes of memory
+  RLimitMemory 128MB
+</pre>
+
+<p>
+<b>Note</b>: If you use <code>RLimitMemory</code>, <i>e.g.</i>:
+<pre>
+  &lt;IfModule mod_rlimit.c&gt;
+    RLimitMemory session 64M
+  &lt;/IfModule&gt;
+</pre>
+<b>and</b> you use <a href="../contrib/mod_tls.html"><code>mod_tls</code></a>
+for FTPS transfers:
+<pre>
+  &lt;IfModule mod_tls.c&gt;
+    ...
+  &lt;/IfModule&gt;
+</pre>
+then your transfers are likely to fail.  Why?  Because OpenSSL will need to
+allocate memory for the TLS support, in addition to the memory that ProFTPD
+already allocates for data transfers.  Depending on the specific ciphersuites
+negotiated, and the specific memory limit configured, you are very likely to
+hit the <code>RLimitMemory</code> limit.  In short, your
+<code>RLimitMemory</code> might be too low, and not allowing ProFTPD and
+OpenSSL enough memory for the transfer.
+
+<p>
+<hr>
+<h3><a name="RLimitOpenFiles">RLimitOpenFiles</a></h3>
+<strong>Syntax:</strong> RLimitOpenFiles <em>[scope] soft-limit|"max" [hard-limit|"max"]</em><br>
+<strong>Default:</strong> <em>System defaults</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_rlimit<br>
+<strong>Compatibility:</strong> 1.3.5rc2
+
+<p>
+The <code>RLimitOpenFiles</code> directive is used to set a limit on the
+file descriptors, expressed as counts.
+
+<p>
+<code>RLimitOpenFiles</code> takes from one to three parameters. The first
+parameter is an optional <em>scope</em> parameter, indicating the scope of the
+resource limit.  The <em>scope</em> parameter may be one of:
+<ul>
+  <li>"daemon" (applies the resource limit only to the <i>daemon</i> process)
+  <li>"session" (which applies the limit only to <i>session</i> processes handling each client)
+  <li>"none" (which disables any possibly inherited limits)
+</ul>
+If none of these keywords are used, the resource limit is assumed to apply to
+both daemon and session processes.
+
+<p>
+The next parameters indicate the actual resource limits, both the so-called
+"soft limit" and any "hard limit".  These parameters may be a number, or the
+value "max" to indicate that maximum resource limit value allowed is to be
+used.
+
+<p>
+Example:
+<pre>
+  # Limit a given session to 12 open file descriptors
+  RLimitOpenFiles session 12
+</pre>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_rlimit</code> module is compiled into <code>proftpd</code> by
+default.
+
+<p><a name="FAQ">FAQ</a>
+<b>Frequently Asked Questions</b><br>
+
+<p>
+<font color=red>Question</font>: Why can't I create directories named "lib"
+or "etc" in the root directory?  For example, my FTP client fails like so:
+<code>
+  <font color=blue>Command:	MKD lib</font>
+  <font color=green>Response:	550 lib: Permission denied</font>
+  <font color=blue>Command:	MKD /lib</font>
+  <font color=green>Response:	550 /lib: Permission denied</font>
+</code>
+Although I don't have anything in my <code>proftpd.conf</code> that would block
+these commands, and the filesystem permissions are OK.  Why does this
+happen?<br>
+<font color=blue>Answer</font>: For the answer to this, see the description for
+the <a href="#RLimitChroot"><code>RLimitChroot</code></a> directive.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2013-2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

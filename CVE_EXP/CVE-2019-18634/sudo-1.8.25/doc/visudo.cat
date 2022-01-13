@@ -1,0 +1,225 @@
+VISUDO(1m)                   System Manager's Manual                  VISUDO(1m)
+
+NNAAMMEE
+     vviissuuddoo - edit the sudoers file
+
+SSYYNNOOPPSSIISS
+     vviissuuddoo [--cchhqqssVV] [--ff _s_u_d_o_e_r_s]
+
+DDEESSCCRRIIPPTTIIOONN
+     vviissuuddoo edits the _s_u_d_o_e_r_s file in a safe fashion, analogous to vipw(1m).
+     vviissuuddoo locks the _s_u_d_o_e_r_s file against multiple simultaneous edits,
+     provides basic sanity checks, and checks for parse errors.  If the
+     _s_u_d_o_e_r_s file is currently being edited you will receive a message to try
+     again later.
+
+     vviissuuddoo parses the _s_u_d_o_e_r_s file after editing and will not save the
+     changes if there is a syntax error.  Upon finding an error, vviissuuddoo will
+     print a message stating the line number(s) where the error occurred and
+     the user will receive the "What now?" prompt.  At this point the user may
+     enter `e' to re-edit the _s_u_d_o_e_r_s file, `x' to exit without saving the
+     changes, or `Q' to quit and save changes.  The `Q' option should be used
+     with extreme caution because if vviissuuddoo believes there to be a parse
+     error, so will ssuuddoo and no one will be able to run ssuuddoo again until the
+     error is fixed.  If `e' is typed to edit the _s_u_d_o_e_r_s file after a parse
+     error has been detected, the cursor will be placed on the line where the
+     error occurred (if the editor supports this feature).
+
+     There are two _s_u_d_o_e_r_s settings that determine which editor vviissuuddoo will
+     run.
+
+     editor    A colon (`:') separated list of editors allowed to be used with
+               vviissuuddoo.  vviissuuddoo will choose the editor that matches the user's
+               SUDO_EDITOR, VISUAL or EDITOR environment variable if possible,
+               or the first editor in the list that exists and is executable.
+               Note that the SUDO_EDITOR, VISUAL and EDITOR environment
+               variables are not preserved by default when the _e_n_v___r_e_s_e_t
+               _s_u_d_o_e_r_s option is enabled.  The default editor path is _v_i which
+               can be set at compile time via the --with-editor configure
+               option.
+
+     env_editor
+               If set, vviissuuddoo will use the value of the SUDO_EDITOR, VISUAL or
+               EDITOR environment variables before falling back on the default
+               editor list.  Note that this may create a security hole as it
+               allows the user to run any arbitrary command as root without
+               logging.  A safer alternative is to place a colon-separated
+               list of editors in the _e_d_i_t_o_r variable.  vviissuuddoo will then only
+               use SUDO_EDITOR, VISUAL or EDITOR if they match a value
+               specified in _e_d_i_t_o_r.  If the _e_n_v___r_e_s_e_t flag is enabled, the
+               SUDO_EDITOR, VISUAL and/or EDITOR environment variables must be
+               present in the _e_n_v___k_e_e_p list for the _e_n_v___e_d_i_t_o_r flag to
+               function when vviissuuddoo is invoked via ssuuddoo.  The default value is
+               _o_f_f, which can be set at compile time via the --with-env-editor
+               configure option.
+
+     The options are as follows:
+
+     --cc, ----cchheecckk
+                 Enable _c_h_e_c_k_-_o_n_l_y mode.  The existing _s_u_d_o_e_r_s file (and any
+                 other files it includes) will be checked for syntax errors.
+                 If the --ff option has not been specified, vviissuuddoo will also
+                 check the _s_u_d_o_e_r_s file owner and mode.  A message will be
+                 printed to the standard output describing the status of
+                 _s_u_d_o_e_r_s unless the --qq option was specified.  If the check
+                 completes successfully, vviissuuddoo will exit with a value of 0.
+                 If an error is encountered, vviissuuddoo will exit with a value of
+                 1.
+
+     --ff _s_u_d_o_e_r_s, ----ffiillee=_s_u_d_o_e_r_s
+                 Specify an alternate _s_u_d_o_e_r_s file location.  With this
+                 option, vviissuuddoo will edit (or check) the _s_u_d_o_e_r_s file of your
+                 choice, instead of the default, _/_e_t_c_/_s_u_d_o_e_r_s.  The lock file
+                 used is the specified _s_u_d_o_e_r_s file with ".tmp" appended to
+                 it.  In _c_h_e_c_k_-_o_n_l_y mode only, the argument to --ff may be `-',
+                 indicating that _s_u_d_o_e_r_s will be read from the standard input.
+                 Because the policy is evaluated in its entirety, it is not
+                 sufficient to check an individual _s_u_d_o_e_r_s include file for
+                 syntax errors.
+
+     --hh, ----hheellpp  Display a short help message to the standard output and exit.
+
+     --qq, ----qquuiieett
+                 Enable _q_u_i_e_t mode.  In this mode details about syntax errors
+                 are not printed.  This option is only useful when combined
+                 with the --cc option.
+
+     --ss, ----ssttrriicctt
+                 Enable _s_t_r_i_c_t checking of the _s_u_d_o_e_r_s file.  If an alias is
+                 referenced but not actually defined or if there is a cycle in
+                 an alias, vviissuuddoo will consider this a parse error.  Note that
+                 it is not possible to differentiate between an alias and a
+                 host name or user name that consists solely of uppercase
+                 letters, digits, and the underscore (`_') character.
+
+     --VV, ----vveerrssiioonn
+                 Print the vviissuuddoo and _s_u_d_o_e_r_s grammar versions and exit.
+
+   DDeebbuuggggiinngg aanndd ssuuddooeerrss pplluuggiinn aarrgguummeennttss
+     vviissuuddoo versions 1.8.4 and higher support a flexible debugging framework
+     that is configured via Debug lines in the sudo.conf(4) file.
+
+     Starting with ssuuddoo 1.8.12, vviissuuddoo will also parse the arguments to the
+     _s_u_d_o_e_r_s plugin to override the default _s_u_d_o_e_r_s path name, UID, GID and
+     file mode.  These arguments, if present, should be listed after the path
+     to the plugin (i.e. after _s_u_d_o_e_r_s_._s_o).  Multiple arguments may be
+     specified, separated by white space.  For example:
+
+           Plugin sudoers_policy sudoers.so sudoers_mode=0400
+
+     The following arguments are supported:
+
+     sudoers_file=pathname
+               The _s_u_d_o_e_r_s___f_i_l_e argument can be used to override the default
+               path to the _s_u_d_o_e_r_s file.
+
+     sudoers_uid=uid
+               The _s_u_d_o_e_r_s___u_i_d argument can be used to override the default
+               owner of the sudoers file.  It should be specified as a numeric
+               user ID.
+
+     sudoers_gid=gid
+               The _s_u_d_o_e_r_s___g_i_d argument can be used to override the default
+               group of the sudoers file.  It must be specified as a numeric
+               group ID (not a group name).
+
+     sudoers_mode=mode
+               The _s_u_d_o_e_r_s___m_o_d_e argument can be used to override the default
+               file mode for the sudoers file.  It should be specified as an
+               octal value.
+
+     For more information on configuring sudo.conf(4), please refer to its
+     manual.
+
+EENNVVIIRROONNMMEENNTT
+     The following environment variables may be consulted depending on the
+     value of the _e_d_i_t_o_r and _e_n_v___e_d_i_t_o_r _s_u_d_o_e_r_s settings:
+
+     SUDO_EDITOR      Invoked by vviissuuddoo as the editor to use
+
+     VISUAL           Used by vviissuuddoo if SUDO_EDITOR is not set
+
+     EDITOR           Used by vviissuuddoo if neither SUDO_EDITOR nor VISUAL is set
+
+FFIILLEESS
+     _/_e_t_c_/_s_u_d_o_._c_o_n_f            Sudo front end configuration
+
+     _/_e_t_c_/_s_u_d_o_e_r_s              List of who can run what
+
+     _/_e_t_c_/_s_u_d_o_e_r_s_._t_m_p          Lock file for visudo
+
+DDIIAAGGNNOOSSTTIICCSS
+     In addition to reporting _s_u_d_o_e_r_s parse errors, vviissuuddoo may produce the
+     following messages:
+
+     sudoers file busy, try again later.
+           Someone else is currently editing the _s_u_d_o_e_r_s file.
+
+     /etc/sudoers.tmp: Permission denied
+           You didn't run vviissuuddoo as root.
+
+     you do not exist in the passwd database
+           Your user ID does not appear in the system passwd database.
+
+     Warning: {User,Runas,Host,Cmnd}_Alias referenced but not defined
+           Either you are trying to use an undeclared
+           {User,Runas,Host,Cmnd}_Alias or you have a user or host name listed
+           that consists solely of uppercase letters, digits, and the
+           underscore (`_') character.  In the latter case, you can ignore the
+           warnings (ssuuddoo will not complain).  The message is prefixed with
+           the path name of the _s_u_d_o_e_r_s file and the line number where the
+           undefined alias was used.  In --ss (strict) mode these are errors,
+           not warnings.
+
+     Warning: unused {User,Runas,Host,Cmnd}_Alias
+           The specified {User,Runas,Host,Cmnd}_Alias was defined but never
+           used.  The message is prefixed with the path name of the _s_u_d_o_e_r_s
+           file and the line number where the unused alias was defined.  You
+           may wish to comment out or remove the unused alias.
+
+     Warning: cycle in {User,Runas,Host,Cmnd}_Alias
+           The specified {User,Runas,Host,Cmnd}_Alias includes a reference to
+           itself, either directly or through an alias it includes.  The
+           message is prefixed with the path name of the _s_u_d_o_e_r_s file and the
+           line number where the cycle was detected.  This is only a warning
+           unless vviissuuddoo is run in --ss (strict) mode as ssuuddoo will ignore cycles
+           when parsing the _s_u_d_o_e_r_s file.
+
+     unknown defaults entry "name"
+           The _s_u_d_o_e_r_s file contains a Defaults setting not recognized by
+           vviissuuddoo.
+
+SSEEEE AALLSSOO
+     vi(1), sudo.conf(4), sudoers(4), sudo(1m), vipw(1m)
+
+AAUUTTHHOORRSS
+     Many people have worked on ssuuddoo over the years; this version consists of
+     code written primarily by:
+
+           Todd C. Miller
+
+     See the CONTRIBUTORS file in the ssuuddoo distribution
+     (https://www.sudo.ws/contributors.html) for an exhaustive list of people
+     who have contributed to ssuuddoo.
+
+CCAAVVEEAATTSS
+     There is no easy way to prevent a user from gaining a root shell if the
+     editor used by vviissuuddoo allows shell escapes.
+
+BBUUGGSS
+     If you feel you have found a bug in vviissuuddoo, please submit a bug report at
+     https://bugzilla.sudo.ws/
+
+SSUUPPPPOORRTT
+     Limited free support is available via the sudo-users mailing list, see
+     https://www.sudo.ws/mailman/listinfo/sudo-users to subscribe or search
+     the archives.
+
+DDIISSCCLLAAIIMMEERR
+     vviissuuddoo is provided "AS IS" and any express or implied warranties,
+     including, but not limited to, the implied warranties of merchantability
+     and fitness for a particular purpose are disclaimed.  See the LICENSE
+     file distributed with ssuuddoo or https://www.sudo.ws/license.html for
+     complete details.
+
+Sudo 1.8.25                    January 26, 2018                    Sudo 1.8.25

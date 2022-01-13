@@ -1,0 +1,11 @@
+
+draft 11
+
+3.1.2 - Para 4 (records with Sel Full(0) are discouraged)
+==> There's a matching type Full but not such a Selector type.
+    Should this be "Cert(0), or Matching Type Full(0)" ?
+    Suspect the latter.
+
+3.1.2 Needs a para added regarding certificate date verification,
+    to contrast with the requirement to NOT check for
+    DANE-EE defined in 3.1.1

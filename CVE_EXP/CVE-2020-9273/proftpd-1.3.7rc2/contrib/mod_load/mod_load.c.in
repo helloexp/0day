@@ -1,0 +1,1096 @@
+/*
+ * ProFTPD: mod_load -- a module for refusing connections based on system load
+ *
+ * Copyright (c) 2001-2011 TJ Saunders
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA.
+ *
+ * As a special exemption, TJ Saunders and other respective copyright holders
+ * give permission to link this program with OpenSSL, and distribute the
+ * resulting executable, without including the source code for OpenSSL in the
+ * source distribution.
+ *
+ * This is mod_load, contrib software for proftpd 1.2.x and above.
+ * For more information contact TJ Saunders <tj@castaglia.org>.
+ *
+ * Based on the getloadavg.c file included in GNU make-3.79, which carries
+ * the following copyright:
+ *
+ *   Copyright (C) 1985, 86, 87, 88, 89, 91, 92, 93, 1994, 1995, 1997
+ *     Free Software Foundation, Inc.
+ * 
+ * $Id: mod_load.c.in,v 1.10 2011-05-23 20:58:46 castaglia Exp $
+ * $Libraries: @MODULE_LIBS@ $
+ */
+
+#include "conf.h"
+#include "privs.h"
+#include "mod_load.h"
+
+#define MOD_LOAD_VERSION		"mod_load/1.0.1"
+
+/* Make sure the version of proftpd is as necessary. */
+#if PROFTPD_VERSION_NUMBER < 0x0001030402
+# error "ProFTPD 1.3.4rc2 or later required"
+#endif
+
+/* Support code.  Most of this is from getloadavg.c
+ */
+
+#if defined (unix) || defined (__unix)
+# include <sys/param.h>
+#endif
+
+#ifndef HAVE_GETLOADAVG
+# if !defined(LDAV_CVT) && defined(LOAD_AVE_CVT)
+#  define LDAV_CVT(n) (LOAD_AVE_CVT (n) / 100.0)
+# endif
+
+# if !defined (BSD) && defined (ultrix)
+#  define BSD
+# endif
+
+# ifdef NeXT
+#  undef BSD
+#  undef FSCALE
+# endif
+
+# ifdef __GNU__
+#  undef BSD
+#  undef FSCALE
+# endif /* __GNU__ */
+
+# if defined (HPUX) && !defined (hpux)
+#  define hpux
+# endif
+
+# if defined (__hpux) && !defined (hpux)
+#  define hpux
+# endif
+
+# if defined (__sun) && !defined (sun)
+#  define sun
+# endif
+
+# if defined(hp300) && !defined(hpux)
+#  define MORE_BSD
+# endif
+
+# if defined(ultrix) && defined(mips)
+#  define decstation
+# endif
+
+# if defined (__SVR4) && !defined (SVR4)
+#  define SVR4
+# endif
+
+# if (defined(sun) && defined(SVR4)) || defined (SOLARIS2)
+#  define SUNOS_5
+# endif
+
+# if defined (__osf__) && (defined (__alpha) || defined (__alpha__))
+#  define OSF_ALPHA
+#  include <sys/mbuf.h>
+#  include <sys/socket.h>
+#  include <net/route.h>
+#  include <sys/table.h>
+# endif
+
+# if defined (__osf__) && (defined (mips) || defined (__mips__))
+#  define OSF_MIPS
+#  include <sys/table.h>
+# endif
+
+# if !defined (tek4300) && defined (unix) && defined (m68k) && defined (mc68000) && defined (mc68020) && defined (_MACH_IND_SYS_TYPES)
+#  define tek4300
+# endif
+
+# ifndef LOAD_AVE_TYPE
+
+#  ifdef MORE_BSD
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef sun
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef decstation
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef _SEQUENT_
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef sgi
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef SVR4
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef sony_news
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef sequent
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef OSF_ALPHA
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  if defined (ardent) && defined (titan)
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef tek4300
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  if defined(alliant) && defined(i860) /* Alliant FX/2800 */
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef _AIX
+#   define LOAD_AVE_TYPE long
+#  endif
+
+#  ifdef convex
+#   define LOAD_AVE_TYPE double
+#   ifndef LDAV_CVT
+#    define LDAV_CVT(n) (n)
+#   endif
+#  endif
+
+# endif /* No LOAD_AVE_TYPE.  */
+
+# ifdef OSF_ALPHA
+#  undef FSCALE
+#  define FSCALE 1024.0
+# endif
+
+# if defined(alliant) && defined(i860) /* Alliant FX/2800 */
+#  undef FSCALE
+#  define FSCALE 100.0
+# endif
+
+# ifndef        FSCALE
+
+#  ifdef MORE_BSD
+#   define FSCALE 2048.0
+#  endif
+
+#  if defined(MIPS) || defined(SVR4) || defined(decstation)
+#   define FSCALE 256
+#  endif
+
+#  if defined (sgi) || defined (sequent)
+#   undef FSCALE
+#   define      FSCALE 1000.0
+#  endif
+
+#  if defined (ardent) && defined (titan)
+#   define FSCALE 65536.0
+#  endif
+
+#  ifdef tek4300
+#   define FSCALE 100.0
+#  endif
+
+#  ifdef _AIX
+#   define FSCALE 65536.0
+#  endif
+
+# endif /* Not FSCALE.  */
+
+# if !defined (LDAV_CVT) && defined (FSCALE)
+#  define       LDAV_CVT(n) (((double) (n)) / FSCALE)
+# endif
+
+# ifndef NLIST_STRUCT
+
+#  ifdef MORE_BSD
+#   define NLIST_STRUCT
+#  endif
+
+#  ifdef sun
+#   define NLIST_STRUCT
+#  endif
+
+#  ifdef decstation
+#   define NLIST_STRUCT
+#  endif
+
+#  ifdef hpux
+#   define NLIST_STRUCT
+#  endif
+
+#  if defined (_SEQUENT_) || defined (sequent)
+#   define NLIST_STRUCT
+#  endif
+
+#  ifdef sgi
+#   define NLIST_STRUCT
+#  endif
+
+#  ifdef SVR4
+#   define NLIST_STRUCT
+#  endif
+
+#  ifdef sony_news
+#   define NLIST_STRUCT
+#  endif
+
+#  ifdef OSF_ALPHA
+#   define NLIST_STRUCT
+#  endif
+
+#  if defined (ardent) && defined (titan)
+#   define NLIST_STRUCT
+#  endif
+
+#  ifdef tek4300
+#   define NLIST_STRUCT
+#  endif
+
+#  ifdef butterfly
+#   define NLIST_STRUCT
+#  endif
+
+#  if defined(alliant) && defined(i860) /* Alliant FX/2800 */
+#   define NLIST_STRUCT
+#  endif
+
+#  ifdef _AIX
+#   define NLIST_STRUCT
+#  endif
+
+# endif /* defined (NLIST_STRUCT) */
+
+# if defined(sgi) || (defined(mips) && !defined(BSD))
+#  define FIXUP_KERNEL_SYMBOL_ADDR(nl) ((nl)[0].n_value &= ~(1 << 31))
+# endif
+
+# if !defined (KERNEL_FILE) && defined (sequent)
+#  define KERNEL_FILE "/dynix"
+# endif
+
+# if !defined (KERNEL_FILE) && defined (hpux)
+#  define KERNEL_FILE "/hp-ux"
+# endif
+
+# if !defined(KERNEL_FILE) && (defined(_SEQUENT_) || defined(MIPS) || defined(SVR4) || defined(ISC) || defined (sgi) || (defined (ardent) && defined (titan)))
+#  define KERNEL_FILE "/unix"
+# endif
+
+# if !defined (LDAV_SYMBOL) && defined (alliant)
+#  define LDAV_SYMBOL "_Loadavg"
+# endif
+
+# if !defined(LDAV_SYMBOL) && ((defined(hpux) && !defined(hp9000s300)) || defined(_SEQUENT_) || defined(SVR4) || defined(ISC) || defined(sgi) || (defined (ardent) && defined (titan)) || defined (_AIX))
+#  define LDAV_SYMBOL "avenrun"
+# endif
+
+# ifdef HAVE_UNISTD_H
+#  include <unistd.h>
+# endif
+
+# include <stdio.h>
+
+# if !defined(LOAD_AVE_TYPE) && (defined(BSD) || defined(LDAV_CVT) || defined(KERNEL_FILE) || defined(LDAV_SYMBOL))
+#  define LOAD_AVE_TYPE double
+# endif
+
+# ifdef LOAD_AVE_TYPE
+
+#  ifndef VMS
+#   ifndef __linux__
+#    ifndef NLIST_STRUCT
+#     include <a.out.h>
+#    else /* NLIST_STRUCT */
+#     include <nlist.h>
+#    endif /* NLIST_STRUCT */
+
+#    ifdef SUNOS_5
+#     include <fcntl.h>
+#     include <kvm.h>
+#     include <kstat.h>
+#    endif
+
+#    if defined (hpux) && defined (HAVE_PSTAT_GETDYNAMIC)
+#     include <sys/pstat.h>
+#    endif
+
+#    ifndef KERNEL_FILE
+#     define KERNEL_FILE "/vmunix"
+#    endif /* KERNEL_FILE */
+
+#    ifndef LDAV_SYMBOL
+#     define LDAV_SYMBOL "_avenrun"
+#    endif /* LDAV_SYMBOL */
+#   endif /* __linux__ */
+
+#  else /* VMS */
+
+#   ifndef eunice
+#    include <iodef.h>
+#    include <descrip.h>
+#   else /* eunice */
+#    include <vms/iodef.h>
+#   endif /* eunice */
+#  endif /* VMS */
+
+#  ifndef LDAV_CVT
+#   define LDAV_CVT(n) ((double) (n))
+#  endif /* !LDAV_CVT */
+
+# endif /* LOAD_AVE_TYPE */
+
+# if defined(__GNU__) && !defined (NeXT)
+#  define NeXT
+#  define host_self mach_host_self
+# endif
+
+# ifdef NeXT
+#  ifdef HAVE_MACH_MACH_H
+#   include <mach/mach.h>
+#  else
+#   include <mach.h>
+#  endif
+# endif /* NeXT */
+
+# ifdef sgi
+#  include <sys/sysmp.h>
+# endif /* sgi */
+
+# ifdef UMAX
+#  include <stdio.h>
+#  include <signal.h>
+#  include <sys/time.h>
+#  include <sys/wait.h>
+#  include <sys/syscall.h>
+
+#  ifdef UMAX_43
+#   include <machine/cpu.h>
+#   include <inq_stats/statistics.h>
+#   include <inq_stats/sysstats.h>
+#   include <inq_stats/cpustats.h>
+#   include <inq_stats/procstats.h>
+#  else /* Not UMAX_43.  */
+#   include <sys/sysdefs.h>
+#   include <sys/statistics.h>
+#   include <sys/sysstats.h>
+#   include <sys/cpudefs.h>
+#   include <sys/cpustats.h>
+#   include <sys/procstats.h>
+#  endif /* Not UMAX_43.  */
+# endif /* UMAX */
+
+# ifdef DGUX
+#  include <sys/dg_sys_info.h>
+# endif
+
+# if defined(HAVE_FCNTL_H) || defined(_POSIX_VERSION)
+#  include <fcntl.h>
+# else
+#  include <sys/file.h>
+# endif
+
+# ifdef NeXT
+static processor_set_t default_set;
+static int getloadavg_initialized;
+# endif /* NeXT */
+
+# ifdef UMAX
+static unsigned int cpus = 0;
+static unsigned int samples;
+# endif /* UMAX */
+
+# ifdef DGUX
+static struct dg_sys_info_load_info load_info;  /* what-a-mouthful! */
+# endif /* DGUX */
+
+# if !defined(HAVE_LIBKSTAT) && defined(LOAD_AVE_TYPE) && !defined(__linux__)
+/* File descriptor open to /dev/kmem or VMS load ave driver.  */
+static int channel;
+/* Nonzero iff channel is valid.  */
+static int getloadavg_initialized;
+/* Offset in kmem to seek to read load average, or 0 means invalid.  */
+static long offset;
+
+#  if !defined(VMS) && !defined(sgi) && !defined(__linux__)
+static struct nlist nl[2];
+#  endif /* Not VMS or sgi */
+
+#  ifdef SUNOS_5
+static kvm_t *kd;
+#  endif /* SUNOS_5 */
+
+# endif /* LOAD_AVE_TYPE && !HAVE_LIBKSTAT */
+
+/* Put the 1 minute, 5 minute and 15 minute load averages into the first
+ * NELEM elements of LOADAVG.  Return the number written (never more than 3,
+ * but may be less than NELEM), or -1 if an error occurred.
+ */
+
+static int getloadavg(double *loadavg, int nelem) {
+  int elem = 0;                 /* Return value.  */
+
+# ifdef NO_GET_LOAD_AVG
+#  define LDAV_DONE
+  /* Set errno to zero to indicate that there was no particular error;
+     this function just can't work at all on this system.  */
+  errno = 0;
+  elem = -1;
+# endif
+
+# if !defined (LDAV_DONE) && defined (HAVE_LIBKSTAT)
+/* Use libkstat because we don't have to be root.  */
+#  define LDAV_DONE
+  kstat_ctl_t *kc;
+  kstat_t *ksp;
+  kstat_named_t *kn;
+
+  kc = kstat_open ();
+  if (kc == 0)
+    return -1;
+  ksp = kstat_lookup (kc, "unix", 0, "system_misc");
+  if (ksp == 0 )
+    return -1;
+  if (kstat_read (kc, ksp, 0) == -1)
+    return -1;
+
+
+  kn = kstat_data_lookup (ksp, "avenrun_1min");
+  if (kn == 0)
+    {
+      /* Return -1 if no load average information is available.  */
+      nelem = 0;
+      elem = -1;
+    }
+
+  if (nelem >= 1)
+    loadavg[elem++] = (double) kn->value.ul/FSCALE;
+
+  if (nelem >= 2)
+    {
+      kn = kstat_data_lookup (ksp, "avenrun_5min");
+      if (kn != 0)
+        {
+          loadavg[elem++] = (double) kn->value.ul/FSCALE;
+
+          if (nelem >= 3)
+            {
+              kn = kstat_data_lookup (ksp, "avenrun_15min");
+              if (kn != 0)
+                loadavg[elem++] = (double) kn->value.ul/FSCALE;
+            }
+        }
+    }
+
+  kstat_close (kc);
+# endif /* HAVE_LIBKSTAT */
+
+# if !defined (LDAV_DONE) && defined (hpux) && defined (HAVE_PSTAT_GETDYNAMIC)
+/* Use pstat_getdynamic() because we don't have to be root.  */
+#  define LDAV_DONE
+#  undef LOAD_AVE_TYPE
+
+  struct pst_dynamic dyn_info;
+  if (pstat_getdynamic (&dyn_info, sizeof (dyn_info), 0, 0) < 0)
+    return -1;
+  if (nelem > 0)
+    loadavg[elem++] = dyn_info.psd_avg_1_min;
+  if (nelem > 1)
+    loadavg[elem++] = dyn_info.psd_avg_5_min;
+  if (nelem > 2)
+    loadavg[elem++] = dyn_info.psd_avg_15_min;
+
+# endif /* hpux && HAVE_PSTAT_GETDYNAMIC */
+
+# if !defined (LDAV_DONE) && defined (__linux__)
+#  define LDAV_DONE
+#  undef LOAD_AVE_TYPE
+
+#  ifndef LINUX_LDAV_FILE
+#   define LINUX_LDAV_FILE "/proc/loadavg"
+#  endif
+
+  char ldavgbuf[40];
+  double load_ave[3];
+  int fd, count;
+
+  fd = open (LINUX_LDAV_FILE, O_RDONLY);
+  if (fd == -1)
+    return -1;
+  count = read (fd, ldavgbuf, 40);
+  (void) close (fd);
+  if (count <= 0)
+    return -1;
+
+  count = sscanf (ldavgbuf, "%lf %lf %lf",
+                  &load_ave[0], &load_ave[1], &load_ave[2]);
+  if (count < 1)
+    return -1;
+
+  for (elem = 0; elem < nelem && elem < count; elem++)
+    loadavg[elem] = load_ave[elem];
+
+  return elem;
+
+# endif /* __linux__ */
+
+# if !defined (LDAV_DONE) && defined (__NetBSD__)
+#  define LDAV_DONE
+#  undef LOAD_AVE_TYPE
+
+#  ifndef NETBSD_LDAV_FILE
+#   define NETBSD_LDAV_FILE "/kern/loadavg"
+#  endif
+
+  unsigned long int load_ave[3], scale;
+  int count;
+  FILE *fp;
+
+  fp = fopen (NETBSD_LDAV_FILE, "r");
+  if (fp == NULL)
+    return -1;
+  count = fscanf (fp, "%lu %lu %lu %lu\n",
+                  &load_ave[0], &load_ave[1], &load_ave[2],
+                  &scale);
+  (void) fclose (fp);
+  if (count != 4)
+    return -1;
+
+  for (elem = 0; elem < nelem; elem++)
+    loadavg[elem] = (double) load_ave[elem] / (double) scale;
+
+  return elem;
+
+# endif /* __NetBSD__ */
+
+# if !defined (LDAV_DONE) && defined (NeXT)
+#  define LDAV_DONE
+  /* The NeXT code was adapted from iscreen 3.2.  */
+
+  host_t host;
+  struct processor_set_basic_info info;
+  unsigned info_count;
+
+  /* We only know how to get the 1-minute average for this system,
+     so even if the caller asks for more than 1, we only return 1.  */
+
+  if (!getloadavg_initialized)
+    {
+      if (processor_set_default (host_self (), &default_set) == KERN_SUCCESS)
+        getloadavg_initialized = 1;
+    }
+
+  if (getloadavg_initialized)
+    {
+      info_count = PROCESSOR_SET_BASIC_INFO_COUNT;
+      if (processor_set_info (default_set, PROCESSOR_SET_BASIC_INFO, &host,
+                              (processor_set_info_t) &info, &info_count)
+          != KERN_SUCCESS)
+        getloadavg_initialized = 0;
+      else
+        {
+          if (nelem > 0)
+            loadavg[elem++] = (double) info.load_average / LOAD_SCALE;
+        }
+    }
+
+  if (!getloadavg_initialized)
+    return -1;
+# endif /* NeXT */
+
+# if !defined (LDAV_DONE) && defined (UMAX)
+#  define LDAV_DONE
+/* UMAX 4.2, which runs on the Encore Multimax multiprocessor, does not
+   have a /dev/kmem.  Information about the workings of the running kernel
+   can be gathered with inq_stats system calls.
+   We only know how to get the 1-minute average for this system.  */
+
+  struct proc_summary proc_sum_data;
+  struct stat_descr proc_info;
+  double load;
+  register unsigned int i, j;
+
+  if (cpus == 0)
+    {
+      register unsigned int c, i;
+      struct cpu_config conf;
+      struct stat_descr desc;
+
+      desc.sd_next = 0;
+      desc.sd_subsys = SUBSYS_CPU;
+      desc.sd_type = CPUTYPE_CONFIG;
+      desc.sd_addr = (char *) &conf;
+      desc.sd_size = sizeof conf;
+
+      if (inq_stats (1, &desc))
+        return -1;
+
+      c = 0;
+      for (i = 0; i < conf.config_maxclass; ++i)
+        {
+          struct class_stats stats;
+          bzero ((char *) &stats, sizeof stats);
+
+          desc.sd_type = CPUTYPE_CLASS;
+          desc.sd_objid = i;
+          desc.sd_addr = (char *) &stats;
+          desc.sd_size = sizeof stats;
+
+          if (inq_stats (1, &desc))
+            return -1;
+
+          c += stats.class_numcpus;
+        }
+      cpus = c;
+      samples = cpus < 2 ? 3 : (2 * cpus / 3);
+    }
+
+  proc_info.sd_next = 0;
+  proc_info.sd_subsys = SUBSYS_PROC;
+  proc_info.sd_type = PROCTYPE_SUMMARY;
+  proc_info.sd_addr = (char *) &proc_sum_data;
+  proc_info.sd_size = sizeof (struct proc_summary);
+  proc_info.sd_sizeused = 0;
+
+  if (inq_stats (1, &proc_info) != 0)
+    return -1;
+
+  load = proc_sum_data.ps_nrunnable;
+  j = 0;
+  for (i = samples - 1; i > 0; --i)
+    {
+      load += proc_sum_data.ps_nrun[j];
+      if (j++ == PS_NRUNSIZE)
+        j = 0;
+    }
+
+  if (nelem > 0)
+    loadavg[elem++] = load / samples / cpus;
+# endif /* UMAX */
+
+# if !defined (LDAV_DONE) && defined (DGUX)
+#  define LDAV_DONE
+  /* This call can return -1 for an error, but with good args
+     it's not supposed to fail.  The first argument is for no
+     apparent reason of type `long int *'.  */
+  dg_sys_info ((long int *) &load_info,
+               DG_SYS_INFO_LOAD_INFO_TYPE,
+               DG_SYS_INFO_LOAD_VERSION_0);
+
+  if (nelem > 0)
+    loadavg[elem++] = load_info.one_minute;
+  if (nelem > 1)
+    loadavg[elem++] = load_info.five_minute;
+  if (nelem > 2)
+    loadavg[elem++] = load_info.fifteen_minute;
+# endif /* DGUX */
+
+# if !defined (LDAV_DONE) && defined (apollo)
+#  define LDAV_DONE
+/* Apollo code from lisch@mentorg.com (Ray Lischner).
+
+   This system call is not documented.  The load average is obtained as
+   three long integers, for the load average over the past minute,
+   five minutes, and fifteen minutes.  Each value is a scaled integer,
+   with 16 bits of integer part and 16 bits of fraction part.
+
+   I'm not sure which operating system first supported this system call,
+   but I know that SR10.2 supports it.  */
+
+  extern void proc1_$get_loadav ();
+  unsigned long load_ave[3];
+
+  proc1_$get_loadav (load_ave);
+
+  if (nelem > 0)
+    loadavg[elem++] = load_ave[0] / 65536.0;
+  if (nelem > 1)
+    loadavg[elem++] = load_ave[1] / 65536.0;
+  if (nelem > 2)
+    loadavg[elem++] = load_ave[2] / 65536.0;
+# endif /* apollo */
+
+# if !defined (LDAV_DONE) && defined (OSF_MIPS)
+#  define LDAV_DONE
+
+  struct tbl_loadavg load_ave;
+  table (TBL_LOADAVG, 0, &load_ave, 1, sizeof (load_ave));
+  loadavg[elem++]
+    = (load_ave.tl_lscale == 0
+       ? load_ave.tl_avenrun.d[0]
+       : (load_ave.tl_avenrun.l[0] / (double) load_ave.tl_lscale));
+# endif /* OSF_MIPS */
+
+# if !defined (LDAV_DONE) && (defined (__MSDOS__) || defined (WINDOWS32))
+#  define LDAV_DONE
+
+  /* A faithful emulation is going to have to be saved for a rainy day.  */
+  for ( ; elem < nelem; elem++)
+    {
+      loadavg[elem] = 0.0;
+    }
+# endif  /* __MSDOS__ || WINDOWS32 */
+
+# if !defined (LDAV_DONE) && defined (OSF_ALPHA)
+#  define LDAV_DONE
+
+  struct tbl_loadavg load_ave;
+  table (TBL_LOADAVG, 0, &load_ave, 1, sizeof (load_ave));
+  for (elem = 0; elem < nelem; elem++)
+    loadavg[elem]
+      = (load_ave.tl_lscale == 0
+       ? load_ave.tl_avenrun.d[elem]
+       : (load_ave.tl_avenrun.l[elem] / (double) load_ave.tl_lscale));
+# endif /* OSF_ALPHA */
+
+# if !defined (LDAV_DONE) && defined (VMS)
+  /* VMS specific code -- read from the Load Ave driver.  */
+
+  LOAD_AVE_TYPE load_ave[3];
+  static int getloadavg_initialized = 0;
+#  ifdef eunice
+  struct
+  {
+    int dsc$w_length;
+    char *dsc$a_pointer;
+  } descriptor;
+#  endif
+
+  /* Ensure that there is a channel open to the load ave device.  */
+  if (!getloadavg_initialized)
+    {
+      /* Attempt to open the channel.  */
+#  ifdef eunice
+      descriptor.dsc$w_length = 18;
+      descriptor.dsc$a_pointer = "$$VMS_LOAD_AVERAGE";
+#  else
+      $DESCRIPTOR (descriptor, "LAV0:");
+#  endif
+      if (sys$assign (&descriptor, &channel, 0, 0) & 1)
+        getloadavg_initialized = 1;
+    }
+
+  /* Read the load average vector.  */
+  if (getloadavg_initialized
+      && !(sys$qiow (0, channel, IO$_READVBLK, 0, 0, 0,
+                     load_ave, 12, 0, 0, 0, 0) & 1))
+    {
+      sys$dassgn (channel);
+      getloadavg_initialized = 0;
+    }
+
+  if (!getloadavg_initialized)
+    return -1;
+# endif /* VMS */
+
+# if !defined (LDAV_DONE) && defined(LOAD_AVE_TYPE) && !defined(VMS)
+
+  /* UNIX-specific code -- read the average from /dev/kmem.  */
+
+#  define LDAV_PRIVILEGED               /* This code requires special installation.  */
+
+  LOAD_AVE_TYPE load_ave[3];
+
+  /* Get the address of LDAV_SYMBOL.  */
+  if (offset == 0)
+    {
+#  ifndef sgi
+#   ifndef NLIST_STRUCT
+      strcpy (nl[0].n_name, LDAV_SYMBOL);
+      strcpy (nl[1].n_name, "");
+#   else /* NLIST_STRUCT */
+#    ifdef NLIST_NAME_UNION
+      nl[0].n_un.n_name = LDAV_SYMBOL;
+      nl[1].n_un.n_name = 0;
+#    else /* not NLIST_NAME_UNION */
+      nl[0].n_name = LDAV_SYMBOL;
+      nl[1].n_name = 0;
+#    endif /* not NLIST_NAME_UNION */
+#   endif /* NLIST_STRUCT */
+
+#   ifndef SUNOS_5
+      if (
+#    if !(defined (_AIX) && !defined (ps2))
+          nlist (KERNEL_FILE, nl)
+#    else  /* _AIX */
+          knlist (nl, 1, sizeof (nl[0]))
+#    endif
+          >= 0)
+          /* Omit "&& nl[0].n_type != 0 " -- it breaks on Sun386i.  */
+          {
+#    ifdef FIXUP_KERNEL_SYMBOL_ADDR
+            FIXUP_KERNEL_SYMBOL_ADDR (nl);
+#    endif
+            offset = nl[0].n_value;
+          }
+#   endif /* !SUNOS_5 */
+#  else  /* sgi */
+      int ldav_off;
+
+      ldav_off = sysmp (MP_KERNADDR, MPKA_AVENRUN);
+      if (ldav_off != -1)
+        offset = (long) ldav_off & 0x7fffffff;
+#  endif /* sgi */
+    }
+
+  /* Make sure we have /dev/kmem open.  */
+  if (!getloadavg_initialized)
+    {
+#  ifndef SUNOS_5
+      channel = open ("/dev/kmem", 0);
+      if (channel >= 0)
+        {
+          /* Set the channel to close on exec, so it does not
+             litter any child's descriptor table.  */
+#   ifdef F_SETFD
+#    ifndef FD_CLOEXEC
+#     define FD_CLOEXEC 1
+#    endif
+          (void) fcntl (channel, F_SETFD, FD_CLOEXEC);
+#   endif
+          getloadavg_initialized = 1;
+        }
+#  else /* SUNOS_5 */
+      /* We pass 0 for the kernel, corefile, and swapfile names
+         to use the currently running kernel.  */
+      kd = kvm_open (0, 0, 0, O_RDONLY, 0);
+      if (kd != 0)
+        {
+          /* nlist the currently running kernel.  */
+          kvm_nlist (kd, nl);
+          offset = nl[0].n_value;
+          getloadavg_initialized = 1;
+        }
+#  endif /* SUNOS_5 */
+    }
+
+  /* If we can, get the load average values.  */
+  if (offset && getloadavg_initialized)
+    {
+      /* Try to read the load.  */
+#  ifndef SUNOS_5
+      if (lseek (channel, offset, 0) == -1L
+          || read (channel, (char *) load_ave, sizeof (load_ave))
+          != sizeof (load_ave))
+        {
+          close (channel);
+          getloadavg_initialized = 0;
+        }
+#  else  /* SUNOS_5 */
+      if (kvm_read (kd, offset, (char *) load_ave, sizeof (load_ave))
+          != sizeof (load_ave))
+        {
+          kvm_close (kd);
+          getloadavg_initialized = 0;
+        }
+#  endif /* SUNOS_5 */
+    }
+
+  if (offset == 0 || !getloadavg_initialized)
+    return -1;
+# endif /* LOAD_AVE_TYPE and not VMS */
+
+# if !defined (LDAV_DONE) && defined (LOAD_AVE_TYPE) /* Including VMS.  */
+  if (nelem > 0)
+    loadavg[elem++] = LDAV_CVT (load_ave[0]);
+  if (nelem > 1)
+    loadavg[elem++] = LDAV_CVT (load_ave[1]);
+  if (nelem > 2)
+    loadavg[elem++] = LDAV_CVT (load_ave[2]);
+
+#  define LDAV_DONE
+# endif /* !LDAV_DONE && LOAD_AVE_TYPE */
+
+# ifdef LDAV_DONE
+  return elem;
+# else
+  /* Set errno to zero to indicate that there was no particular error;
+     this function just can't work at all on this system.  */
+  errno = 0;
+  return -1;
+# endif
+}
+
+#endif /* !HAVE_GETLOADAVG */
+
+module load_module;
+
+static double load_get_system_load(void) {
+  int res;
+  double loadavg = -1.0;
+
+  /* It is necessary on some platforms (such as Solaris) to have root
+   * privs when doing this, as the information is determined by reading
+   * the image of the running kernel (yikes!)
+   */
+  PRIVS_ROOT
+  res = getloadavg(&loadavg, 1);
+  PRIVS_RELINQUISH
+
+  /* Return the default value if we did not receive the expected number
+   * of elements from getloadavg().
+   */
+  if (res != 1)
+    return -1.0;
+
+  return loadavg;
+}
+
+/* Configuration handlers
+ */
+
+/* usage: MaxLoad max [mesg] */
+MODRET set_maxload(cmd_rec *cmd) {
+  double loadval = 0.0;
+  config_rec *c = NULL;
+
+  if (cmd->argc-1 < 1 || cmd->argc-1 > 2)
+    CONF_ERROR(cmd, "incorrect number of parameters");
+
+  CHECK_CONF(cmd, CONF_ROOT|CONF_VIRTUAL|CONF_GLOBAL);
+
+  if (strcasecmp(cmd->argv[1], "none") == 0)
+    loadval = -1.0;
+  else {
+    loadval = atof(cmd->argv[1]);
+    if (loadval < 0.0)
+      CONF_ERROR(cmd, "positive load limit required");
+  }
+
+  c = add_config_param(cmd->argv[0], cmd->argc-1, NULL);
+  c->argv[0] = pcalloc(c->pool, sizeof(double));
+
+  if (loadval < 0.0)
+    c->argv[0] = NULL;
+
+  else
+    *((double *) c->argv[0]) = loadval;
+
+  if (cmd->argc-1 == 2) {
+    c->argv[1] = pcalloc(c->pool, sizeof(char *));
+    c->argv[1] = pstrdup(c->pool, cmd->argv[2]);
+  }
+ 
+  return PR_HANDLED(cmd);
+}
+
+/* Initialization functions
+ */
+
+static int load_sess_init(void) {
+  config_rec *c = NULL;
+  double max_load = 0.0, curr_load = 0.0;
+  char curr_load_str[16], max_load_str[16];
+
+  /* Lookup any configured load limit. */
+  c = find_config(main_server->conf, CONF_PARAM, "MaxLoad", FALSE);
+  if (!c)
+    return 0;
+
+  /* If the config_rec is present, but argv[0] is NULL, do nothing */
+  if (!c->argv[0])
+    return 0;
+  max_load = *((double *) c->argv[0]);
+
+  curr_load = load_get_system_load();
+  if (curr_load < 0) {
+    pr_log_pri(PR_LOG_NOTICE,
+      "notice: unable to determine system load average: %s", strerror(errno));
+    return 0;
+  }
+
+  pr_log_debug(DEBUG5, MOD_LOAD_VERSION ": current system load: %.2f",
+    curr_load);
+
+  if (curr_load >= max_load) {
+    pr_log_pri(PR_LOG_INFO, "MaxLoad (%.2f) reached: connection denied",
+      max_load);
+
+    if (c->argc == 2) {
+      pr_response_send(R_421, "%s", (const char *) c->argv[1]);
+
+    } else {
+      pr_response_send(R_421, _("System busy, try again later"));
+    }
+
+    pr_session_disconnect(&load_module, PR_SESS_DISCONNECT_MODULE_ACL,
+      "MaxLoad");
+  }
+
+  /* Register some Variable entries for showing the system load. */
+  memset(curr_load_str, '\0', sizeof(curr_load_str));
+  snprintf(curr_load_str, sizeof(curr_load_str)-1, "%.2f", curr_load);
+  if (pr_var_set(session.pool, "%{mod_load.curr_load}",
+      "Current system load average", PR_VAR_TYPE_STR,
+      curr_load_str, NULL, 0) < 0)
+    pr_log_debug(DEBUG1, MOD_LOAD_VERSION
+      ": error setting %%{mod_load.curr_load} variable: %s", strerror(errno));
+
+  memset(max_load_str, '\0', sizeof(max_load_str));
+  snprintf(max_load_str, sizeof(max_load_str)-1, "%.2f", max_load);
+  if (pr_var_set(session.pool, "%{mod_load.max_load}",
+      "Maximum system load average", PR_VAR_TYPE_STR,
+      max_load_str, NULL, 0) < 0)
+    pr_log_debug(DEBUG1, MOD_LOAD_VERSION
+      ": error setting %%{mod_load.max_load} variable: %s", strerror(errno));
+
+  return 0;
+}
+
+/* Module API tables
+ */
+
+static conftable load_conftab[] = {
+  { "MaxLoad",		set_maxload,		NULL },
+  { NULL }
+};
+
+module load_module = {
+  NULL, NULL,
+
+  /* Module API version 2.0 */
+  0x20,
+
+  /* Module name */
+  "load",
+
+  /* Module configuration handler table */
+  load_conftab,
+
+  /* Module command table */
+  NULL,
+
+  /* Module authentication handler table */
+  NULL,
+
+  /* Module initialization function */
+  NULL,
+
+  /* Session initialization function */
+  load_sess_init,
+
+  /* Module version */
+  MOD_LOAD_VERSION
+};

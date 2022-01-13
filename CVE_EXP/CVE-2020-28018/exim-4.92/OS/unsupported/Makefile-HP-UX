@@ -1,0 +1,27 @@
+# Exim: OS-specific make file for HP-UX later than 9
+
+# HP ANSI C compiler
+#CC=cc
+#CFLAGS=+O2 +Onolimit -z -D_XOPEN_SOURCE_EXTENDED
+# Users of the A.06.00 compiler might need to use +O1 rather than +O2 as
+# there have been some problems reported with this compiler with +O2 set.
+
+# gcc
+CFLAGS=-O -D_XOPEN_SOURCE_EXTENDED
+LDFLAGS=-Wl,-z
+LIBS=-lm
+
+BASENAME_COMMAND=/bin/basename
+HAVE_ICONV=yes
+HAVE_SETRESUID=YES
+HAVE_SETEUID=NO
+XINCLUDE=-I/usr/include/X11R6 -I/usr/contrib/X11R6/include
+XLFLAGS=-L/usr/lib/X11R6 -L/usr/contrib/X11R6/lib
+X11_LD_LIB=/usr/contrib/X11R6/lib
+EXIMON_TEXTPOP=
+DBMLIB=-lndbm
+RANLIB=@true
+
+OS_C_INCLUDES=setenv.c
+
+# End

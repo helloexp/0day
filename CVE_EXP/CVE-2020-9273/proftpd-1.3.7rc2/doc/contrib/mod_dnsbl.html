@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_dnsbl</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_dnsbl</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+A DNS blacklist is a way in which the DNS can be used to "blacklist"
+sites/addresses that have been deemd to be "bad" in some way.  These
+blacklists are often used by email servers, for determining and rejecting
+email sent by addresses known to be sources of spam.  More information
+on DNS blacklists can be found here:
+<pre>
+  <a href="http://en.wikipedia.org/wiki/DNSBL">http://en.wikipedia.org/wiki/DNSBL</a>
+</pre>
+
+<p>
+While DNS blacklists are well known for use by email servers, it is <i>also</i>
+possible to use them for other means, such as ways of checking whether an
+FTP client's address should be allowed or rejected by an FTP server.  Thus
+the <code>mod_dnsbl</code> module was written for ProFTPD, for such a purpose.
+
+<p>
+The <code>mod_dnsbl</code> module is not compiled by default; build/installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_dnsbl</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#DNSBLDomain">DNSBLDomain</a>
+  <li><a href="#DNSBLEngine">DNSBLEngine</a>
+  <li><a href="#DNSBLLog">DNSBLLog</a>
+  <li><a href="#DNSBLPolicy">DNSBLPolicy</a>
+</ul>
+
+<hr>
+<h3><a name="DNSBLDomain">DNSBLDomain</a></h3>
+<strong>Syntax:</strong> DNSBLDomain <em>domain</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_dnsbl<br>
+<strong>Compatibility:</strong> 1.3.1rc1 and later
+
+<p>
+The <code>DNSBLDomain</code> directive is used to configure the DNS name of
+a DNS blacklist site, to be consulted when determining whether
+<code>mod_dnsbl</code> should allow or reject an FTP connection.  This
+directive can be used multiple times, to configure multiple different DNS
+blacklist sites.  When checking these sites, the <code>mod_dnsbl</code> module
+will check each <code>DNSBLDomain</code>, in the order they appear in the
+<code>proftpd.conf</code> file.
+
+<p>
+Example:
+<pre>
+  DNSBLDomain sbl.spamhaus.org
+  DNSBLDomain xbl.spamhaus.org
+</pre>
+
+<p>
+<hr>
+<h3><a name="DNSBLEngine">DNSBLEngine</a></h3>
+<strong>Syntax:</strong> DNSBLEngine <em>on|off</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_dnsbl<br>
+<strong>Compatibility:</strong> 1.3.1rc1 and later
+
+<p>
+The <code>DNSBLEngine</code> directive toggles the use of DNS blacklists for
+access control for FTP client connections (<i>e.g.</i> <code>mod_dnsbl</code>).
+This is usually used inside a <code>&lt;VirtualHost&gt;</code> section to
+enable DNS blacklist use for a particular virtual host. By default
+<code>mod_dnsbl</code> is disabled for both the main server and all configured
+virtual hosts.
+
+<p>
+<hr>
+<h3><a name="DNSBLLog">DNSBLLog</a></h3>
+<strong>Syntax:</strong> DNSBLLog <em>file</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_dnsbl<br>
+<strong>Compatibility:</strong> 1.3.1rc1 and later
+
+<p>
+The <code>DNSBLLog</code> directive is used to specify a log file for
+<code>mod_dnsbl</code>'s reporting on a per-server basis.  The <em>file</em>
+parameter given must be the full path to the file to use for logging.
+
+<p>
+Note that this path must <b>not</b> be to a world-writable directory and,
+unless <code>AllowLogSymlinks</code> is explicitly set to <em>on</em>
+(generally a bad idea), the path must <b>not</b> be a symbolic link.
+
+<p>
+<hr>
+<h3><a name="DNSBLPolicy">DNSBLPolicy</a></h3>
+<strong>Syntax:</strong> DNSBLPolicy <em>"allow,deny"|"deny,allow"</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_dnsbl<br>
+<strong>Compatibility:</strong> 1.3.1rc1 and later
+
+<p>
+The <code>DNSBLPolicy</code> directive determines whether the
+<code>mod_dnsbl</code> module (if enabled) will allow a connection by default
+or not.
+
+<p>
+If <code>DNSBLPolicy</code> is configured using <em>"allow,deny"</em>, then
+the <code>mod_dnsbl</code> module will allow the connection, <i>unless</i>
+the connecting client is blacklisted by <i>any</i> of the configured
+<code>DNSBLDomain</code> sites.
+
+<p>
+If <code>DNSBLPolicy</code> is configured using <em>"deny,allow"</em>, then
+the <code>mod_dnsbl</code> module will <b>not</b> allow the connection,
+<i>unless</i> the connecting client is listed by any of the configured
+<code>DNSBLDomain</code> sites.
+
+<p>
+<hr><br>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_dnsbl</code> module is distributed with ProFTPD.  Simply follow
+the normal steps for using third-party modules in ProFTPD:
+<pre>
+  $ ./configure --with-modules=mod_dnsbl
+  $ make
+  $ make install
+</pre>
+Alternatively, <code>mod_dnsbl</code> can be built as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_dnbsl ...
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_dnbsl</code> module supports different forms of logging.  The
+main module logging is done via the <code>DNSBLLog</code> directive.
+For debugging purposes, the module also uses <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>dnsbl
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace dnsbl:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p>
+<hr>
+
+<font size=2><b><i>
+&copy; Copyright 2007-2014 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+
+<hr>
+</body>
+</html>

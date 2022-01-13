@@ -1,0 +1,38 @@
+Using ProFTPD with UnixWare 7.1
+
+UnixWare 7.x has an odd problem involving tcp sockets inside of a
+chroot()  [as used w/ DefaultRoot and Anonymous logins].  Apparently, due
+to the UnixWare xti code, socket operations initially attempt to open a few
+devices, including /dev/tcp, /dev/udp, /dev/zero and /dev/ticotsord.  This
+is most likely caused by the networking libraries, and is completely out
+of the control and/or scope of ProFTPD.
+
+UnixWare 7.1 users wishing to use ProFTP will have to do something like
+the following in their anonymous or otherwise chroot'ed directories:
+
+[ !!NOTE!!  Do not use the major/minor device numbers below verbatim.
+  Solaris on different archs will use different major/minors.  Check
+  your OS documentation first before doing this. ]
+
+mkdir dev
+mknod dev/tcp c 7 37
+mknod dev/zero c 39 1
+
+# the following is necessary to allow proftpd to create a socket
+# when in non-low-port mode (such as during passive transfers)
+chmod 0666 dev/tcp
+
+Failure to create these files will result in "socket() failed in
+inet_create_connection(): No such file or directory" when a user logs in
+anonymously and attempts to transfer data of any type (including a simple
+directory listing).
+
+If you receive errors such as "socket() failed in
+inet_create_connection(): Permission denied", you need to chmod 0666 your
+dev/tcp device. 
+
+Additionally you will need to create the file etc/netconfig or you'll
+get the following error message: _s_match: setnetconfig failed
+
+mkdir etc
+cp /etc/netconfig etc/netconfig

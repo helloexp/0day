@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Using mod_rewrite</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b><i>ProFTPD: Using the <code>mod_rewrite</code> Module</i></b></h2></center>
+<hr>
+
+<p>
+The <a href="../contrib/mod_rewrite.html"><code>mod_rewrite</code></a> module for <code>proftpd</code> is a powerful tool
+for rewriting FTP commands received from clients.  It has been used to
+automatically append (or remove) domain names from logins, to translate
+Windows paths (using backslashes) to Unix paths (using slashes), to handle
+case-insensitive files, <i>etc</i>.  One of the great things about
+<code>mod_rewrite</code> is that <b>any</b> modification made to the commands
+is transparent to the client; that is, FTP clients are completely unaware
+that their commands are being changed on-the-fly.
+
+<p>
+The following is a collection of examples of how <code>mod_rewrite</code>
+has been used.  If you use <code>mod_rewrite</code> and would like to contribute
+your recipe/configuration, please let us know!
+
+<p>
+Since much of <code>mod_rewrite</code>'s power is based on regular expressions
+and pattern matching, I highly recommend that you read through this
+introduction to POSIX regular expressions, and use the <a href="http://www.castaglia.org/proftpd/doc/contrib/regex.html"><code>regex</code></a> tool for
+testing out your regexes against paths/strings:
+<pre>
+  <a href="http://www.castaglia.org/proftpd/doc/contrib/regexp.html">http://www.castaglia.org/proftpd/doc/contrib/regexp.html</a>
+</pre>
+
+<p>
+<b>Case Sensitivity</b><br>
+The following example configuration shows how to configure
+<code>mod_rewrite</code> so that all files uploaded to the FTP server will have
+all-uppercase filenames:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    # Have a log for double-checking any errors
+    RewriteLog /var/log/ftpd/rewrite.log
+
+    # Define a map that uses the internal "toupper" function
+    RewriteMap uppercase int:toupper
+
+    # Make the file names used by STOR be in all uppercase
+    RewriteCondition %m STOR
+
+    # Apply the map to the command parameters
+    RewriteRule ^(.*) ${uppercase:$1}
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+What if you wanted to make the filename always be uppercase for uploaded
+files, but <b>not</b> any directories in the path leading up the file name?
+Using the above, if you did:
+<pre>
+  ftp&gt; cd /upload
+  ftp&gt; put file1.txt
+</pre>
+The file would appear as "/upload/FILE1.TXT".  <i>But</i> if you did:
+<pre>
+  ftp&gt; put /upload/file1.txt
+</pre>
+the file would appear as "/UPLOAD/FILE1.TXT", which may not be what you want.
+To handle this, you need to change the "^(.*)" pattern in the
+above <code>RewriteRule</code> directive.  The "^(.*)" regular expression
+matches the entire parameter string.  Instead, you might try this pattern:
+<pre>
+  RewriteRule (.*/)?(.*)$ ${uppercase:$2}
+</pre>
+which tries to isolate into match group 2 (<i>i.e.</i> <code>$2</code>) the
+part of the argument string which is not followed by any slashes.
+
+<p>
+Somewhat similar is the situation where the admin found, for case-sensitivity
+reasons, that it was easier to rewrite <b>all</b> FTP commands (except
+<code>PASS</code>, since passwords are case-sensitive) to be lowercase:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    # Define a map that uses the internal "tolower" function
+    RewriteMap lowercase int:tolower
+
+    # Rewrite all commands except PASS
+    RewriteCondition %m !PASS
+
+    RewriteRule ^(.*) ${lowercase:$1}
+  &lt;/IfModule&gt;
+</pre>
+This means an FTP client can refer to "/DiR/Dir2/FiLe" when on the server the
+file is actually "/dir/dir2/file"; it works for uploads, too. (This works
+especially well for Windows clients.)
+
+<p>
+<b>Changing the Filenames</b><br>
+One user had the following problem: Files uploaded via a web browser had their
+filenames changed by the browser.  Specifically, the web browser changed
+any spaces in the filenames to "%20" (URL encoding for a space character).
+Fortunately, the user was able to use <code>mod_rewrite</code> to undo the
+change or, as shown below, to change that "%20" to an underscore:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    # Define a map that uses the internal "replaceall" function
+    RewriteMap replace int:replaceall
+
+    # We only want to use this rule on STOR commands
+    RewriteCondition %m STOR
+
+    # Apply the map to the command parameters.  Use '!' as the delimiter,
+    # not '/', as the path sent might contain slashes
+    RewriteRule ^(.*) "${replace:!$1!%20!_}"
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+Another site wanted to "tag" each uploaded file name with the current process
+ID (PID), to ensure some sort of file name uniqueness.  Enter
+<code>mod_rewrite</code>!
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    RewriteCondition %m STOR
+    RewriteRule (.*) $1.%P
+  &lt;/IfModule&gt;
+</pre>
+This appends the PID of the current session process to any uploaded filename.
+For more variables like <code>%P</code>, see the <a href="../contrib/mod_rewrite.html#RewriteCondition"><code>RewriteCondition</code></a> and <a href="../contrib/mod_rewrite.html#RewriteRule"><code>RewriteRule</code></a> descriptions.
+
+<p>
+<b>Replacing Backslashes With Slashes</b><br>
+Some sites have FTP clients which seem to send <code>CWD</code> and
+<code>RETR</code>/<code>STOR</code> commands which use Windows-style
+backslashes, <i>e.g.</i> "path\to\file".  And ideally, these sites would like
+to work seamlessly with such clients, without having to get the clients to
+change.  Can <code>mod_rewrite</code> be used to change those backslashes
+into more Unix-friendly regular slashes?  Absolutely.
+
+The following <code>mod_rewrite</code> configuration should do the trick:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    # Use the replaceall internal RewriteMap
+    RewriteMap replace int:replaceall
+
+    RewriteRule (.*) "${replace:!$1!\\\\!/}"
+  &lt;/IfModule&gt;
+</pre>
+Yes, you will need the four consecutive backslashes there, in order to make it
+past proftpd's config file parser (which thinks backslashes are escape
+sequences) as well as the regular expression compiler.
+
+<p>
+<b>Modifying User Names</b><br>
+Is there a way that I can transparently change the login name that the FTP
+client sends, from one set of known login names to the new set of names
+that should be used by the FTP server?  But of course!  For this example,
+let us assume that you have a text file which maps the old login names to
+the new login names.  Using <code>mod_rewrite</code>'s <code>RewriteMap</code>
+directive and that text file, this becomes simple:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    # Tell mod_rewrite where to find the "usermap" text file
+    RewriteMap usermap txt:/path/to/usermap.txt
+
+    # For USER commands, use the "usermap" file to translate the login names
+    RewriteCondition %m USER
+    RewriteRule (.*) ${usermap:$1}
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+Rather than having a fixed map of old-to-new login names, what if you wanted
+to always append the same prefix (or suffix) to every login name?  For 
+example, what if you wanted every login name on your FTP server to look
+like "user@domain.com", but the clients were sending simply "user".  This
+solution does not need <code>RewriteMap</code>; instead, you simply use:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    RewriteCondition %m USER
+    RewriteRule (.*) $1@domain.com
+  &lt;/IfModule&gt;
+</pre>
+And if instead you wanted to use a fixed prefix, rather than a suffix, the
+only difference would be in the <code>RewriteRule</code> directive, <i>e.g.</i>:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    RewriteCondition %m USER
+    RewriteRule (.*) PREFIX$1
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+Another interesting use case is where your clients might send the login
+name in a variety of constructions, <i>e.g.</i>:
+<ul>
+  <li><i>user</i>
+  <li><i>user</i>@domain.com
+  <li>prefix#<i>user</i>@domain.com
+</ul>
+but you want the FTP server only to use the "<i>user</i>" parts.  How can
+you configure <code>mod_rewrite</code> to strip off any potential prefix
+and suffix?  Regular expressions can be tricky, but using the <code>regex</code>
+tool mentioned above, I worked out the following configuration that does
+the trick:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    RewriteCondition %m USER
+    RewriteRule ^(.*#)?([0-9A-Za-z]+)(@)? $2
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+And if you simply wanted to have all user names be in lowercase, despite what
+the FTP clients send, it's merely a matter of:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    RewriteMap lowercase int:tolower
+    RewriteCondition %m USER
+    RewriteRule (.*) ${lowercase:$1}
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<b>Handling Clients' Bad PORT Commands</b><br>
+A ProFTPD admin encountered a case where one of their customers refused to
+use anything but the standard command-line FTP client that comes with Windows.
+That FTP client does <b>not</b> support passive data transfers; it <i>always</i>
+uses the <code>PORT</code> command to do active data transfers.  However,
+one issue with the <code>PORT</code> command is that the parameter contains
+an IP address.  In this situation, the FTP client was behind a NAT, and the
+client was sending the <i>internal</i> LAN address in its <code>PORT</code>
+command.  Could <code>mod_rewrite</code> be used to solve the problem, and
+allow that bad FTP client to use active data transfers despite its' sending
+of an unusable (to the FTP server) IP address?  Yes!
+
+<p>
+The solution was to use <code>mod_rewrite</code> to rewrite the address in
+the sent <code>PORT</code> command, replacing the internal LAN address with
+the IP address of the client that <code>proftpd</code> saw.  Below is the
+configuration used to make this work:
+<pre>
+  # This is necessary, to keep proftpd from complaining about mismatched
+  # addresses in this situation
+  AllowForeignAddress on
+
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    RewriteMap replace int:replaceall
+
+    # Substitute in the IP address of the client, regardless of the address
+    # the client tells us to use in the PORT command
+    RewriteCondition %m ^PORT$
+    RewriteRule ([0-9]+,[0-9]+,[0-9]+,[0-9]+)(.*) ${replace:/$1/$1/%a$2}
+
+    # Replace the periods in the client address with commas, as per RFC959
+    # requirements
+    RewriteCondition %m ^PORT$
+    RewriteRule (.*) ${replace:/$1/./,}
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<b><code>SITE</code> Commands</b><br>
+The <code>mod_rewrite</code> module can also handle <i>some</i>
+<code>SITE</code> commands, specifically:
+<ul>
+  <li><code>SITE CHGRP</code>
+  <li><code>SITE CHMOD</code>
+</ul>
+These being supported by the <code>mod_site</code> module, which is part of
+the normal <code>proftpd</code> build.
+
+<p>
+One site needed to make sure that any backslashes (<i>e.g.</i> used by Windows
+clients) were translated to slashes, including in these <code>SITE</code>
+commands.  As of ProFTPD 1.3.2 (see <a href="http://bugs.proftpd.org/show_bug.cgi?id=2915">Bug #2915</a>), this can be accomplished using the following:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+    RewriteMap replace int:replaceall
+    RewriteCondition %m "^SITE CHMOD$" [NC]
+    RewriteRule "^(.*) +(.*)$" "$1 ${replace:!$2!\\\\!/}"'
+  &lt;/IfModule&gt;
+</pre>
+Notice how, for <code>SITE CHGRP</code> and <code>SITE CHMOD</code> commands,
+the <code>%m</code> parameter in the <code>RewriteCondition</code> <b>must</b>
+match the string "SITE CHGRP" or "SITE CHMOD", not just "SITE".  This is
+<i>important</i> -- and it only works for the
+<code>SITE CHGRP</code>/<code>SITE CHMOD</code> commands.  The use of the
+"[NC]" modifier helps to catch those cases where the client might send
+"SITE chmod", for instance.
+
+<p>
+<b>Redirecting FTP Requests</b><br>
+One user wanted to know if <code>mod_rewrite</code> could be used to
+redirect a request, just like one might do using Apache's
+<code>mod_rewrite</code>, something like:
+<pre>
+  RewriteRule /(.*) ftp://newname.domain.com/$1
+</pre>
+The above <code>RewriteRule</code> would work, but it would <b>not</b> actually
+redirect the FTP client to the URL.  FTP unfortuntely does <i>not</i> support
+redirection of requests to other servers, at the protocol level, unlike HTTP.
+
+<p>
+However, it <i>is</i> possible to redirect a request to some other directory
+on the same machine.  For example, if you wanted to have any file uploaded
+by a client go into the "/Incoming/" directory, no matter where the client
+wanted to upload the file, you could use:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+    RewriteCondition %m STOR
+    RewriteRule (.*/)?(.*) /Incoming/$2
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<b>URL Encoded Characters</b><br>
+On very rare occasions, you may find yourself dealing with URL-encoded
+characters in your FTP command parameters.  If you have worked with web servers
+and URLs, you will accustomed to seeing sequences like "%20" in URLs; these are
+URL encoded characters (as per <a href="http://www.faqs.org/rfcs/rfc2369.html">RFC2369</a>).  Unescaping these URL-encoded sequences is exactly what the
+"unescape" <code>RewriteMap</code> builtin function handles.
+
+<p>
+<b>Handling Non-ASCII Characters</b><br>
+If you need to handle non-ASCII characters in your <code>mod_rewrite</code>
+rules, then you may need to generate your configuration using a scripting
+language, rather than using your editor.  For example, my editor does not
+handle non-ASCII characters well; it displays them as <code>?</code>.
+
+<p>
+Here's an example, using Perl, to replace "&auml;" with "ae" in uploaded file
+names.  Note that "&auml;" in hex notation is <code>0xE4</code>:
+<pre>
+  my $rewrite_rule = 'RewriteRule (.*) ${replace:/$1/' . chr(0xE4) . '/ae}';
+
+  my $config = '/path/to/proftpd.conf';
+  if (open(my $fh, "&gt; $config")) {
+    print $fh EOR;
+
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+    RewriteLog /path/to/rewrite.log
+
+    RewriteCondition %m ^STOR$
+    $rewrite_rule
+  &lt;/IfModule&gt;
+EOR
+  }
+</pre>
+
+<p>
+<b>Time-Related Content</b><br>
+What if you find yourself wanting to serve different files based on the
+time of day, day of the month, <i>etc</i>?  Or what if you wanted to
+put an automatic timestamp on the names of files being uploaded?  Starting
+with <code>proftpd-1.3.5rc1</code>, these things are now possible using
+<code>mod_rewrite</code>; see the time-related variables in the
+<a href="../contrib/mod_rewrite.html#RewriteCondition"><code>RewriteCondition</code></a> documentation.
+
+<p>
+To demonstrate the concept of time-related content, let's assume that you
+have a two different files, one for "daytime" and one for "nighttime".
+Depending on when a client connects and requests this file, you can have
+<code>mod_rewrite</code> transparently point the client to the correct file.
+Let's show how this might work:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+    RewriteLog /path/to/rewrite.log
+
+    # For requests of index.txt during the day, rewrite the command to
+    # be for index.txt.day
+    RewriteCondition %m RETR
+    RewriteCondition %f index.txt$
+    RewriteCondition %{TIME_HOUR}%{TIME_MIN} &gt;0700
+    RewriteCondition %{TIME_HOUR}%{TIME_MIN} &lt;1900
+    RewriteRule ^(.*) $1.day
+
+    # For requests of index.txt during the night, rewrite the command to
+    # be for index.txt.night
+    RewriteCondition %m RETR
+    RewriteCondition %f index.txt$
+    RewriteCondition %{TIME_HOUR}%{TIME_MIN} &lt;0700
+    RewriteCondition %{TIME_HOUR}%{TIME_MIN} &gt;1900
+    RewriteRule ^(.*) $1.night
+
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+Another use case involving time is the case where you might want to
+automatically timestamp every file being uploaded.  To do this, you can
+use <code>mod_rewrite</code> like so:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+    RewriteLog /path/to/rewrite.log
+
+    # Automatically timestamp all uploaded files with ".DD-MM-YYYY".
+    RewriteCondition %m STOR
+    RewriteRule (.*) $1.%{TIME_DAY}-%{TIME_MON}-%{TIME_YEAR}
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+Or maybe you have a special file that should only be available for a month,
+and then be inaccessible?  To do this, you would first give the special file
+a name that includes a timestamp, <i>e.g.</i> "special.bin-01-2013".  Then
+have the following <code>mod_rewrite</code> configuration:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+    RewriteLog /path/to/rewrite.log
+
+    RewriteCondition %m RETR
+    RewriteCondition %f special.bin$
+    RewriteRule (.*) $1-%{TIME_MON}-%{TIME_YEAR}
+  &lt;/IfModule&gt;
+</pre>
+Now, if the "special.bin" file is requested during January 2013, the RETR
+request will be rewritten and will match the name of the file on disk; the
+file is accessible, and the download succeeds.  If the same file is requested
+any other time than during January 2013, then the
+<code>mod_rewrite</code>-rewritten path will not match the name of the file
+on disk, and the download will fail.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,165 @@
+/*************************************************
+*     Exim - an Internet mail transport agent    *
+*************************************************/
+
+/* Copyright (c) University of Cambridge 1997 - 2018 */
+/* See the file NOTICE for conditions of use and distribution. */
+
+/* Linux-specific code. This is concatenated onto the generic
+src/os.c file. */
+
+
+/*************************************************
+*              Load average computation          *
+*************************************************/
+
+/*Linux has an apparently unique way of getting the load average, so we provide
+a unique function here, and define OS_LOAD_AVERAGE to stop src/os.c trying to
+provide the function. However, when compiling os.c for utilities, we may not
+want this at all, so check that it isn't set first. */
+
+#if !defined(OS_LOAD_AVERAGE) && defined(__linux__)
+#define OS_LOAD_AVERAGE
+
+/* Linux has 2 ways of returning load average:
+
+  (1) Do a read on /proc/loadavg
+  (2) Use the sysinfo library function and syscall
+
+The latter is simpler but in Linux 2.0 - 2.2 (and probably later releases) is
+exceptionally slow - 10-50ms per call is not unusual and about 100x slow the
+first method. This cripples high performance mail servers by increasing CPU
+utilisation by 3-5x.
+
+In Exim's very early days, it used the 1st method. Later, it switched to the
+2nd method. Now it tries the 1st method and falls back to the 2nd if /proc is
+unavailable. */
+
+#include <sys/sysinfo.h>
+
+static int
+linux_slow_getloadavg(void)
+{
+struct sysinfo s;
+double avg;
+if (sysinfo(&s) < 0) return -1;
+avg = (double) (s.loads[0]) / (1<<SI_LOAD_SHIFT);
+return (int)(avg * 1000.0);
+}
+
+int
+os_getloadavg(void)
+{
+char buffer[40];
+double avg;
+int count;
+int fd = open ("/proc/loadavg", O_RDONLY);
+if (fd == -1) return linux_slow_getloadavg();
+count = read (fd, buffer, sizeof(buffer));
+(void)close (fd);
+if (count <= 0) return linux_slow_getloadavg();
+count = sscanf (buffer, "%lf", &avg);
+if (count < 1) return linux_slow_getloadavg();
+return (int)(avg * 1000.0);
+}
+#endif  /* OS_LOAD_AVERAGE */
+
+
+
+
+
+/*************************************************
+*         Finding interface addresses            *
+*************************************************/
+
+/* This function is not required for utilities; we cut it out if
+FIND_RUNNING_INTERFACES is already defined. */
+
+#ifndef FIND_RUNNING_INTERFACES
+
+/* This code, contributed by Jason Gunthorpe, appears to be the current
+way of finding IPv6 interfaces in Linux. It first calls the common function in
+order to find IPv4 interfaces, then grobbles around to find the others. Jason
+said, "This is so horrible, don't look. Slightly ripped from net-tools
+ifconfig." It gets called by virtue of os_find_running_interfaces being defined
+as a macro for os_find_running_interfaces_linux in the os.h-Linux file. */
+
+ip_address_item *
+os_find_running_interfaces_linux(void)
+{
+ip_address_item *yield = NULL;
+
+#if HAVE_IPV6
+ip_address_item *last = NULL;
+ip_address_item  *next;
+char addr6p[8][5];
+unsigned int plen, scope, dad_status, if_idx;
+char devname[20+1];
+FILE *f;
+#endif
+
+yield = os_common_find_running_interfaces();
+
+#if HAVE_IPV6
+
+/* Open the /proc file; give up if we can't. */
+
+if ((f = fopen("/proc/net/if_inet6", "r")) == NULL) return yield;
+
+/* Pick out the data from within the file, and add it on to the chain */
+
+last = yield;
+if (last != NULL) while (last->next != NULL) last = last->next;
+
+while (fscanf(f, "%4s%4s%4s%4s%4s%4s%4s%4s %02x %02x %02x %02x %20s\n",
+             addr6p[0], addr6p[1], addr6p[2], addr6p[3],
+             addr6p[4], addr6p[5], addr6p[6], addr6p[7],
+             &if_idx, &plen, &scope, &dad_status, devname) != EOF)
+  {
+  struct sockaddr_in6 addr;
+
+  /* This data has to survive for ever, so use malloc. */
+
+  next = store_malloc(sizeof(ip_address_item));
+  next->next = NULL;
+  next->port = 0;
+  sprintf(CS next->address, "%s:%s:%s:%s:%s:%s:%s:%s",
+         addr6p[0], addr6p[1], addr6p[2], addr6p[3],
+         addr6p[4], addr6p[5], addr6p[6], addr6p[7]);
+
+  /* Normalize the representation */
+
+  inet_pton(AF_INET6, CS next->address, &addr.sin6_addr);
+  inet_ntop(AF_INET6, &addr.sin6_addr, CS next->address, sizeof(next->address));
+
+  if (yield == NULL) yield = last = next; else
+    {
+    last->next = next;
+    last = next;
+    }
+
+  DEBUG(D_interface)
+    debug_printf("Actual local interface address is %s (%s)\n", last->address,
+      devname);
+  }
+fclose(f);
+#endif  /* HAVE_IPV6 */
+
+return yield;
+}
+
+#endif  /* FIND_RUNNING_INTERFACES */
+
+
+/*************
+* Sendfile   *
+*************/
+#include <sys/sendfile.h>
+
+ssize_t
+os_sendfile(int out, int in, off_t * off, size_t cnt)
+{
+return sendfile(out, in, off, cnt);
+}
+
+/* End of os.c-Linux */

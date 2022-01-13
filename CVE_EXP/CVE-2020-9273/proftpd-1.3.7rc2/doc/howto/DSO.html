@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Dynamic Shared Objects (DSOs)</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Dynamic Shared Objects (DSOs)</b></h2></center>
+<hr>
+
+<p>
+<b>What are DSOs?</b><br>
+DSOs (<b>D</b>ynamic <b>S</b>hared <b>O</b>bjects) are specially built
+binary files that can be loaded by an application while it is running,
+extending the functionality of the application on-the-fly.  One of the best
+known applications that makes use of DSOs is the Apache web server; see
+the Apache documentation for an in-depth description of DSOs:
+<pre>
+  <a href="http://httpd.apache.org/docs/dso.html">http://httpd.apache.org/docs/dso.html</a>
+</pre>
+
+<p>
+<b>DSOs and ProFTPD</b><br>
+ProFTPD gained the ability to use DSOs starting with the 1.3.0rc1 release.
+To make sure the compiled <code>proftpd</code> binary can load DSO modules,
+use the <code>--enable-dso</code> configure option:
+<pre>
+  $ ./configure --enable-dso ...
+</pre>
+This causes the build system to build the <code>libltdl</code> supporting
+library, which is used to handle OS-specific ways of loading and unloading
+DSO files, and also to include the <a href="../../doc/modules/mod_dso.html"><code>mod_dso</code></a> module in the compiled <code>proftpd</code>.  The
+<code>mod_dso</code> module provides the <code>LoadModule</code> configuration
+directive, for loading modules via the <code>proftpd.conf</code> configuration
+file.
+
+<p>
+The <code>contrib</code> modules that are distributed with the ProFTPD source,
+<i>e.g.</i> <code>mod_ldap</code>, <code>mod_sql</code>,
+<code>mod_quotatab</code>, <code>mod_ifsession</code>, <i>etc</i>, can
+easily be built as DSO modules, rather than statically linked into the
+<code>proftpd</code> binary.  Instead of using the normal
+<code>--with-modules</code> configure option, you use the
+<code>--with-shared</code> option:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_sql:mod_sql_mysql --with-includes=... --with-libraries=...
+</pre>
+These DSO modules will be installed under the <code>libexec/</code> directory
+of your ProFTPD install location.  To control the location of this
+<code>libexec/</code> directory from which the <code>mod_dso</code> module
+will load modules, you can use the <code>--libexecdir</code> configure
+option, <i>e.g.</i>:
+<pre>
+  $ ./configure --libexecdir=/path/to/custom/libexec --enable-dso ...
+</pre>
+
+<p>
+Note that ProFTPD uses the GNU <code>libtool</code> utility for creating
+shared modules.  This tool creates files with <code>.la</code> file extensions.
+It is these <code>.la</code> files that will be installed into the
+<code>libexec/</code> directory.  This differs from the <code>.so</code>
+files that Apache's DSO support generates, so do not be surprised.
+
+<p>
+<b>Loading Modules</b><br>
+There are two ways to load DSO modules into <code>proftpd</code>: the
+<a href="../../doc/modules/mod_dso.html#LoadModule"><code>LoadModule</code></a> configuration directive, and the <a href="../../doc/modules/mod_dso.html#insmod"><code>insmod</code></a> <code>ftpdctl</code> action.  Note that the latter
+possibility is only available if your <code>proftpd</code> has been built with
+<a href="Controls.html">Controls</a> support.
+
+<p>
+Loading a module using <code>LoadModule</code> is quite simple.  Simply use
+the directive at the top of your <code>proftpd.conf</code> file, which makes
+sure the module is loaded by <code>proftpd</code> before it processes other
+directives:
+<pre>
+  LoadModule mod_sql.c
+  LoadModule mod_sql_mysql.c
+  ...
+
+  &lt;IfModule mod_sql.c&gt;
+    ...
+  &lt;/IfModule&gt;
+</pre>
+
+If a module fails to load properly, you might see messages like:
+<pre>
+  Fatal: unknown configuration directive 'SQLConnectInfo' on line 86 of '/usr/local/proftpd/etc/proftpd.conf'
+</pre>
+This can happen if you forget to use the <code>LoadModule</code> directive
+in your <code>proftpd.conf</code> prior to using directives from the
+module.  If you are using <code>LoadModule</code>, the error message may
+look like:
+<pre>
+  LoadModule: error loading module 'mod_sql_mysql.c': permission denied on line 65 of proftpd.conf
+</pre>
+Check the <code>libexec/</code> directory where you installed
+<code>proftpd</code>, to see if the appropriate <code>.la</code> and/or
+<code>.so</code> files are present.  Then check your dynamic loader
+configuration file (<i>e.g.</i> <code>/etc/ld.so.conf</code> on Linux) and
+make sure that the <code>libexec/</code> directory is configured, so that the
+dynamic loader knows to look in the correct locations.  Note that the
+<code>LD_LIBRARY_PATH</code> and/or <code>LD_RUN_PATH</code> environment
+variables may also be used to inform the dynamic loader of
+<code>proftpd</code>'s <code>libexec/</code> directory.
+
+<p>
+Using <code>ftpdctl insmod</code> to load modules is tricky, as the loading of
+a module directly into the running <code>proftpd</code>, without restarting the
+server, can cause unexpected behavior.  Many modules are not designed to
+handle being loaded directly, and may cause bugs or unexpected crashes.
+Support for this mode of loading modules will stabilize as the modules
+are updated properly.
+
+<p>
+<b>Module Ordering</b><br>
+Is the order in which your <code>LoadModule</code> directives appear in
+<code>proftpd.conf</code> important?  The short answer is: <em>maybe</em>.
+It depends on the modules.  Some modules are self-sufficient, do not make
+use of any other modules, and so can appear in any orders.  Others, like
+<code>mod_sql_mysql</code> or <code>mod_quotatab_sql</code>, require
+that the frontend module (<i>e.g.</i> <code>mod_sql</code> or
+<code>mod_quotatab</code>) be loaded first.  Still others, like
+<code>mod_ifsession</code>, do not directly require other modules, yet they
+have effects that are dependent on the order; <code>mod_ifsession</code>
+works best when it is the <b>last</b> module loaded.
+
+<p>
+To achieve the necessary module order, you can make sure that your
+<code>LoadModule</code> directives appear in the correct order, or you can
+use the <a href="../../doc/modules/mod_dso.html#ModuleOrder"><code>ModuleOrder</code></a> directive.  Note that using <code>ModuleOrder</code> can be
+difficult, as it is very easy to use <code>ModuleOrder</code> to configure a
+nonfunctional <code>proftpd</code>.
+
+<p>
+<b>Compiling Custom Modules as DSOs</b><br>
+The <code>--with-shared</code> configure option can be used to build DSOs
+from the modules already distributed with ProFTPD, but what about building
+a custom ProFTPD module as a DSO?  Right now, this requires the ProFTPD
+source, and not just an installed ProFTPD.
+
+<p>
+Once you have your custom module written (<i>e.g.</i>
+<code>mod_custom.c</code>), you create the <code>Makefile</code> that will
+be used to compile it as a DSO module.  The following can be used as a template
+for the <code>Makefile</code>:
+<pre>
+  PROFTPD_INSTALL=/usr/local/proftpd
+
+  top_srcdir=$(PROFTPD_INSTALL)
+  srcdir=$(PROFTPD_INSTALL)
+  VPATH=$(PROFTPD_INSTALL)
+
+  MODULE_NAME=
+  MODULE_CFLAGS=
+  MODULE_DEFS=
+  MODULE_LDFLAGS=
+  MODULE_LIBS=
+
+  CC=gcc
+  DEFS=-DPR_SHARED_MODULE $(MODULE_DEFS)
+  CFLAGS=$(DEFS) -I. -I$(PROFTPD_INSTALL)/include/proftpd $(MODULE_CFLAGS)
+  LDFLAGS=-L$(PROFTPD_INSTALL)/lib $(MODULE_LDFLAGS)
+  LIBEXEC_DIR=$(PROFTPD_INSTALL)/libexec
+  LIBS=$(MODULE_LIBS)
+
+  INSTALL=/usr/bin/install -c
+  INSTALL_BIN=$(INSTALL) -s -m 0755
+
+  LIBTOOL=$(SHELL) /usr/bin/libtool
+  LTDL_FLAGS=-avoid-version -export-dynamic -module
+
+  # Targets
+
+  all: $(MODULE_NAME).la
+
+  $(MODULE_NAME).lo:
+          $(LIBTOOL) --mode=compile $(CC) $(CFLAGS) -c $(MODULE_NAME).c
+
+  $(MODULE_NAME).la: $(MODULE_NAME).lo
+          $(LIBTOOL) --mode=link $(CC) -o $(MODULE_NAME).la -rpath $(LIBEXEC_DIR) $(LDFLAGS) $(LTDL_FLAGS) $(MODULE_NAME).lo $(LIBS)
+
+  install: $(MODULE_NAME).la
+          if [ -f $(MODULE_NAME).la ] ; then \
+                  $(LIBTOOL) --mode=install $(INSTALL_BIN) $(MODULE_NAME).la $(DESTDIR)$(LIBEXEC_DIR) ; \
+          fi
+
+  clean:
+          $(LIBTOOL) --mode=clean $(RM) $(MODULE_NAME).la $(MODULE_NAME).lo config.*
+
+  distclean:
+          $(RM) Makefile config.*
+          $(RM) -r autom4te.cache
+</pre>
+Fill in <code>MODULE_NAME</code> with the name of your module:
+<pre>
+  MODULE_NAME=mod_custom
+</pre>
+The remaining <code>MODULE_</code> variables are used to specify additional
+compiler and linker flags.  If, for example, your <code>mod_custom.c</code>
+module relied on a header file <code>&lt;custom.h&gt;</code> as well as
+a library <code>libcustom.so</code>, you might have the following:
+<pre>
+  MODULE_CFLAGS=-I/path/to/custom/include
+  MODULE_DEFS=-DUSE_LIBCUSTOM
+  MODULE_LDFLAGS=-L/path/to/custom/lib
+  MODULE_LIBS=-lcustom
+</pre>
+Place the <code>Makefile</code> in a directory with your
+<code>mod_custom.c</code> source file, then do:
+<pre>
+  $ make
+  $ make install
+</pre>
+The <code>make install</code> step will install the DSO module into the
+<code>libexec/</code> directory of your ProFTPD install location.
+
+<p>
+Once installed, update your <code>proftpd.conf</code> to make sure your
+module is loaded:
+<pre>
+  LoadModule mod_custom.c
+</pre>
+Then restart <code>proftpd</code>, and your custom module will be in use.
+
+<p><a name="prxs"></a>
+<b>Using <code>prxs</code></b><br>
+You may find yourself wanting to compile some third-party module, for which
+you have the source code, as a DSO module for proftpd.  But you may not have
+the source code for proftpd, <i>e.g.</i> you might have installed proftpd
+as a binary package.  The build system for proftpd would let you compile
+your third-party module as a DSO module, but what do you do if you don't have
+access to the proftpd build system?
+
+<p>
+The answer is to use the <code>prxs</code> script, which comes with proftpd.
+The <code>prxs</code> (<b>PR</b>oFTPD E<b>X</b>tension<b>S</b>) tool will
+compile and install third-party modules, from source code, as DSO modules
+for your installed proftpd.
+
+<p>
+The <code>prxs</code> tool supports the following actions:
+<pre>
+ -c, --compile          Compiles the listed <code>.c</code> source files
+                        into a proftpd DSO module.
+
+ -i, --install          Installs a compiled proftpd DSO module into the
+                        directory where proftpd expects to find loadable
+                        DSO modules.
+
+ -d, --clean            Removes any generated files, returning the build
+                        directory to a clean state.
+</pre>
+At least one of the above actions must be specified when using
+<code>prxs</code>.  More than one action can be specified at the same time.
+
+<p>
+To use <code>prxs</code> all in one step, you could do:
+<pre>
+  $ prxs -c -i -d mod_custom.c
+</pre>
+which will do the compile, install, and clean actions in order.  Once
+installed, update your <code>proftpd.conf</code> to make sure your module is
+loaded:
+<pre>
+  LoadModule mod_custom.c
+</pre>
+Then restart <code>proftpd</code>, and your custom module will be in use.
+
+<p>
+For example, you might use <code>prxs</code> to compile the
+<code>mod_sql_sqlite</code> module like so, from the top level of the
+ProFTPD source directory:
+<pre>
+  $ prxs -c -i -d contrib/mod_sql_sqlite.c
+</pre>
+
+<p>
+The following options are also supported:
+<pre>
+ -n, --name             Tells prxs the name of the module being compiled.
+                        By default, prxs determines the module name from
+                        the list of .c files listed, expecting to see a
+                        "mod_<i>name</i>.c" file.
+
+ -D key                 Passes these macros through to the compilation step.
+ -D key=value           Note that the space before the key is important.
+
+ -I <em>includedir</em> Specify additional include file search directories.
+                        Note that the space before the directory is important.
+
+ -L <em>libdir</em>     Specify additional library file search directories.
+                        Note that the space before the directory is important.
+
+ -l <em>library</em>    Specify additional libraries for linking.
+                        Note that the space before the library name is important.
+</pre>
+
+<p>
+Using <code>prxs</code>, the above <code>mod_custom</code> example would
+become:
+<pre>
+  $ cd /path/to/mod_custom/dir
+  $ prxs -c -i -D USE_CUSTOM -I /path/to/custom/include -L /path/to/custom/lib -l custom mod_custom.c
+</pre>
+That's it!  No need for a special Makefile, and no need to edit/replace any
+variables.
+
+<p>
+The <code>prxs</code> tool uses the <code>libtool</code> command that your
+system should support.  If you need to tell <code>prxs</code> to use a
+different <code>libtool</code> for any reason (such as using a specially
+installed <code>libtool</code>), you can use the <code>LIBTOOL</code>
+environment variable to point <code>prxs</code> to the <code>libtool</code>
+to use.  For example:
+<pre>
+  $ LIBTOOL=/path/to/custom/libtool prxs -c -i -d mod_custom.c
+</pre>
+
+<p>
+When should you use <code>prxs</code> for compiling DSO modules, and when
+should you use a Makefile?  In general, if the third-party module comes with
+its own <code>configure</code> script and <code>Makefile</code>, then you
+should use those.  Otherwise, <code>prxs</code> should suffice.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+<font color=red>Question</font>: My installed <code>proftpd</code> does not
+include <code>mod_sql_passwd</code> (or some other module).  How can I get
+proftpd to use this module without recompiling?<br>
+<font color=blue>Answer</font>: First, see if your proftpd package came
+with the <a href="#prxs"><code>prxs</code></a> tool; by default, this tool
+is installed as <code>/usr/local/bin/prxs</code>.  If you do not find
+<code>prxs</code> anywhere on your system, you will have to recompile proftpd
+in order to add new modules.
+
+<p>
+Second, you will need the source code for <code>mod_sql_passwd</code> (or
+whatever other module you want to add to your proftpd).  Assume, then, that
+you have found the <code>mod_sql_passwd.c</code> source file.  The next
+step is to use <code>prxs</code> to build that module as a DSO module:
+<pre>
+  $ /usr/local/bin/prxs -c -i -d mod_sql_passwd.c
+</pre>
+If the above fails with this error message:
+<pre>
+  Your installed proftpd does not support shared modules/DSOs.
+  Make sure the --enable-dso configure option is used when
+  compiling proftpd.
+</pre>
+It means that your <code>proftpd</code> does not have DSO support -- and
+that means that you will have to recompile proftpd to add the new module.
+
+<p>
+If, on the other hand, your <code>prxs</code> succeeded, the last steps are
+to update your <code>proftpd.conf</code> to load the new module, and then
+restart proftpd so that it reads the updated configuration.  Continuing with
+the example of <code>mod_sql_passwd</code>, you would add the following line
+near the top of your <code>proftpd.conf</code>:
+<pre>
+  LoadModule mod_sql_passwd.c
+</pre>
+and later in the config file, configure your newly added module:
+<pre>
+  &lt;IfModule mod_sql_passwd.c&gt;
+    SQLPasswordEngine on
+    ...
+  &lt;/IfModule&gt;
+</pre>
+Last, restart proftpd, and enjoy your new module's functionality, all without
+needing to recompile/reinstall proftpd itself.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,100 @@
+<!--
+  Add this group to your datacollection-config.xml
+  Then add the group reference to your host definitions
+-->
+
+<!-- ProFTPD MIB -->
+
+<group name="proftpd" ifType="ignore">
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.1.6" instance="0" alias="Cclients" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.1.7" instance="0" alias="TotalConnections" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.1.8" instance="0" alias="RefusConnections" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.1.9" instance="0" alias="Restarts" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.1.10" instance="0" alias="SegfaultConnections" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.1.11" instance="0" alias="MaxInstances" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.2.1" instance="0" alias="TimeoutIdle" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.2.2" instance="0" alias="TimeoutLogin" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.2.3" instance="0" alias="TimeoutnoTrans" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.2.4" instance="0" alias="TimeoutStall" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.1.1" instance="0" alias="SessionGauge" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.1.2" instance="0" alias="SessionCount" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.1.3" instance="0" alias="InvalidCommands" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.2.1" instance="0" alias="SuccessLogins" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.2.2" instance="0" alias="FailedLogins" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.2.3" instance="0" alias="FailedUser" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.2.4" instance="0" alias="FailedPass" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.2.5" instance="0" alias="FailedOther" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.2.6" instance="0" alias="AnonCount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.2.7" instance="0" alias="Anon" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.1" instance="0" alias="DirlistCount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.2" instance="0" alias="Dirlist" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.3" instance="0" alias="DirlistFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.4" instance="0" alias="UploadCount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.5" instance="0" alias="Upload" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.6" instance="0" alias="UploadFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.7" instance="0" alias="DownloadCount" type="Gauge32"/>   
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.8" instance="0" alias="Download" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.9" instance="0" alias="DownloadFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.10" instance="0" alias="UploadKB" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.3.3.11" instance="0" alias="DownloadKB" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.4.1" instance="0" alias="snmprec" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.4.2" instance="0" alias="snmpsent" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.4.3" instance="0" alias="snmptraps" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.4.4" instance="0" alias="snmpauthfail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.4.5" instance="0" alias="snmpdropped" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.1.1" instance="0" alias="tlssesscount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.1.2" instance="0" alias="tlssess" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.1.3" instance="0" alias="tlscontrol" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.1.4" instance="0" alias="tlsdata" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.2.1" instance="0" alias="tlsLogin" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.2.2" instance="0" alias="tlsLoginFailed" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.1" instance="0" alias="tlsDirlistCount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.2" instance="0" alias="tlsDirlist" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.3" instance="0" alias="tlsDirlistFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.4" instance="0" alias="tlsUploadCount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.5" instance="0" alias="tlsUpload" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.6" instance="0" alias="tlsUploadFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.7" instance="0" alias="tlsDownloadCount" type="Gauge32"/>   
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.8" instance="0" alias="tlsDownload" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.9" instance="0" alias="tlsDownloadFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.10" instance="0" alias="tlsUploadKB" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.5.3.11" instance="0" alias="tlsDownloadKB" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.1.1" instance="0" alias="sshsesscount" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.1.2" instance="0" alias="sshsessclientc" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.1.3" instance="0" alias="sshsessserverc" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.2.1" instance="0" alias="sshhostauth" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.2.2" instance="0" alias="sshhostauthFailed" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.2.3" instance="0" alias="sshkeyboardauth" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.2.4" instance="0" alias="sshkeyboardauthFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.2.5" instance="0" alias="sshpassauth" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.2.6" instance="0" alias="sshpassauthFailed" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.2.7" instance="0" alias="sshpubkey" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.6.2.8" instance="0" alias="sshpubkeyFailed" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.1.1" instance="0" alias="sftpsesscount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.1.2" instance="0" alias="sftpsess" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.1.3" instance="0" alias="sftpsessv3" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.1.4" instance="0" alias="sftpsessv4" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.1.5" instance="0" alias="sftpsessv5" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.1.6" instance="0" alias="sftpsessv6" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.1" instance="0" alias="sftpDirlistCount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.2" instance="0" alias="sftpDirlist" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.3" instance="0" alias="sftpDirlistFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.4" instance="0" alias="sftpUploadCount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.5" instance="0" alias="sftpUpload" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.6" instance="0" alias="sftpUploadFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.7" instance="0" alias="sftpDownloadCount" type="Gauge32"/>   
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.8" instance="0" alias="sftpDownload" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.9" instance="0" alias="sftpDownloadFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.10" instance="0" alias="sftpUploadKB" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.7.2.11" instance="0" alias="sftpDownloadKB" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.8.1.1" instance="0" alias="scpsesscount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.8.1.2" instance="0" alias="scpsess" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.8.2.1" instance="0" alias="scpUploadCount" type="Gauge32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.8.2.2" instance="0" alias="scpUpload" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.8.2.3" instance="0" alias="scpUploadFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.8.2.4" instance="0" alias="scpDownloadC" type="Gauge32"/>   
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.8.2.5" instance="0" alias="scpDownload" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.8.2.6" instance="0" alias="scpDownloadFail" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.8.2.7" instance="0" alias="scpUploadKB" type="Counter32"/>
+   <mibObj oid=".1.3.6.1.4.1.17852.2.2.8.2.8" instance="0" alias="scpDownloadKB" type="Counter32"/>
+  </group>

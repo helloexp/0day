@@ -1,0 +1,19 @@
+/*************************************************
+*     Exim - an Internet mail transport agent    *
+*************************************************/
+
+/* Copyright (c) 2016 Heiko Schlittermann <hs@schlittermann.de> */
+/* See the file NOTICE for conditions of use and distribution. */
+
+/* BSDI-specific code. This is concatenated onto the generic
+src/os.c file. */
+
+#ifndef OS_UNSETENV
+#define OS_UNSETENV
+
+int
+os_unsetenv(const uschar * name)
+{
+unsetenv(CS name);
+return 0;
+}

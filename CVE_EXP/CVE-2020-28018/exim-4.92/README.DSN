@@ -1,0 +1,141 @@
+Exim DSN Patch (4.82)
+---------------------
+
+This patch is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This patch is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this patch; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111 USA.
+
+Installation & Usage
+--------------------
+See docs/experimental-spec.txt
+
+Credits
+-------
+
+The original work for the patch was done by Philip Hazel in Exim 3
+
+The extract was taken and re-applied to Exim 4 by the following :-
+Phil Bingham   (phil.bingham@cwipapps.net)
+Steve Falla    (steve.falla@cwipapps.net)
+Ray Edah       (ray.edah@cwipapps.net)
+Andrew Johnson (andrew.johnson@cwippaps.net)
+Adrian Hungate (adrian.hungate@cwipapps.net)
+
+Now Primarily maintained by :-
+Andrew Johnson (andrew.johnson@cwippaps.net)
+
+Updated for 4.82, improved and submitted to
+http://bugs.exim.org/show_bug.cgi?id=118
+by :-
+Wolfgang Breyha (wbreyha@gmx.net)
+
+Contributions
+-------------
+Andrey J. Melnikoff (TEMHOTA) (temnota@kmv.ru) 
+
+
+ChangeLog
+---------
+14-Apr-2006 : Changed subject to "Delivery Status Notification"
+
+17-May-2006 : debug_printf in spool-in.c were not wrapped with #ifndef COMPILE_UTILITY
+              thanks to Andrey J. Melnikoff for this information
+
+12-Sep-2006 : Now supports Exim 4.63
+
+12-Sep-2006 : src/EDITME did not include the #define SUPPORT_DSN as stated
+              in the documentation, this has now been corrected
+              thanks to Robert Kehl for this information
+
+28-Jul-2008 : New version for exim 4.69 released.
+
+02-Jul-2010 : New version for exim 4.72 released.
+
+25-Apr-2014 : Version 1.4
+              *) fix ENVID and ORCPT addition in SMTP transport
+                *) p was not moved to the end of the string. new content
+                   added afterwards overwrites ENVID and/or ORCPT
+              *) change spool file format to be compatible with the
+                 extensible format of exim 4 by prepending new values and
+                 setting the extended bitmask accordingly
+                *) use SUPPORT_DSN_LEGACY=yes in Makefile to be able to read
+                   the legacy format of older patches until all messages are out of queue.
+              *) change "dsn" boolean toggle to "dsn_advertise_hosts" to
+                 be able to select who actually can use the extension
+              *) Add all RFC 3461 MUST fields to delivery-status section
+              *) convert xtext in ENVID
+              *) add all successful rcpts to ONE message instead of sending several messages
+
+26-Apr-2014 : Version 1.5
+              fixes:
+                *) fixed wrong order for ENVID
+                *) fixed wrong Final-Recipient value
+                *) af_ignore_failure is ignored for success reports
+                *) fixed DSN_LEGACY switch
+              improvements:
+                *) added MIME "failure" reports
+                  *) bounce_return_message is ignored (required by RFC)
+                  *) in case RET= is defined we honor these values
+                     otherwise bounce_return_body is honored.
+                  *) bounce_return_size_limit is always honored.
+                  *) message body intro and final text is ignored
+                  *) do not send report if DSN flags say NO
+                *) added MIME "delay" reports
+                  *) do not send report if DSN flags say NO
+                *) changed from SUPPORT_DSN to EXPERIMENTAL_DSN
+                *) updated documentation
+
+01-May-2014 : Version 1.6
+              fixes:
+                *) code cleanup
+                *) use text/rfc822-headers were applicable
+                *) fix NOTIFY=FAILURE
+
+              improvements:
+                *) do not truncated MIME messages
+                  *) if bounce_return_size_limit is smaller then the actual message
+                     only the header is returned
+                *) if bounce_return_body or bounce_return_size_limit prevents Exim
+                   from returning the requested (RET=FULL) body this fact is added
+                   as X-Exim-DSN-Information Header
+                  *) this also means that all of the last three parts of the "failure"
+                     template are not used anymore
+
+                *) dsn_process switch removed
+                  *) every router "processes" DSN by default
+                  *) there is no possibility to "gag" DSN anymore since this violates RFC
+                *) dsn_lasthop switch added for routers
+                  *) if dsn_lasthop is set by a router it is handled as relaying to a
+                     non DSN aware relay. success mails are sent if Exim successfully 
+                     delivers the message.
+                *) redirect routers always "act" as if dsn_lasthop is set
+
+                *) address_item.dsn_aware changed from uschar to int for easier handling.
+
+02-May-2014 : fixes:
+                *) Reporting-MTA: use smtp_active_hostname instead of qualify_domain from
+                   original patch.
+
+20-May-2014 : fixes:
+                *) removed support for EXPERIMENTAL_DSN_LEGACY for codebase inclusion
+                *) fixed build of exim_monitor tree
+                *) fixed late declaration of dsn_all_lasthop
+
+-----------------
+
+Support for this patch up to 1.3 (limited though it is) will only be provided through the SourceForge
+project page (http://sourceforge.net/projects/eximdsn/)
+
+From 1.4 onward feel free to ask on the exim-users mailinglist or add comments to
+http://bugs.exim.org/show_bug.cgi?id=118
+

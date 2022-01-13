@@ -1,0 +1,47 @@
+#
+# This ProFTPD configuration is intended for unprivileged TESTING ONLY.
+# See Step 4 in INSTALL.
+#
+
+ServerName			"ProFTPD TEST Installation"
+ServerType			standalone
+DefaultServer			on
+
+# Use a non-privileged port, rather than the standard ftp port (21).
+# The ftpd-data port will be one less.
+Port				2021
+
+User				%User%
+Group				%Group%
+
+# These must be absolute paths.
+AuthUserFile			%TestDir%/PFTEST.passwd
+AuthGroupFile			%TestDir%/PFTEST.group
+
+PidFile				%TestDir%/PFTEST.pid
+ScoreboardFile			%TestDir%/PFTEST.score
+SystemLog			%TestDir%/PFTEST.syslog
+TransferLog			%TestDir%/PFTEST.xferlog
+
+# Disable some checks.
+RequireValidShell		off
+UseFtpUsers			off
+UseReverseDNS			off
+WtmpLog				off
+
+<IfModule mod_ident.c>
+  IdentLookups			off
+</IfModule>
+
+# Umask 022 is a good standard umask to prevent new dirs and files
+# from being group and world writable.
+Umask				022
+
+# To prevent DoS attacks, set the maximum number of child processes to 5.
+MaxInstances			5
+
+# Normally, we want files to be overwriteable.
+<Directory />
+  AllowOverwrite		on
+</Directory>
+

@@ -1,0 +1,731 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR The ProFTPD Project
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: proftpd 1.3.2\n"
+"Report-Msgid-Bugs-To: core@proftpd.org\n"
+"POT-Creation-Date: 2008-04-03 08:54-0800\n"
+"PO-Revision-Date: 2008-12-08 03:52+0300\n"
+"Last-Translator: Fedor Pletnev <fedor@envia.ru>\n"
+"Language-Team: Alex Samorukov <samm@os2.kiev.ua>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Russian\n"
+"X-Poedit-Country: RUSSIA\n"
+
+#: ../include/dirtree.h:202
+#: ../include/dirtree.h:208
+#: ../modules/mod_facts.c:601
+#: ../modules/mod_facts.c:728
+#: ../modules/mod_facts.c:787
+#: ../modules/mod_facts.c:882
+#: ../modules/mod_lang.c:152
+msgid "Invalid number of arguments"
+msgstr "Неправильное количество аргументов"
+
+#: ../modules/mod_auth.c:101
+#: ../modules/mod_site.c:450
+msgid "Please login with USER and PASS"
+msgstr "Пожалуйста, подключитесь используя USER и PASS"
+
+#: ../modules/mod_auth.c:115
+#, c-format
+msgid "Login Timeout (%d seconds): closing control connection"
+msgstr "Время подключения (%d секунд) истекло: закрываю управляющее соединение"
+
+#: ../modules/mod_auth.c:126
+#, c-format
+msgid "Session Timeout (%u seconds): closing control connection"
+msgstr "Время сессии (%u секунд) истекло: закрываю управляющее соединение"
+
+#: ../modules/mod_auth.c:420
+msgid "Anonymous access granted, restrictions apply"
+msgstr "Анонимное подключение, ограничения применены"
+
+#: ../modules/mod_auth.c:422
+#, c-format
+msgid "User %s logged in"
+msgstr "Пользователь %s подключён"
+
+#: ../modules/mod_auth.c:1251
+#: ../modules/mod_auth.c:1275
+#: ../modules/mod_auth.c:1309
+#: ../modules/mod_auth.c:1320
+#: ../modules/mod_auth.c:1356
+#: ../modules/mod_auth.c:1371
+#: ../modules/mod_auth.c:1382
+#: ../modules/mod_auth.c:1866
+#: ../modules/mod_auth.c:1888
+#: ../modules/mod_auth.c:1900
+#: ../modules/mod_auth.c:2042
+msgid "Login incorrect."
+msgstr "Некорректные данные аутентификации."
+
+#: ../modules/mod_auth.c:1834
+#: ../modules/mod_auth.c:1984
+msgid "You are already logged in"
+msgstr "Вы уже подключены"
+
+#: ../modules/mod_auth.c:1837
+msgid "USER: command requires a parameter"
+msgstr "USER: требуется параметр команды"
+
+#: ../modules/mod_auth.c:1919
+msgid "Anonymous login ok, send your complete email address as your password"
+msgstr "Анонимное подключение, укажите ваш e-mail адрес в качестве пароля"
+
+#: ../modules/mod_auth.c:1948
+#, c-format
+msgid "Password required for %s"
+msgstr "Необходим пароль для пользователя %s"
+
+#: ../modules/mod_auth.c:1992
+msgid "Login with USER first"
+msgstr "Подключитесь с использованием USER"
+
+#: ../modules/mod_auth.c:2053
+msgid "Login incorrect"
+msgstr "Некорректные данные аутентификации"
+
+#: ../modules/mod_auth.c:2060
+msgid "ACCT command not implemented"
+msgstr "Команда ACCT не реализована"
+
+#: ../modules/mod_auth.c:2065
+msgid "REIN command not implemented"
+msgstr "Команда REIN не реализована"
+
+#: ../modules/mod_core.c:2840
+#: ../modules/mod_core.c:2851
+#, c-format
+msgid "%s: Forbidden command argument"
+msgstr "%s: Запрещённый аргумент"
+
+#: ../modules/mod_core.c:2891
+msgid "Goodbye."
+msgstr "До свидания."
+
+#: ../modules/mod_core.c:2931
+#, c-format
+msgid "\"%s\" is the current directory"
+msgstr "\"%s\" является текущей директорией"
+
+#: ../modules/mod_core.c:2943
+msgid "Illegal PASV command, EPSV ALL in effect"
+msgstr "Команда PASV ошибочна, действует EPSV ALL"
+
+#: ../modules/mod_core.c:2988
+#: ../modules/mod_core.c:3511
+msgid "Unable to build data connection: Internal error"
+msgstr "Невозможно создать передачу данных: Внутренняя ошибка"
+
+#: ../modules/mod_core.c:3045
+#: ../modules/mod_core.c:3185
+msgid "Illegal PORT command, EPSV ALL in effect"
+msgstr "Команда PORT  ошибочна, действует EPSV ALL"
+
+#: ../modules/mod_core.c:3070
+msgid "Unable to service PORT commands"
+msgstr "Не могу обработать команду PORT"
+
+#: ../modules/mod_core.c:3078
+#: ../modules/mod_core.c:3085
+#: ../modules/mod_core.c:3108
+#: ../modules/mod_core.c:3134
+#: ../modules/mod_core.c:3143
+#: ../modules/mod_core.c:3156
+msgid "Illegal PORT command"
+msgstr "Неправильная команда PORT"
+
+#: ../modules/mod_core.c:3171
+msgid "PORT command successful"
+msgstr "Команда PORT успешно обработана"
+
+#: ../modules/mod_core.c:3213
+msgid "Unable to service EPRT commands"
+msgstr "Не могу обработать команду EPRT"
+
+#: ../modules/mod_core.c:3240
+#: ../modules/mod_core.c:3463
+msgid "Network protocol not supported, use (1,2)"
+msgstr "Сетевой протокол не поддерживается, используйте (1,2)"
+
+#: ../modules/mod_core.c:3242
+#: ../modules/mod_core.c:3244
+#: ../modules/mod_core.c:3465
+#: ../modules/mod_core.c:3467
+msgid "Network protocol not supported, use (1)"
+msgstr "Сетевой протокол не поддерживается, используйте (1)"
+
+#: ../modules/mod_core.c:3260
+#: ../modules/mod_core.c:3266
+#: ../modules/mod_core.c:3291
+#: ../modules/mod_core.c:3307
+#: ../modules/mod_core.c:3327
+#: ../modules/mod_core.c:3342
+#: ../modules/mod_core.c:3355
+msgid "Illegal EPRT command"
+msgstr "Неправильная команда EPRT"
+
+#: ../modules/mod_core.c:3384
+msgid "EPRT command successful"
+msgstr "Команда EPRT успешно обработана"
+
+#: ../modules/mod_core.c:3412
+msgid "EPSV ALL command successful"
+msgstr "Команда EPSV ALL успешно обработана"
+
+#: ../modules/mod_core.c:3424
+#, c-format
+msgid "%s: unknown network protocol"
+msgstr "%s: неизвестный сетевой протокол"
+
+#: ../modules/mod_core.c:3567
+#, c-format
+msgid "Unknown command '%s'"
+msgstr "Неизвестная команда '%s'"
+
+#: ../modules/mod_core.c:3734
+#: ../modules/mod_core.c:3782
+#: ../modules/mod_core.c:4047
+#, c-format
+msgid "%s command successful"
+msgstr "%s успешно выполнена"
+
+#: ../modules/mod_core.c:3755
+#: ../modules/mod_core.c:3765
+#: ../modules/mod_core.c:3810
+#: ../modules/mod_core.c:3820
+#: ../modules/mod_core.c:3991
+#: ../modules/mod_core.c:4001
+#: ../modules/mod_core.c:4081
+#: ../modules/mod_core.c:4091
+#: ../modules/mod_core.c:4166
+#: ../modules/mod_core.c:4176
+#: ../modules/mod_site.c:99
+#: ../modules/mod_site.c:109
+#: ../modules/mod_site.c:174
+#: ../modules/mod_site.c:184
+#: ../modules/mod_xfer.c:1641
+#: ../modules/mod_xfer.c:1658
+#, c-format
+msgid "%s: Forbidden filename"
+msgstr "%s: Запрещённое имя файла"
+
+#: ../modules/mod_core.c:3797
+#, c-format
+msgid "%s: Invalid directory name"
+msgstr "%s: Некорректное имя директории"
+
+#: ../modules/mod_core.c:3873
+#, c-format
+msgid "\"%s\" - Directory successfully created"
+msgstr "\"%s\" - Директория успешно создана"
+
+#: ../modules/mod_core.c:3912
+#, c-format
+msgid "%s: not a plain file"
+msgstr "%s: не текстовый файл"
+
+#: ../modules/mod_core.c:3947
+#, c-format
+msgid "%s not allowed in ASCII mode"
+msgstr "%s не разрешено в режиме ASCII"
+
+#: ../modules/mod_core.c:3962
+#, c-format
+msgid "%s: not a regular file"
+msgstr "%s: не обычный файл"
+
+#: ../modules/mod_core.c:4068
+msgid "Bad sequence of commands"
+msgstr "Ошибочная последовательность команд"
+
+#: ../modules/mod_core.c:4107
+#, c-format
+msgid "%s: Rename permission denied"
+msgstr "%s: Запрет изменения имени"
+
+#: ../modules/mod_core.c:4116
+#: ../modules/mod_core.c:4124
+#, c-format
+msgid "Rename %s: %s"
+msgstr "Изменение имени %s: %s"
+
+#: ../modules/mod_core.c:4137
+msgid "Rename successful"
+msgstr "Имя изменено"
+
+#: ../modules/mod_core.c:4201
+msgid "File or directory exists, ready for destination name"
+msgstr "Файл или директория существуют, готов к имени назначения"
+
+#: ../modules/mod_core.c:4208
+msgid "NOOP command successful"
+msgstr "Команда NOOP выполнена"
+
+#: ../modules/mod_core.c:4225
+msgid ""
+"Features:\n"
+" "
+msgstr ""
+"Возможности:\n"
+" "
+
+#: ../modules/mod_core.c:4240
+msgid "End"
+msgstr "Конец"
+
+#: ../modules/mod_core.c:4243
+msgid "No features supported"
+msgstr "Нет поддерживаемых возможностей"
+
+#: ../modules/mod_facts.c:614
+#: ../modules/mod_facts.c:741
+#: ../modules/mod_facts.c:803
+#: ../modules/mod_facts.c:811
+#: ../modules/mod_facts.c:898
+#: ../modules/mod_lang.c:132
+#: ../modules/mod_lang.c:147
+msgid "Unable to handle command"
+msgstr "Невозможно обработать команду"
+
+#: ../modules/mod_facts.c:706
+#, c-format
+msgid "Cannot modify fact '%s'"
+msgstr "Не могу изменить факт '%s'"
+
+#: ../modules/mod_facts.c:816
+#, c-format
+msgid "'%s' is not a directory"
+msgstr "'%s' не является директорией"
+
+#: ../modules/mod_facts.c:822
+#: ../modules/mod_facts.c:906
+#, c-format
+msgid "'%s' cannot be listed"
+msgstr "'%s' не может быть каталогизирована"
+
+#: ../modules/mod_facts.c:915
+#, c-format
+msgid "%s- Start of list for %s"
+msgstr "%s- Начало списка для %s"
+
+#: ../modules/mod_facts.c:917
+#, c-format
+msgid "%s End of list"
+msgstr "%s Конец списка"
+
+#: ../modules/mod_facts.c:935
+#: ../modules/mod_lang.c:203
+#: ../modules/mod_lang.c:209
+#: ../modules/mod_xfer.c:1348
+#: ../modules/mod_xfer.c:1442
+#: ../modules/mod_xfer.c:1916
+#: ../modules/mod_xfer.c:1985
+#: ../modules/mod_xfer.c:2211
+#: ../modules/mod_xfer.c:2232
+#: ../modules/mod_xfer.c:2253
+#: ../modules/mod_xfer.c:2263
+#: ../modules/mod_xfer.c:2306
+#, c-format
+msgid "'%s' not understood"
+msgstr "'%s' не понятно"
+
+#: ../modules/mod_lang.c:162
+#, c-format
+msgid "Using default language %s"
+msgstr "Используется язык по умолчанию %s"
+
+#: ../modules/mod_lang.c:167
+#, c-format
+msgid "Language %s not supported"
+msgstr "Язык %s не поддерживается"
+
+#: ../modules/mod_lang.c:182
+#, c-format
+msgid "Using language %s"
+msgstr "Использую язык %s"
+
+#: ../modules/mod_lang.c:220
+msgid "UTF8 set to on"
+msgstr "UTF-8 активирован"
+
+#: ../modules/mod_lang.c:238
+#: ../modules/mod_lang.c:269
+#: ../modules/mod_lang.c:280
+#, c-format
+msgid "Unable to accept %s"
+msgstr "Не могу принять %s"
+
+#: ../modules/mod_lang.c:249
+#: ../modules/mod_lang.c:285
+#: ../modules/mod_lang.c:293
+msgid "UTF8 set to off"
+msgstr "UTF-8 деактивирован"
+
+#: ../modules/mod_ls.c:1158
+#, c-format
+msgid "ERROR: %s"
+msgstr "ОШИБКА: %s"
+
+#: ../modules/mod_ls.c:1562
+#, c-format
+msgid "Out of memory during globbing of %s"
+msgstr "Недостаточно памяти при обработке шаблона %s"
+
+#: ../modules/mod_ls.c:1566
+#, c-format
+msgid "Read error during globbing of %s"
+msgstr "Ошибка чтения при обработке шаблона %s"
+
+#: ../modules/mod_ls.c:1570
+#, c-format
+msgid "Unknown error during globbing of %s"
+msgstr "Неизвестная ошибка при обработке шаблона %s"
+
+#: ../modules/mod_ls.c:1921
+#, c-format
+msgid "Status of '%s'"
+msgstr "Статус '%s'"
+
+#: ../modules/mod_ls.c:1922
+#, c-format
+msgid "Connected from %s (%s)"
+msgstr "Адрес подключения %s (%s)"
+
+#: ../modules/mod_ls.c:1924
+#, c-format
+msgid "Logged in as %s"
+msgstr "Подключен как %s"
+
+#: ../modules/mod_ls.c:1925
+#, c-format
+msgid "TYPE: %s, STRUcture: File, Mode: Stream"
+msgstr "ТИП: %s, Структура: Файл, Режим: Потоковый"
+
+#: ../modules/mod_ls.c:1929
+msgid "Total bytes transferred for session: %"
+msgstr "Общее количество байт, переданных во время сессии: %"
+
+#: ../modules/mod_ls.c:1936
+#, c-format
+msgid "%s from %s port %u"
+msgstr "%s от %s порт %u"
+
+#: ../modules/mod_ls.c:1938
+msgid "Active data transfer to"
+msgstr "Активная передача данных к"
+
+#: ../modules/mod_ls.c:1938
+msgid "Passive data transfer from"
+msgstr "Пассивная передача данных от"
+
+#: ../modules/mod_ls.c:1953
+msgid "No data connection"
+msgstr "Нет соединения данных"
+
+#: ../modules/mod_ls.c:1955
+#: ../modules/mod_ls.c:2031
+msgid "End of status"
+msgstr "Конец статуса"
+
+#: ../modules/mod_ls.c:2027
+#, c-format
+msgid "Status of %s:"
+msgstr "Статус для %s:"
+
+#: ../modules/mod_ls.c:2189
+msgid "No files found"
+msgstr "Файлы не найдены"
+
+#: ../modules/mod_ls.c:2287
+#: ../modules/mod_xfer.c:1386
+#: ../modules/mod_xfer.c:1526
+#: ../modules/mod_xfer.c:2009
+#, c-format
+msgid "%s: Not a regular file"
+msgstr "%s: Необычный файл"
+
+#: ../modules/mod_site.c:80
+#: ../modules/mod_site.c:155
+#: ../modules/mod_site.c:457
+#, c-format
+msgid "'SITE %s' not understood"
+msgstr "'SITE %s' не распознан"
+
+#: ../modules/mod_site.c:141
+#: ../modules/mod_site.c:380
+#, c-format
+msgid "SITE %s command successful"
+msgstr "Команда 'SITE %s' успешно выполнена"
+
+#: ../modules/mod_site.c:370
+#, c-format
+msgid "'%s': invalid mode"
+msgstr "'%s': неправильный режим"
+
+#: ../modules/mod_site.c:415
+#, c-format
+msgid "Syntax: SITE %s %s"
+msgstr "Синтакс: SITE %s %s"
+
+#: ../modules/mod_site.c:420
+#, c-format
+msgid "Unknown command 'SITE %s'"
+msgstr "Неизвестная команда 'SITE %s'"
+
+#: ../modules/mod_site.c:442
+msgid "'SITE' requires parameters"
+msgstr "'SITE' требует параметров"
+
+#: ../modules/mod_site.c:467
+msgid "The following SITE commands are recognized (* =>'s unimplemented)"
+msgstr "Следующие команды SITE были распознаны (* => не реализовано)"
+
+#: ../modules/mod_site.c:496
+#: ../src/help.c:124
+#, c-format
+msgid "Direct comments to %s"
+msgstr "Прямой комментарий для %s"
+
+#: ../modules/mod_xfer.c:1250
+#, c-format
+msgid "%s: Bad file name"
+msgstr "%s: Неправильное имя файла"
+
+#: ../modules/mod_xfer.c:1264
+#, c-format
+msgid "%s: File name too long"
+msgstr "%s: Превышена допустимая длина файла"
+
+#: ../modules/mod_xfer.c:1298
+#, c-format
+msgid "%s: Temporary hidden file %s already exists"
+msgstr "%s: Временный скрытый файл %s уже существует"
+
+#: ../modules/mod_xfer.c:1362
+#: ../modules/mod_xfer.c:1447
+#: ../modules/mod_xfer.c:1603
+#: ../modules/mod_xfer.c:1999
+#, c-format
+msgid "%s: Too many transfers"
+msgstr "%s: Слишком много передач"
+
+#: ../modules/mod_xfer.c:1373
+#: ../modules/mod_xfer.c:1518
+#, c-format
+msgid "%s: Overwrite permission denied"
+msgstr "%s: Ошибка доступа при перезаписи файла"
+
+#: ../modules/mod_xfer.c:1400
+#, c-format
+msgid "%s: Append/Restart not permitted, try again"
+msgstr "%s: Добавление/Рестарт не разрешено, попытайтесь ещё раз"
+
+#: ../modules/mod_xfer.c:1456
+msgid "STOU incompatible with REST"
+msgstr "STOU несовместимо с REST"
+
+#: ../modules/mod_xfer.c:1478
+#, c-format
+msgid "%s: unable to generate unique filename"
+msgstr "%s: не могу создать уникальное имя файла"
+
+#: ../modules/mod_xfer.c:1723
+#: ../modules/mod_xfer.c:2075
+#: ../modules/mod_xfer.c:2092
+#, c-format
+msgid "%s: invalid REST argument"
+msgstr "%s: некорректный аргумент REST"
+
+#: ../modules/mod_xfer.c:1896
+#, c-format
+msgid "%s: Rename of hidden file %s failed: %s"
+msgstr "%s: Изменение имени скрытого файла %s завершено с ошибкой: %s"
+
+#: ../modules/mod_xfer.c:1925
+msgid "REST not compatible with server configuration"
+msgstr "REST не совместимо с конфигурацией сервера"
+
+#: ../modules/mod_xfer.c:1934
+#: ../modules/mod_xfer.c:1947
+msgid "REST requires a value greater than or equal to 0"
+msgstr "REST требует значения большего или идентичного 0"
+
+#: ../modules/mod_xfer.c:1964
+#, c-format
+msgid "%s: Resuming transfers not allowed in ASCII mode"
+msgstr "%s: Продолжене передачи запрещено в режиме ASCII"
+
+#: ../modules/mod_xfer.c:1970
+msgid "Restarting at %"
+msgstr "Рестарт в %"
+
+#: ../modules/mod_xfer.c:1971
+msgid ". Send STORE or RETRIEVE to initiate transfer"
+msgstr ". Пошлите STORE или RETRIEVE для начала передачи"
+
+#: ../modules/mod_xfer.c:2020
+#, c-format
+msgid "%s: Restart not permitted, try again"
+msgstr "%s: Рестарт не разрешён, попробуйте снова"
+
+#: ../modules/mod_xfer.c:2226
+msgid "Abort successful"
+msgstr "Отмена успешна"
+
+#: ../modules/mod_xfer.c:2257
+#, c-format
+msgid "Type set to %s"
+msgstr "Тип установлен в %s"
+
+#: ../modules/mod_xfer.c:2272
+msgid "Structure set to F"
+msgstr "Структура установлена как F"
+
+#: ../modules/mod_xfer.c:2291
+#, c-format
+msgid "'%s' unsupported structure type"
+msgstr "'%s' неподдерживаемый тип структуры"
+
+#: ../modules/mod_xfer.c:2297
+#, c-format
+msgid "'%s' unrecognized structure type"
+msgstr "'%s' тип структуры не распознан"
+
+#: ../modules/mod_xfer.c:2315
+msgid "Mode set to S"
+msgstr "Установлен S режим"
+
+#: ../modules/mod_xfer.c:2323
+#, c-format
+msgid "'%s' unsupported transfer mode"
+msgstr "'%s' неподдерживаемый режим передачи"
+
+#: ../modules/mod_xfer.c:2329
+#, c-format
+msgid "'%s' unrecognized transfer mode"
+msgstr "'%s' нераспознанный режим передачи"
+
+#: ../modules/mod_xfer.c:2337
+msgid "No storage allocation necessary"
+msgstr "Нет необходимости в выделении места"
+
+#: ../modules/mod_xfer.c:2342
+msgid "SMNT command not implemented"
+msgstr "Команда SNMT не реализована"
+
+#: ../modules/mod_xfer.c:2406
+#, c-format
+msgid "No transfer timeout (%d seconds): closing control connection"
+msgstr "Истекло время отсутствия передачи (%d секунд): закрываю управляющее соединение"
+
+#: ../src/data.c:291
+#: ../src/data.c:392
+msgid "Opening %s mode data connection for %s (%"
+msgstr "Открываю режим %s данных для %s (%"
+
+#: ../src/data.c:292
+#: ../src/data.c:393
+msgid " bytes)"
+msgstr " байт)"
+
+#: ../src/data.c:294
+#: ../src/data.c:395
+#, c-format
+msgid "Opening %s mode data connection for %s"
+msgstr "Открываю режим %s данных для %s"
+
+#: ../src/data.c:329
+#: ../src/data.c:372
+#: ../src/data.c:428
+#: ../src/data.c:528
+#: ../src/data.c:536
+#, c-format
+msgid "Unable to build data connection: %s"
+msgstr "Невозможно создать соединение данных: %s"
+
+#: ../src/data.c:617
+msgid "Transfer complete"
+msgstr "Передача завершена"
+
+#: ../src/data.c:685
+msgid "Data connection closed"
+msgstr "Соединение данных закрыто"
+
+#: ../src/data.c:691
+msgid "Unexpected streams hangup"
+msgstr "Неожиданный обрыв потока"
+
+#: ../src/data.c:704
+msgid "Insufficient memory or file locked"
+msgstr "Недостаточно памяти или файл заблокирован"
+
+#: ../src/data.c:810
+msgid "Link to file server lost"
+msgstr "Связь с файловым сервером потеряна"
+
+#: ../src/data.c:819
+#, c-format
+msgid "Unknown or out of range errno [%d]"
+msgstr "Неизвестный номер ошибки [%d]"
+
+#: ../src/data.c:830
+#, c-format
+msgid "Transfer aborted. %s"
+msgstr "Передача отменена. %s"
+
+#: ../src/data.c:898
+#, c-format
+msgid "%s: data transfer in progress"
+msgstr "%s: передача данных выполняется"
+
+#: ../src/data.c:941
+#: ../src/main.c:821
+msgid "Invalid command: try being more creative"
+msgstr "Неправильная команда: попробуйте добавить креатива"
+
+#: ../src/help.c:88
+msgid "The following commands are recognized (* =>'s unimplemented):"
+msgstr "Следующие команды были распознаны (* => не реализовано):"
+
+#: ../src/main.c:323
+#, c-format
+msgid "FTP server shutting down - %s"
+msgstr "FTP сервер завершает работу - %s"
+
+#: ../src/main.c:491
+#, c-format
+msgid "%s not understood"
+msgstr "%s не распознано"
+
+#: ../src/main.c:726
+#, c-format
+msgid "Idle timeout (%d seconds): closing control connection"
+msgstr "Истёк лимит времени простоя (%d секунд): закрываю управляющее соединение"
+
+#: ../src/main.c:776
+#, c-format
+msgid "%s FTP server ready"
+msgstr "%s FTP сервер готов"
+
+#: ../src/main.c:1243
+#, c-format
+msgid "FTP server shut down (%s) -- please try again later"
+msgstr "FTP завершает работу (%s) -- попробуйте позже"
+
+#: ../src/main.c:1258
+#, c-format
+msgid "Sorry, no server available to handle request on %s"
+msgstr "Извините, нет доступного сервера чтобы выполнить запрос для %s"
+
+# Translated from template 1.1
+#: ../src/netio.c:337
+msgid "Transfer aborted. Data connection closed."
+msgstr "Передача отменена. Соединение данных закрыто."
+

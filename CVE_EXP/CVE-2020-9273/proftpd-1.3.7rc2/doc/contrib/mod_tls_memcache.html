@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_tls_memcache</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_tls_memcache</code></b></h2>
+</center>
+<hr>
+
+<p>
+The <code>mod_tls_memcache</code> submodule is contained in the
+<code>mod_tls_memcache.c</code> file, and is not compiled by default.
+Installation instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+This submodule a memcached-based implementation of an external SSL session
+cache for use by the <code>mod_tls</code> module's
+<a href="mod_tls.html#TLSSessionCache"><code>TLSSessionCache</code></a>
+directive.  The module also implements a memcached-based implementation of an
+external OCSP response cache for the
+<a href="mod_tls.html#TLSStaplingCache"><code>TLSStaplingCache</code></a>
+directive.
+
+<p>
+This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/).
+
+<p>
+This product includes cryptographic software written by Eric Young (eay@cryptsoft.com).
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<p>
+The <code>mod_tls_memcache</code> module supports the &quot;memcache&quot;
+string for the <em>type</em> parameter of the
+<a href="mod_tls.html#TLSSessionCache"><code>TLSSessionCache</code></a>
+configuration directive.  The <em>info</em> parameter for
+<code>mod_tls_memcache</code> can be empty/blank, indicating a native binary
+encoding of the cached data), <i>or</i> it can be "/json", indicating that
+the cached data will be encoded using JSON. This means the
+<code>TLSSessionCache</code> setting will look like:
+<pre>
+  # Use binary encoding for cached data
+  TLSSessionCache memcache:
+</pre>
+or:
+<pre>
+  # Use JSON encoding for cached data
+  TLSSessionCache memcache:/json
+</pre>
+If memcache support has not been enabled in your proftpd, this configuration
+<b>cannot</b> be used.
+
+<p>
+The <code>mod_tls_memcache</code> module also supports the &quot;memcache&quot;
+string for the <em>type</em> parameter of the
+<a href="mod_tls.html#TLSStaplingCache"><code>TLStaplingCache</code></a>
+configuration directive, <i>e.g.</i>:
+<pre>
+  TLSStaplingCache memcache:
+</pre>
+
+<p>
+<b>Examples</b><br>
+
+<p>
+<pre>
+  &lt;IfModule mod_memcache.c&gt;
+    MemcacheEngine on
+    MemcacheServers <i>memcache-servers</i>
+  &lt;/IfModule&gt;
+
+  &lt;IfModule mod_tls.c&gt;
+    ...
+
+    &lt;IfModule mod_tls_memcache.c&gt;
+      # Store the data formatted as JSON
+      TLSSessionCache memcache:/json
+      TLSStaplingCache memcache:
+    &lt;/IfModule&gt;
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_tls_memcache</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>tls.memcache
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace tls.memcache:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_tls_memcache</code> module is distributed with the ProFTPD
+source code.  Simply follow the normal steps for using third-party modules
+in ProFTPD, being sure to include the <code>mod_tls</code> module (on which
+<code>mod_tls_memcache</code> depends), <b>and</b> enabling memcache
+support:
+<pre>
+  $ ./configure --enable-memcache --with-modules=mod_tls:mod_tls_memcache
+  $ make
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your <code>proftpd</code> was compiled with DSO support, you
+can use the <code>prxs</code> tool to build <code>mod_tls_memcache</code> as
+a shared module:
+<pre>
+  $ prxs -c -i -d mod_tls_memcache.c
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2011-2015 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

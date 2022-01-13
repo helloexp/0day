@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_deflate</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_deflate</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_deflate</code> module is designed to provide support for
+<code>MODE Z</code> commands, which allows FTP clients and servers to
+compress data for transfer.
+
+<p>
+This module is contained in the <code>mod_deflate.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation instructions
+are discussed <a href="#Installation">here</a>.  Detailed documentation on
+<code>mod_deflate</code> usage can be found <a href="#Usage">here</a>.
+
+<p>
+The most current version of <code>mod_deflate</code> can be found at:
+<pre>
+  <a href="http://www.castaglia.org/proftpd/">http://www.castaglia.org/proftpd/</a>
+</pre>
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#DeflateEngine">DeflateEngine</a>
+  <li><a href="#DeflateLog">DeflatefLog</a>
+</ul>
+
+<p>
+<hr>
+<h3><a name="DeflateEngine">DeflateEngine</a></h3>
+<strong>Syntax:</strong> DeflateEngine <em>on|off</em><br>
+<strong>Default:</strong> off<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_deflate<br>
+<strong>Compatibility:</strong> 1.3.0rc1 and later
+
+<p>
+The <code>DeflateEngine</code> directive enables or disables the
+<code>mod_deflate</code> compression functionality.  If set to <em>on</em>,
+then <code>mod_deflate</code> will advertise support for <code>MODE Z</code>
+compression via the <code>FEAT</code> command, and handle <code>MODE Z</code>
+requests appropriately.
+
+<p>
+<hr>
+<h3><a name="DeflateLog">DeflateLog</a></h3>
+<strong>Syntax:</strong> DeflateLog <em>path|&quot;none&quot;</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_deflate<br>
+<strong>Compatibility:</strong> 1.3.0rc1 and later
+
+<p>
+The <code>DeflateLog</code> directive is used to specify a log file for
+<code>mod_deflate</code> reporting and debugging. The <em>path</em> parameter
+must be the full path to the file to use for logging.  Note that this path must
+<b>not</b> be to a world-writable directory and, unless
+<code>AllowLogSymlinks</code> is explicitly set to <em>on</em>
+(generally a bad idea), the path must <b>not</b> be a symbolic link.
+
+<p>
+If <em>path</em> is &quot;none&quot;, no logging will be done at all.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_deflate</code> module is distributed with ProFTPD.  Follow the
+usual steps for using third-party modules in ProFTPD:
+<pre>
+  $ ./configure --with-modules=mod_deflate
+</pre>
+To build <code>mod_deflate</code> as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_deflate
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+For those with an existing ProFTPD installation, you can use the
+<code>prxs</code> tool to add <code>mod_deflate</code>, as a DSO module, to
+your existing server:
+<pre>
+  $ prxs -c -i -d mod_deflate.c
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+
+<p>
+Example <code>mod_deflate</code> configuration:
+<pre>
+  &lt;IfModule mod_deflate.c&gt;
+    DeflateEngine on
+    DeflateLog /var/log/proftpd/deflate.log
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+Sites that run <code>proftpd</code> 1.3.0 should disable sendfile use
+when using <code>mod_deflate</code>, as the two features do not interoperate
+well:
+<pre>
+  &lt;IfModule mod_deflate.c&gt;
+    DeflateEngine on
+    DeflateLog /var/log/proftpd/deflate.log
+
+    UseSendfile off
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_deflate</code> module supports different forms of logging.  The
+main module logging is done via the <code>DeflateLog</code> directive.
+For debugging purposes, the module also uses <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>deflate
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace deflate:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="DeflateDataError">
+<font color=red>Question</font>: I'm uploading a file using <code>MODE Z</code>,
+but the upload always fails.  In the <code>DeflateLog</code>, I see:
+<pre>
+ error inflating data: [-3] Data error
+</pre>
+What is going wrong?  It is a <code>mod_deflate</code> bug?<br>
+<font color=blue>Answer</font>: The most common cause of this error is when
+the client is trying to upload a binary file (<i>e.g.</i> PDF, MPG, <i>etc</i>)
+in <a href="http://www.proftpd.org/docs/howto/ASCII.html">ASCII</a> mode.
+
+<p>
+If <code>MODE Z</code> is not used in cases like this, the upload succeeds,
+but the uploaded file on the server is corrupted.  When <code>MODE Z</code>
+is in effect, the corruption (translation of newlines inappropriately) is
+detected earlier (since <code>mod_deflate</code> can't uncompress the
+compressed data properly, hence the report of a "Data error"), and the
+upload fails.
+
+<p>
+The solution is make sure that the client uploads (and downloads) non-ASCII
+files as binary files, not as ASCII files.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2006-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

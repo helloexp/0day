@@ -1,0 +1,12 @@
+# Unable to translate stdin:3
+# Defaults:foo, bar env_reset
+
+# Unable to translate stdin:4
+# Defaults:foo, bar env_reset
+
+# Unable to translate stdin:5
+# Defaults:foo, " bar" env_reset
+
+# Unable to translate stdin:6
+# Defaults:foo, bar env_reset
+

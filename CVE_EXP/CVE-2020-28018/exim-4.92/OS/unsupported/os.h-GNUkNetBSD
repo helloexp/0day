@@ -1,0 +1,25 @@
+/* Exim: OS-specific C header file for GNU/kNetBSD */
+
+#define CRYPT_H
+#define GLIBC_IP_OPTIONS
+#define HAVE_MMAP
+#define HAVE_BSD_GETLOADAVG
+#define HAVE_SYS_VFS_H
+#define NO_IP_VAR_H
+#define SIG_IGN_WORKS
+
+#define F_FREESP     O_TRUNC
+typedef struct flock flock_t;
+
+#define os_strsignal strsignal
+#define OS_STRSIGNAL
+
+/* kNetBSD-specific bits below */
+
+#define HAVE_SYS_MOUNT_H
+#define SIOCGIFCONF_GIVES_ADDR
+
+/* default is non-const */
+#define ICONV_ARG2_TYPE const char **
+
+/* End */

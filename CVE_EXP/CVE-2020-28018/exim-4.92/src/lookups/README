@@ -1,0 +1,175 @@
+LOOKUPS
+-------
+
+Each lookup type is implemented by 6 functions, xxx_open(), xxx_check(),
+xxx_find(), xxx_close(), xxx_tidy(), and xxx_quote(), where xxx is the name of
+the lookup type (e.g. lsearch, dbm, or whatever). In addition, there is
+a version reporting function used to trace compile-vs-runtime conflicts and
+to help administrators ensure that the modules from the correct build are
+in use by the main binary.
+
+The xxx_check(), xxx_close(), xxx_tidy(), and xxx_quote() functions need not
+exist. There is a table in drtables.c which links the lookup names to the
+various sets of functions, with NULL entries for any that don't exist. When
+the code for a lookup type is omitted from the binary, all its entries are
+NULL.
+
+One of the fields in the table contains flags describing the kind of lookup.
+These are
+
+  lookup_querystyle
+
+This is a "query style" lookup without a file name, as opposed to the "single
+key" style, where the key is associated with a "file name".
+
+  lookup_absfile
+
+For single key lookups, this means that the file name must be an absolute path.
+It is set for lsearch and dbm, but not for NIS, for example.
+
+  lookup_absfilequery
+
+This is a query-style lookup that must start with an absolute file name. For
+example, the sqlite lookup is of this type.
+
+When a single-key or absfilequery lookup file is opened, the handle returned by
+the xxx_open() function is saved, along with the file name and lookup type, in
+a tree. The xxx_close() function is not called when the first lookup is
+completed. If there are subsequent lookups of the same type that quote the same
+file name, xxx_open() isn't called; instead the cached handle is re-used.
+
+Exim calls the function search_tidyup() at strategic points in its processing
+(e.g. after all routing and directing has been done) and this function walks
+the tree and calls the xxx_close() functions for all the cached handles.
+
+Query-style lookups don't have the concept of an open file that can be cached
+this way. Of course, the local code for the lookup can manage its own caching
+information in any way it pleases. This means that the xxx_close()
+function, even it it exists, is never called. However, if an xxx_tidy()
+function exists, it is called once whenever Exim calls search_tidyup().
+
+A single-key lookup type may also have an xxx_tidy() function, which is called
+by search_tidyup() after all cached handles have been closed via the
+xxx_close() function.
+
+The lookup functions are wrapped into a special store pool (POOL_SEARCH). You
+can safely use store_get to allocate store for your handle caching. The store
+will be reset after all xxx_tidy() functions are called.
+
+The function interfaces are as follows:
+
+
+xxx_open()
+----------
+
+This function is called to initiate the lookup. For things that involve files
+it should do a real open; for other kinds of lookup it may do nothing at all.
+The arguments are:
+
+  uschar *filename    the name of the "file" to open, for non-query-style
+                        lookups; NULL for query-style lookups
+  uschar **errmsg     where to put an error message if there is a problem
+
+The yield of xxx_open() is a void * value representing the open file or
+database. For real files is is normally the FILE or DBM value. For other
+kinds of lookup, if there is no natural value to use, (-1) is recommended.
+The value should not be NULL (or 0) as that is taken to indicate failure of
+the xxx_open() function. For single-key lookups, the handle is cached along
+with the filename and type, and may be used for several lookups.
+
+
+xxx_check()
+-----------
+
+If this function exists, it is called after a successful open to check on the
+ownership and mode of the file(s). The arguments are:
+
+  void *handle        the handle passed back from xxx_open()
+  uschar *filename    the filename passed to xxx_open()
+  int modemask        mode bits that must not be set
+  int *owners         permitted owners of the file(s)
+  int *owngroups      permitted group owners of the file(s)
+  uschar **errmsg     where to put an error message if there is a problem
+
+In the owners and owngroups vectors, the first element is the count of the
+remaining elements. There is a common function that can be called to check
+a file:
+
+int search_check_file(int fd, char *filename, int modemask, int *owners,
+  int *owngroups, char *type, char **errmsg);
+
+If fd is >= 0, it is checked using fstat(), and filename is used only in
+error messages. If fd is < 0 then filename is checked using stat(). The yield
+is zero if all is well, +1 if the mode or uid or gid is wrong, or -1 if the
+stat() fails.
+
+The yield of xxx_check() is TRUE if all is well, FALSE otherwise. The
+function should not close the file(s) on failure. That is done from outside
+by calling the xxx_close() function.
+
+
+xxx_find()
+----------
+
+This is called to search an open file/database. The result is OK, FAIL, or
+DEFER. The arguments are:
+
+  void *handle        the handle passed back from xxx_open()
+  uschar *filename    the filename passed to xxx_open() (NULL for querystyle)
+  uschar *keyquery    the key to look up, or query to process, zero-terminated
+  int  length         the length of the key
+  uschar **result     point to the yield, in dynamic store, on success
+  uschar **errmsg     where to put an error message on failure;
+                      this is initially set to "", and should be left
+                      as that for a standard "entry not found" error
+  uint *do_cache      the lookup should set this to 0 when it changes data.
+                      This is MAXINT by default. When set to 0 the cache tree
+                      of the current search handle will be cleaned and the
+                      current result will NOT be cached. Currently the mysql
+                      and pgsql lookups use this when UPDATE/INSERT queries are
+                      executed.
+                      If set to a nonzero number of seconds, the cached value
+                      becomes unusable after this time. Currently the dnsdb
+                      lookup uses this to support the TTL value.
+
+Even though the key is zero-terminated, the length is passed because in the
+common case it has been computed already and is often needed.
+
+
+xxx_close()
+-----------
+
+This is called for single-key lookups when a file is finished with. There is no
+yield, and the only argument is the handle that was passed back from
+xxx_open(). It is not called for query style lookups.
+
+
+xxx_tidy()
+----------
+
+This function is called once at the end of search_tidyup() for every lookup
+type for which it exists.
+
+
+xxx_quote()
+-----------
+
+This is called by the string expansion code for expansions of the form
+${quote_xxx:<string>}, if it exists. If not, the expansion code makes no change
+to the string. The function must apply any quoting rules that are specific to
+the lookup, and return a pointer to the revised string. If quoting is not
+needed, it can return its single argument, which is a uschar *. This function
+does NOT use the POOL_SEARCH store, because it's usually never called from any
+lookup code.
+
+xxx_report_version()
+--------------------
+
+This is called to report diagnostic information to a file stream.
+Typically it would report both compile-time and run-time version information.
+The arguments are:
+
+  FILE *stream    where to fprintf() the data to
+
+
+****

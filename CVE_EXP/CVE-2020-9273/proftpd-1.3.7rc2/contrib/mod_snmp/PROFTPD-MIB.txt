@@ -1,0 +1,1190 @@
+-- PROFTPD-MIB { iso org(3) dod(6) internet(1) private(4) enterprises(1) 17852 }
+
+PROFTPD-MIB DEFINITIONS ::= BEGIN
+--
+
+IMPORTS
+        enterprises, Integer32, Unsigned32, TimeTicks, Gauge32, Counter32,
+        MODULE-IDENTITY, NOTIFICATION-TYPE, OBJECT-TYPE
+                FROM SNMPv2-SMI
+
+        DisplayString
+                FROM SNMPv2-TC;
+
+proftpd OBJECT IDENTIFIER ::= { enterprises 17852 }
+modules OBJECT IDENTIFIER ::= { proftpd 2 }
+
+snmpModule MODULE-IDENTITY
+    LAST-UPDATED "1110130000Z"
+    ORGANIZATION "The ProFTPD Project"
+    CONTACT-INFO
+            "       ProFTPD Project 
+
+             E-mail: core@proftpd.org"
+    DESCRIPTION
+                "ProFTPD MIB defined for the monitoring of the ProFTPD
+                file transfer server. See http://www.proftpd.org/."
+
+    ::= { modules 2 }
+
+--
+-- OID Assignments
+--
+        connection               OBJECT IDENTIFIER ::= { snmpModule 0 }
+
+        daemon                   OBJECT IDENTIFIER ::= { snmpModule 1 }
+        daemonNotifications      OBJECT IDENTIFIER ::= { daemon 13 }
+
+        timeouts                 OBJECT IDENTIFIER ::= { snmpModule 2 }
+
+        ftp                      OBJECT IDENTIFIER ::= { snmpModule 3 }
+        sessions                 OBJECT IDENTIFIER ::= { ftp 1 }
+        logins                   OBJECT IDENTIFIER ::= { ftp 2 }
+        dataTransfers            OBJECT IDENTIFIER ::= { ftp 3 }
+        ftpNotifications         OBJECT IDENTIFIER ::= { ftp 4 }
+
+        snmp                     OBJECT IDENTIFIER ::= { snmpModule 4 }
+
+        ftps                     OBJECT IDENTIFIER ::= { snmpModule 5 }
+        tlsSessions              OBJECT IDENTIFIER ::= { ftps 1 }
+        tlsLogins                OBJECT IDENTIFIER ::= { ftps 2 }
+        tlsDataTransfers         OBJECT IDENTIFIER ::= { ftps 3 }
+
+        ssh                      OBJECT IDENTIFIER ::= { snmpModule 6 }
+        sshSessions              OBJECT IDENTIFIER ::= { ssh 1 }
+        sshLogins                OBJECT IDENTIFIER ::= { ssh 2 }
+
+        sftp                     OBJECT IDENTIFIER ::= { snmpModule 7 }
+        sftpSessions             OBJECT IDENTIFIER ::= { sftp 1 }
+        sftpDataTransfers        OBJECT IDENTIFIER ::= { sftp 2 }
+
+        scp                      OBJECT IDENTIFIER ::= { snmpModule 8 }
+        scpSessions              OBJECT IDENTIFIER ::= { scp 1 }
+        scpDataTransfers         OBJECT IDENTIFIER ::= { scp 2 }
+
+        ban                      OBJECT IDENTIFIER ::= { snmpModule 9 }
+        banConnections           OBJECT IDENTIFIER ::= { ban 1 }
+        banBans                  OBJECT IDENTIFIER ::= { ban 2 }
+
+--
+-- connection arc
+--
+        serverName OBJECT-TYPE
+            SYNTAX DisplayString
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                " ServerName of server to which client connected "
+        ::= { connection 1 }
+
+        serverAddress OBJECT-TYPE
+            SYNTAX DisplayString
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                " IP address of server to which client connected "
+        ::= { connection 2 }
+
+        serverPort OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                " Port of server to which client connected "
+        ::= { connection 3 }
+
+        clientAddress OBJECT-TYPE
+            SYNTAX DisplayString
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                " IP address of connected client "
+        ::= { connection 4 }
+
+        processId OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                " ID of process handling the client/server connection "
+        ::= { connection 5 }
+
+        userName OBJECT-TYPE
+            SYNTAX DisplayString
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                " User name for connecting client "
+        ::= { connection 6 }
+
+        protocol OBJECT-TYPE
+            SYNTAX DisplayString
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                " Protocol in use by the client to the server "
+        ::= { connection 7 }
+
+--
+-- daemon arc
+--
+        software OBJECT-TYPE
+            SYNTAX DisplayString
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Server software name "
+        ::= { daemon 1 }
+
+        softwareVersion OBJECT-TYPE
+            SYNTAX DisplayString
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Server software version "
+        ::= { daemon 2 }
+
+        admin OBJECT-TYPE
+            SYNTAX DisplayString
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Server administrator email address "
+        ::= { daemon 3 }
+
+        uptime OBJECT-TYPE
+            SYNTAX TimeTicks
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " The uptime of the proftpd daemon in timeticks "
+        ::= { daemon 4 }
+
+        vhostCount OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of configured virtual hosts "
+        ::= { daemon 5 }
+
+        connectionCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of currently connected clients "
+        ::= { daemon 6 }
+
+        connectionTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of connections from clients "
+        ::= { daemon 7 }
+
+        connectionRefusedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of refused connections from clients "
+        ::= { daemon 8 }
+
+        restartCount OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of times the server has been restarted "
+        ::= { daemon 9 }
+
+        segfaultCount OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of segfaults seen by connected sessions "
+        ::= { daemon 10 }
+
+        maxInstancesLimitCount OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of times the MaxInstances limit has been reached "
+        ::= { daemon 11 }
+
+        maxInstancesConfig OBJECT-TYPE
+            SYNTAX Integer32
+            MAX-ACCESS accessible-for-notify
+            STATUS current
+            DESCRIPTION
+                " Configured MaxInstances limit for the daemon "
+        ::= { daemon 12 }
+
+--      NOTE: daemon.13 is the start of the daemon notifications arc
+
+--
+-- daemon.daemonNotifications arc
+--
+        maxInstancesExceeded NOTIFICATION-TYPE
+            OBJECTS { maxInstancesConfig }
+            STATUS  current
+            DESCRIPTION
+                " Notification of when MaxInstances limit exceeded "
+        ::= { daemonNotifications 1 }
+
+--
+-- ftp arc
+--
+
+--
+-- ftp.sessions arc
+--
+        sessionCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of current FTP sessions "
+        ::= { sessions 1 }
+
+        sessionTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of FTP sessions "
+        ::= { sessions 2 }
+
+        commandInvalidTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of invalid FTP commands seen "
+        ::= { sessions 3 }
+
+--
+-- ftp.logins arc
+--
+        loginTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of successful FTP logins "
+        ::= { logins 1 }
+
+        loginFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed FTP logins "
+        ::= { logins 2 }
+
+        loginBadUserTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed FTP logins due to unknown user "
+        ::= { logins 3 }
+
+        loginBadPasswordTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed FTP logins due to bad/wrong password "
+        ::= { logins 4 }
+
+        loginGeneralErrorTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed FTP logins due to config/other issues "
+        ::= { logins 5 }
+
+        anonLoginCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of current anonymous FTP logins "
+        ::= { logins 6 }
+
+        anonLoginTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of anonymous FTP logins "
+        ::= { logins 7 }
+
+--
+-- ftp.dataTransfers arc
+--
+        dirListCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of directories being listed via FTP "
+        ::= { dataTransfers 1 }
+
+        dirListTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of directories successfully listed via FTP "
+        ::= { dataTransfers 2 }
+
+        dirListFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of directory list failures via FTP "
+        ::= { dataTransfers 3 }
+
+        fileUploadCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of files being uploaded via FTP "
+        ::= { dataTransfers 4 }
+
+        fileUploadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of files uploaded successfully via FTP "
+        ::= { dataTransfers 5 }
+
+        fileUploadFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of file upload failures via FTP "
+        ::= { dataTransfers 6 }
+
+        fileDownloadCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of directories being listed via FTP "
+        ::= { dataTransfers 7 }
+
+        fileDownloadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of files downloaded successfully via FTP "
+        ::= { dataTransfers 8 }
+
+        fileDownloadFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of file download failures via FTP "
+        ::= { dataTransfers 9 }
+
+        kbUploadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of KB uploaded via FTP "
+        ::= { dataTransfers 10 }
+
+        kbDownloadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of KB downloaded via FTP "
+        ::= { dataTransfers 11 }
+
+--
+-- ftp.timeouts arc
+--
+        idleTimeoutTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of times TimeoutIdle was reached "
+        ::= { timeouts 1 }
+
+        loginTimeoutTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of times TimeoutLogin was reached "
+        ::= { timeouts 2 }
+
+        noTransferTimeoutTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of times TimeoutNoTransfer was reached "
+        ::= { timeouts 3 }
+
+        stalledTimeoutTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of times TimeoutStalled was reached "
+        ::= { timeouts 4 }
+
+--
+-- ftp.notifications arc
+--
+        loginFailedBadPassword NOTIFICATION-TYPE
+            OBJECTS { serverName,
+                      serverAddress,
+                      serverPort,
+                      clientAddress,
+                      processId,
+                      userName,
+                      protocol }
+            STATUS  current
+            DESCRIPTION
+                " Notification of a client using a bad password "
+        ::= { ftpNotifications 1 }
+
+        loginFailedBadUser NOTIFICATION-TYPE
+            OBJECTS { serverName,
+                      serverAddress,
+                      serverPort,
+                      clientAddress,
+                      processId,
+                      userName,
+                      protocol }
+            STATUS  current
+            DESCRIPTION
+                " Notification of a client using a bad/unknown user name "
+        ::= { ftpNotifications 2 }
+
+--      maxLoginAttemptsExceeded
+--      loginFailedMaxClientsExceeded
+--      loginFailedMaxClientsPerClassExceeded
+--      loginFailedMaxClientsPerHostExceeded
+--      loginFailedMaxClientsPerUserExceeded
+--      loginFailedMaxHostsPerUserExceeded
+
+--
+-- snmp arc
+--
+        packetsReceivedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SNMP packets received "
+        ::= { snmp 1 }
+
+        packetsSentTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SNMP packets sent "
+        ::= { snmp 2 }
+
+        trapsSentTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SNMP traps/notifications sent "
+        ::= { snmp 3 }
+
+        packetsAuthFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SNMP packets failing authentication check "
+        ::= { snmp 4 }
+
+        packetsDroppedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SNMP packets dropped "
+        ::= { snmp 5 }
+
+--
+-- ftps arc
+--
+
+--
+-- ftps.tlsSessions arc
+--
+        sessionCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of current FTPS sessions "
+        ::= { tlsSessions 1 }
+
+        sessionTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of FTPS sessions "
+        ::= { tlsSessions 2 }
+
+        ctrlHandshakeFailureTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed SSL/TLS handshakes seen on control connections "
+        ::= { tlsSessions 3 }
+
+        dataHandshakeFailureTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed SSL/TLS handshakes seen on data connections "
+        ::= { tlsSessions 4 }
+
+        clearCommandChannelTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of successful CCC (Clear Command Channel) FTP commands "
+        ::= { tlsSessions 5 }
+
+        clearCommandChannelFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed CCC (Clear Command Channel) FTP commands "
+        ::= { tlsSessions 6 }
+
+        verifyClientTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of successful client cert verifications "
+        ::= { tlsSessions 7 }
+
+        verifyClientFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed client cert verifications "
+        ::= { tlsSessions 8 }
+
+--
+-- ftps.tlsLogins arc
+--
+        loginTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of successful FTPS logins "
+        ::= { tlsLogins 1 }
+
+        loginFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed FTPS logins "
+        ::= { tlsLogins 2 }
+
+        loginBadUserTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed FTPS logins due to unknown user "
+        ::= { tlsLogins 3 }
+
+        loginBadPasswordTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed FTPS logins due to bad/wrong password "
+        ::= { tlsLogins 4 }
+
+        loginGeneralErrorTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of failed FTPS logins due to config/other issues "
+        ::= { tlsLogins 5 }
+
+        loginCertTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of FTPS logins succeeding due to the client cert (e.g. AllowDotLogin, TLSUserName, etc) "
+        ::= { tlsLogins 6 }
+
+--
+-- ftps.tlsDataTransfers arc
+--
+        dirListCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of directories being listed via FTPS "
+        ::= { tlsDataTransfers 1 }
+
+        dirListTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of directories successfully listed via FTPS "
+        ::= { tlsDataTransfers 2 }
+
+        dirListFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of directory list failures via FTPS "
+        ::= { tlsDataTransfers 3 }
+
+        fileUploadCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of files being uploaded via FTPS "
+        ::= { tlsDataTransfers 4 }
+
+        fileUploadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of files uploaded successfully via FTPS "
+        ::= { tlsDataTransfers 5 }
+
+        fileUploadFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of file upload failures via FTPS "
+        ::= { tlsDataTransfers 6 }
+
+        fileDownloadCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of directories being listed via FTPS "
+        ::= { tlsDataTransfers 7 }
+
+        fileDownloadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of files downloaded successfully via FTPS "
+        ::= { tlsDataTransfers 8 }
+
+        fileDownloadFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of file download failures via FTPS "
+        ::= { tlsDataTransfers 9 }
+
+        kbUploadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of KB uploaded via FTPS "
+        ::= { tlsDataTransfers 10 }
+
+        kbDownloadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of KB downloaded via FTPS "
+        ::= { tlsDataTransfers 11 }
+
+--
+-- ssh arc
+--
+
+--
+-- ssh.sshSessions arc
+--
+        keyExchangeFailureTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 key exchange failures "
+        ::= { sshSessions 1 }
+
+        clientCompressionTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 sessions using client-to-server compression "
+        ::= { sshSessions 2 }
+
+        serverCompressionTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 sessions using server-to-client compression "
+        ::= { sshSessions 3 }
+
+--
+-- ssh.sshLogins arc
+--
+        hostbasedAuthTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 sessions authenticated using hostbased authentication "
+        ::= { sshLogins 1 }
+
+        hostbasedAuthFailureTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 hostbased authentication failures "
+        ::= { sshLogins 2 }
+
+        keyboardInteractiveAuthTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 sessions authenticated using keyboard-interactive authentication "
+        ::= { sshLogins 3 }
+
+        keyboardInteractiveAuthFailureTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 keyboard-interactive authentication failures "
+        ::= { sshLogins 4 }
+
+        passwordAuthTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 sessions authenticated using password authentication "
+        ::= { sshLogins 5 }
+
+        passwordAuthFailureTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 password authentication failures "
+        ::= { sshLogins 6 }
+
+        publickeyAuthTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 sessions authenticated using publickey authentication "
+        ::= { sshLogins 7 }
+
+        publickeyAuthFailureTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SSH2 publickey authentication failures "
+        ::= { sshLogins 8 }
+
+--
+-- sftp arc
+--
+
+--
+-- sftp.sftpSessions arc
+--
+        sessionCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of current SFTP sessions "
+        ::= { sftpSessions 1 }
+
+        sessionTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SFTP sessions "
+        ::= { sftpSessions 2 }
+
+        protocolVersion3Total OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of sessions using SFTP version 3 "
+        ::= { sftpSessions 3 }
+
+        protocolVersion4Total OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of sessions using SFTP version 4 "
+        ::= { sftpSessions 4 }
+
+        protocolVersion5Total OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of sessions using SFTP version 5 "
+        ::= { sftpSessions 5 }
+
+        protocolVersion6Total OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of sessions using SFTP version 6 "
+        ::= { sftpSessions 6 }
+
+--
+-- sftp.sftpDataTransfers arc
+--
+        dirListCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of directories being listed via SFTP "
+        ::= { sftpDataTransfers 1 }
+
+        dirListTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of directories successfully listed via SFTP "
+        ::= { sftpDataTransfers 2 }
+
+        dirListFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of directory list failures via SFTP "
+        ::= { sftpDataTransfers 3 }
+
+        fileUploadCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of files being uploaded via SFTP "
+        ::= { sftpDataTransfers 4 }
+
+        fileUploadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of files uploaded successfully via SFTP "
+        ::= { sftpDataTransfers 5 }
+
+        fileUploadFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of file upload failures via SFTP "
+        ::= { sftpDataTransfers 6 }
+
+        fileDownloadCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of directories being listed via SFTP "
+        ::= { sftpDataTransfers 7 }
+
+        fileDownloadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of files downloaded successfully via SFTP "
+        ::= { sftpDataTransfers 8 }
+
+        fileDownloadFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of file download failures via SFTP "
+        ::= { sftpDataTransfers 9 }
+
+        kbUploadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of KB uploaded via SFTP "
+        ::= { sftpDataTransfers 10 }
+
+        kbDownloadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of KB downloaded via SFTP "
+        ::= { sftpDataTransfers 11 }
+
+--
+-- scp arc
+--
+
+--
+-- scp.scpSessions arc
+--
+        sessionCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of current SCP sessions "
+        ::= { scpSessions 1 }
+
+        sessionTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of SCP sessions "
+        ::= { scpSessions 2 }
+
+--
+-- scp.scpDataTransfers arc
+--
+        fileUploadCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of files being uploaded via SCP "
+        ::= { scpDataTransfers 1 }
+
+        fileUploadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of files uploaded successfully via SCP "
+        ::= { scpDataTransfers 2 }
+
+        fileUploadFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of file upload failures via SCP "
+        ::= { scpDataTransfers 3 }
+
+        fileDownloadCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of directories being listed via SCP "
+        ::= { scpDataTransfers 4 }
+
+        fileDownloadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of files downloaded successfully via SCP "
+        ::= { scpDataTransfers 5 }
+
+        fileDownloadFailedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of file download failures via SCP "
+        ::= { scpDataTransfers 6 }
+
+        kbUploadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of KB uploaded via SCP "
+        ::= { scpDataTransfers 7 }
+
+        kbDownloadTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of KB downloaded via SCP "
+        ::= { scpDataTransfers 8 }
+
+--
+-- ban arc
+--
+
+--
+-- ban.connections arc
+--
+        connectionBannedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of connections rejected by bans "
+        ::= { banConnections 1 }
+
+        userBannedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of users rejected by user-specific bans "
+        ::= { banConnections 2 }
+
+        hostBannedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of hosts rejected by host-specific bans "
+        ::= { banConnections 3 }
+
+        classBannedTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of connection classes rejected by class-specific bans "
+        ::= { banConnections 4 }
+
+--
+-- ban.bans arc
+--
+        banCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of current bans in effect "
+        ::= { banBans 1 }
+
+        banTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of bans ever effected "
+        ::= { banBans 2 }
+
+        userBanCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of current user-specific bans in effect "
+        ::= { banBans 3 }
+
+        userBanTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of user-specific bans ever effected "
+        ::= { banBans 4 }
+
+        hostBanCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of current host-specific bans in effect "
+        ::= { banBans 5 }
+
+        hostBanTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of host-specific bans ever effected "
+        ::= { banBans 6 }
+
+        classBanCount OBJECT-TYPE
+            SYNTAX Gauge32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Count of current class-specific bans in effect "
+        ::= { banBans 7 }
+
+        classBanTotal OBJECT-TYPE
+            SYNTAX Counter32
+            MAX-ACCESS read-only
+            STATUS current
+            DESCRIPTION
+                " Total number of class-specific bans ever effected "
+        ::= { banBans 8 }
+
+-- end of PROFTPD-MIB
+--
+END
+

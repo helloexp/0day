@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: .ftpaccess Files</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: <code>.ftpaccess</code> Files</b></h2></center>
+<hr>
+
+<p>
+A <code>.ftpaccess</code> file is meant to function like Apache's
+<code>.htaccess</code> file: a file that acts as free-floating section of the
+server's configuration file.  If a <code>.ftpaccess</code> file is present in
+a directory in which ProFTPD performs some action, ProFTPD will parse that
+<code>.ftpaccess</code> file as a configuration file, and act accordingly.
+Note that only <i>some</i> configuration directives are allowed in the
+<code>.ftpaccess</code> section, though.
+
+<p>
+The advantage of having this capability is that users can customize how the
+server treats directories that are under the user's control, by using files
+placed in those directories, instead of allowing the user to modify the main
+server configuration file itself.  The disadvantage is that a user is
+capable of possibly overriding a configuration value that was set in the main
+configuration file for a specific purpose.
+
+<p>
+ProFTPD treats a directory that contains a <code>.ftpaccess</code> file
+exactly as if the configuration directives in that file had been placed in
+a <code>&lt;Directory&gt;</code> section in the main <code>proftpd.conf</code>
+file.  For example, if there is a <code>/home/users/bob</code> directory on
+your system, and in that directory there was a <code>.ftpaccess</code> file
+that contained:
+<pre>
+  DirFakeUser on ~
+  DirFakeGroup on ~
+  Umask 0077
+</pre>
+it would be treated exactly as if:
+<pre>
+  &lt;Directory /home/users/bob&gt;
+    DirFakeUser on ~
+    DirFakeGroup on ~
+    Umask 0077
+  &lt;/Directory&gt;
+</pre>
+was written into <code>proftpd.conf</code>.
+
+<p>
+The <a href="../modules/mod_core.html#AllowOverride"><code>AllowOverride</code></a> directive can be used to disable ProFTPD's support for <code>.ftpaccess</code> files.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,209 @@
+#!PERL_COMMAND
+
+# Utility for searching and displaying queue information.
+# Written by Matt Hubbard 15 August 2002
+
+# Except when they appear in comments, the following placeholders in this
+# source are replaced when it is turned into a runnable script:
+#
+# BIN_DIRECTORY
+# PERL_COMMAND
+
+# PROCESSED_FLAG
+
+
+# Routine for extracting the UTC timestamp from message ID
+# lifted from eximstat utility
+
+# Version 1.2
+
+use strict;
+BEGIN { pop @INC if $INC[-1] eq '.' };
+
+use Getopt::Std;
+use File::Basename;
+
+# Have this variable point to your exim binary.
+my $exim = 'BIN_DIRECTORY/exim';
+my $eargs = '-bpu';
+my %id;
+my %opt;
+my $count = 0;
+my $mcount = 0;
+my @tab62 =
+  (0,1,2,3,4,5,6,7,8,9,0,0,0,0,0,0,     # 0-9
+   0,10,11,12,13,14,15,16,17,18,19,20,  # A-K
+  21,22,23,24,25,26,27,28,29,30,31,32,  # L-W
+  33,34,35, 0, 0, 0, 0, 0,              # X-Z
+   0,36,37,38,39,40,41,42,43,44,45,46,  # a-k
+  47,48,49,50,51,52,53,54,55,56,57,58,  # l-w
+  59,60,61);                            # x-z
+
+my $base;
+if ($^O eq 'darwin') { # aka MacOS X
+  $base = 36;
+ } else {
+  $base = 62;
+};
+
+if ($ARGV[0] eq '--version') {
+    print basename($0) . ": $0\n",
+        "build: EXIM_RELEASE_VERSIONEXIM_VARIANT_VERSION\n",
+        "perl(runtime): $]\n";
+        exit 0;
+}
+
+getopts('hf:r:y:o:s:C:zxlibRca',\%opt);
+if ($ARGV[0]) { &help; exit;}
+if ($opt{h}) { &help; exit;}
+if ($opt{a}) { $eargs = '-bp'; }
+if ($opt{C} && -e $opt{C} && -f $opt{C} && -R $opt{C}) { $eargs .= ' -C '.$opt{C}; }
+
+# Read message queue output into hash
+&collect();
+# Identify which messages match selection criteria
+&selection();
+# Print matching data according to display option.
+&display();
+exit;
+
+
+sub help() {
+	print <<'EOF'
+Exim message queue display utility.
+
+	-h		This help message.
+	-C		Specify which exim.conf to use.
+
+Selection criteria:
+	-f <regexp>	Match sender address sender (field is "< >" wrapped)
+	-r <regexp>	Match recipient address
+	-s <regexp>	Match against the size field from long output
+	-y <seconds>	Message younger than
+	-o <seconds>	Message older than
+	-z		Frozen messages only (exclude non-frozen)
+	-x		Non-frozen messages only (exclude frozen)
+
+[ NB: for regexps, provided string sits in /<string>/ ]
+
+Display options:
+	-c		Display match count
+	-l		Long Format [Default]
+	-i		Message IDs only
+	-b		Brief Format
+	-R		Reverse order
+	-a		All recipients (including delivered)
+EOF
+}
+
+sub collect() {
+	open(QUEUE,"$exim $eargs |") or die("Error opening pipe: $!\n");
+	while(<QUEUE>) {
+		chomp();
+		my $line = $_;
+		#Should be 1st line of record, if not error.
+		if ($line =~ /^\s*(\w+)\s+((?:\d+(?:\.\d+)?[A-Z]?)?)\s*(\w{6}-\w{6}-\w{2})\s+(<.*?>)/) {
+			my $msg = $3;
+			$id{$msg}{age} = $1;
+			$id{$msg}{size} = $2;
+			$id{$msg}{from} = $4;
+			$id{$msg}{birth} = &msg_utc($msg);
+			$id{$msg}{ages} = time - $id{$msg}{birth};
+			if ($line =~ /\*\*\* frozen \*\*\*$/) {
+				$id{$msg}{frozen} = 1;
+			} else {
+				$id{$msg}{frozen} = 0;
+			}
+			while(<QUEUE> =~ /\s+(.*?\@.*)$/) {
+				push(@{$id{$msg}{rcpt}},$1);
+			}
+			# Increment message counter.
+			$count++;
+		} else {
+			print STDERR "Line mismatch: $line\n"; exit 1;
+		}
+	}
+	close(QUEUE) or die("Error closing pipe: $!\n");
+}
+
+sub selection() {
+	foreach my $msg (keys(%id)) {
+		if ($opt{f}) {
+			# Match sender address
+			next unless ($id{$msg}{from} =~ /$opt{f}/i);
+		}
+		if ($opt{r}) {
+			# Match any recipient address
+			my $match = 0;
+			foreach my $rcpt (@{$id{$msg}{rcpt}}) {
+				$match++ if ($rcpt =~ /$opt{r}/i);
+			}
+			next unless ($match);
+		}
+		if ($opt{s}) {
+			# Match against the size string.
+			next unless ($id{$msg}{size} =~ /$opt{s}/);
+		}
+		if ($opt{y}) {
+			# Match younger than
+			next unless ($id{$msg}{ages} < $opt{y});
+		}
+		if ($opt{o}) {
+			# Match older than
+			next unless ($id{$msg}{ages} > $opt{o});
+		}
+		if ($opt{z}) {
+			# Exclude non frozen
+			next unless ($id{$msg}{frozen});
+		}
+		if ($opt{x}) {
+			# Exclude frozen
+			next if ($id{$msg}{frozen});
+		}
+		# Here's what we do to select the record.
+		# Should only get this far if the message passed all of
+		# the active tests.
+		$id{$msg}{d} = 1;
+		# Increment match counter.
+		$mcount++;
+	}
+}
+
+sub display() {
+	if ($opt{c}) {
+		printf("%d matches out of %d messages\n",$mcount,$count);
+		exit;
+	}
+	foreach my $msg (sort { $opt{R} ? $id{$b}{birth} <=> $id{$a}{birth} : $id{$a}{birth} <=> $id{$b}{birth} } keys(%id) ) {
+		if (exists($id{$msg}{d})) {
+			if ($opt{i}) {
+				# Just the msg ID
+				print $msg, "\n";
+			} elsif ($opt{b}) {
+				# Brief format
+				printf("%s From: %s To: %s\n",$msg,$id{$msg}{from},join(';',@{$id{$msg}{rcpt}}))
+			} else {
+				# Otherwise Long format attempted duplication of original format.
+				printf("%3s %5s %s %s%s\n",$id{$msg}{age},$id{$msg}{size},$msg,$id{$msg}{from},$id{$msg}{frozen} ? " *** frozen ***" : "");
+				foreach my $rcpt (@{$id{$msg}{rcpt}}) {
+					printf("	  %s\n",$rcpt);
+				}
+				print "\n";
+			}
+		}
+	}
+}
+
+sub report() {
+	foreach my $msg (keys(%id)) {
+		print "$id{$msg}{birth} $msg\tAge: $id{$msg}{age}\tSize: $id{$msg}{size}\tFrom: $id{$msg}{from}\tTo: " . join(" ",@{$id{$msg}{rcpt}}). "\n";
+	}
+}
+
+sub msg_utc() {
+	my $id = substr((pop @_), 0, 6);
+	my $s = 0;
+	my @c = split(//, $id);
+	while($#c >= 0) { $s = $s * $base + $tab62[ord(shift @c) - ord('0')] }
+	return $s;
+}

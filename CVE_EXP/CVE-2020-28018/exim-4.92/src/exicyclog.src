@@ -1,0 +1,350 @@
+#! /bin/sh
+
+# Copyright (c) University of Cambridge, 1995 - 2015
+# See the file NOTICE for conditions of use and distribution.
+
+# This script takes the following command line arguments:
+# -l dir	Log file directory
+# -k days	Number of days to keep the log files
+
+# Except when they appear in comments, the following placeholders in this
+# source are replaced when it is turned into a runnable script:
+#
+# CONFIGURE_FILE_USE_NODE
+# CONFIGURE_FILE_USE_EUID
+# CONFIGURE_FILE
+# BIN_DIRECTORY
+# EXICYCLOG_MAX
+# COMPRESS_COMMAND
+# COMPRESS_SUFFIX
+# CHOWN_COMMAND
+# CHGRP_COMMAND
+# CHMOD_COMMAND
+# TOUCH_COMMAND
+# MV_COMMAND
+# RM_COMMAND
+
+# PROCESSED_FLAG
+
+# This is a shell script for cycling exim main and reject log files. Each time
+# it is run, the files get "shuffled down" by one, the current one (e.g.
+# mainlog) becoming mainlog.01, the previous mainlog.01 becoming mainlog.02,
+# and so on, up to the limit configured here. When the number to keep is
+# greater than 99 (not common, but some people do it), three digits are used
+# (e.g. mainlog.001). The same shuffling happens to the reject logs. All
+# renamed files with numbers greater than 1 are compressed.
+
+# This script should be called regularly (e.g. daily) by a root crontab
+# entry of the form
+
+# 1 0 * * *   /opt/exim/bin/exicyclog
+
+# The following lines are generated from Exim's configuration file when
+# this source is built into a script, but you can subsequently edit them
+# without rebuilding things, as long are you are careful not to overwrite
+# the script in the next Exim rebuild/install. "Keep" is the number of old log
+# files that are required to be kept. Its value can be overridden by the -k
+# command line option. "Compress" and "suffix" define your chosen compression
+# method. The others are provided because the location of certain commands
+# varies from OS to OS. Sigh.
+
+keep=EXICYCLOG_MAX
+compress=COMPRESS_COMMAND
+suffix=COMPRESS_SUFFIX
+
+chgrp=CHGRP_COMMAND
+chmod=CHMOD_COMMAND
+chown=CHOWN_COMMAND
+mv=MV_COMMAND
+rm=RM_COMMAND
+touch=TOUCH_COMMAND
+
+# End of editable lines
+#########################################################################
+
+# Sort out command line options.
+
+while [ $# -gt 0 ] ; do
+  case "$1" in
+  -l) log_file_path=$2
+      shift
+      ;;
+  -k) keep=$2
+      shift
+      ;;
+   --version)
+      echo "`basename $0`: $0"
+      echo "build: EXIM_RELEASE_VERSIONEXIM_VARIANT_VERSION"
+      exit 0
+      ;;
+   *) echo "** exicyclog: unknown option $1"
+      exit 1
+      ;;
+   esac
+   shift
+done
+
+# Some operating systems have different versions in which the commands live
+# in different places. We have a fudge that will search the usual suspects if
+# requested.
+
+for cmd in chgrp chmod chown mv rm touch; do
+  eval "oldcmd=\$$cmd"
+  if [ "$oldcmd" != "look_for_it" ] ; then continue ; fi
+  newcmd=$cmd
+  for dir in /bin /usr/bin /usr/sbin /usr/etc ; do
+    if [ -f $dir/$cmd ] ; then
+      newcmd=$dir/$cmd
+      break
+    fi
+  done
+  eval $cmd=$newcmd
+done
+
+# See if this installation is using the esoteric "USE_EUID" feature of Exim,
+# in which it uses the effective user id as a suffix for the configuration file
+# name. In order for this to work, exicyclog must be run under the appropriate
+# euid.
+
+if [ "CONFIGURE_FILE_USE_EUID" = "yes" ]; then
+  euid=.`id -u`
+fi
+
+# See if this installation is using the esoteric "USE_NODE" feature of Exim,
+# in which it uses the host's name as a suffix for the configuration file name.
+
+if [ "CONFIGURE_FILE_USE_NODE" = "yes" ]; then
+  hostsuffix=.`uname -n`
+fi
+
+# Now find the configuration file name. This has got complicated because the
+# CONFIGURE_FILE value may now be a list of files. The one that is used is the
+# first one that exists. Mimic the code in readconf.c by testing first for the
+# suffixed file in each case.
+
+set `awk -F: '{ for (i = 1; i <= NF; i++) print $i }' <<End
+CONFIGURE_FILE
+End
+`
+while [ "$config" = "" -a $# -gt 0 ] ; do
+  if [ -f "$1$euid$hostsuffix" ] ; then
+    config="$1$euid$hostsuffix"
+  elif [ -f "$1$euid" ] ; then
+    config="$1$euid"
+  elif [ -f "$1$hostsuffix" ] ; then
+    config="$1$hostsuffix"
+  elif [ -f "$1" ] ; then
+    config="$1"
+  fi
+  shift
+done
+
+# Determine if the log file path is set, and where the spool directory is.
+# Search for an exim_path setting in the configure file; otherwise use the bin
+# directory. Call that version of Exim to find the spool directory and log file
+# path, unless log_file_path was set above by a command line option. BEWARE: a
+# tab character is needed in the command below. It has had a nasty tendency to
+# get lost in the past. Use a variable to hold a space and a tab to keep the
+# tab in one place.
+
+st='	 '
+exim_path=`grep "^[$st]*exim_path" $config | sed "s/.*=[$st]*//"`
+if test "$exim_path" = ""; then exim_path=BIN_DIRECTORY/exim; fi
+
+spool_directory=`$exim_path -C $config -bP spool_directory | sed 's/.*=[  ]*//'`
+
+if [ "$log_file_path" = "" ] ; then
+  log_file_path=`$exim_path -C $config -bP log_file_path | sed 's/.*=[  ]*//'`
+fi
+
+# If log_file_path contains only "syslog" then no Exim log files are in use.
+# We can't cycle anything. Complain and give up.
+
+if [ "$log_file_path" = "syslog" ] ; then
+  echo "*** Exim is logging to syslog - no log files to cycle ***"
+  exit 1
+fi
+
+# Otherwise, remove ":syslog" or "syslog:" (some spaces allowed) and inspect
+# what remains. The simplistic regex originally used failed when a filename
+# contained "syslog", so we have to use three less general ones, because sed
+# doesn't have much power in its regexs.
+
+log_file_path=`echo "$log_file_path" | \
+  sed 's/^ *:\{0,1\} *syslog *:\{0,1\} *//;s/: *syslog *:/:/;s/: *syslog *$//'`
+
+# If log_file_path is empty, try and get the compiled in default by using
+# /dev/null as the configuration file.
+
+if [ "$log_file_path" = "" ]; then
+  log_file_path=`$exim_path -C /dev/null -bP log_file_path | sed 's/.*=[  ]*//'`
+  log_file_path=`echo "$log_file_path" | \
+    sed 's/^ *:\{0,1\} *syslog *:\{0,1\} *//;s/: *syslog *:/:/;s/: *syslog *$//'`
+fi
+
+# If log_file_path is still empty, the logs we are interested in are probably
+# called "mainlog" and "rejectlog" in the directory called "log" in the spool
+# directory. Otherwise we fish out the directory from the given path, and also
+# the names of the logs.
+
+if [ "$log_file_path" = "" ]; then
+  logdir=$spool_directory/log
+  mainlog=mainlog
+  rejectlog=rejectlog
+  paniclog=paniclog
+else
+  logdir=`echo $log_file_path | sed 's?/[^/]*$??'`
+  logbase=`echo $log_file_path | sed 's?^.*/??'`
+  mainlog=`echo $logbase | sed 's/%s/main/'`
+  rejectlog=`echo $logbase | sed 's/%s/reject/'`
+  paniclog=`echo $logbase | sed 's/%s/panic/'`
+fi
+
+# Get into the log directory to do the business.
+
+cd $logdir || exit 1
+
+# If there is no main log file, do nothing.
+
+if [ ! -f $mainlog ]; then exit; fi
+
+# Find out the owner and group of the main log file so that we can re-instate
+# this on moved and compressed files, since some operating systems may change
+# things. This is a tedious bit of code, but it should work both in operating
+# systems where the -l option of ls gives the user and group, and those in which
+# you need -lg. The condition is that, if the fifth field of the output from
+# ls consists entirely of digits, then the third and fourth fields are the user
+# and group.
+
+a=`ls -lg $mainlog`
+b=`ls -l  $mainlog`
+
+# These statements work fine in the Bourne or Korn shells, but not in Bash.
+# So for the benefit of systems whose /bin/sh is really Bash, they have been
+# changed to a messier form.
+
+# user=`echo "$a\n$b\n" | awk 'BEGIN { OFS=""} { if ($5 ~ /^[0-9]+$/) print $3; }'`
+# group=`echo "$a\n$b\n" | awk 'BEGIN { OFS=""} { if ($5 ~ /^[0-9]+$/) print $4; }'`
+
+user=`echo "$a
+$b
+" | awk 'BEGIN { OFS=""} { if ($5 ~ /^[0-9]+$/) { print $3; exit; } }'`
+
+group=`echo "$a
+$b
+" | awk 'BEGIN { OFS=""} { if ($5 ~ /^[0-9]+$/) { print $4; exit; } }'`
+
+# Now do the job. First remove the files that have "fallen off the bottom".
+# Look for both the compressed and uncompressed forms.
+
+if [ $keep -lt 10 ]; then rotation=0$keep; else rotation=$keep; fi;
+
+if [ -f $mainlog.$rotation ]; then $rm $mainlog.$rotation; fi;
+if [ -f $mainlog.$rotation.$suffix ]; then $rm $mainlog.$rotation.$suffix; fi;
+
+if [ -f $rejectlog.$rotation ]; then $rm $rejectlog.$rotation; fi;
+if [ -f $rejectlog.$rotation.$suffix ]; then $rm $rejectlog.$rotation.$suffix; fi;
+
+if [ -f $paniclog.$rotation ]; then $rm $paniclog.$rotation; fi;
+if [ -f $paniclog.$rotation.$suffix ]; then $rm $paniclog.$rotation.$suffix; fi;
+
+# Now rename all the previous old files by increasing their numbers by 1.
+# When the number is less than 10, insert a leading zero.
+
+count=$keep
+if [ $count -lt 10 ]; then countt=0$count; else countt=$count; fi
+
+while [ $count -gt 1 ]; do
+  old=`expr -- $count - 1`
+  if [ $keep -gt 99 ]; then
+    if   [ $old -lt 10 ]; then oldt=00$old
+    elif [ $old -lt 100 ]; then oldt=0$old
+    else oldt=$old
+    fi
+  else
+    if [ $old -lt 10 ]; then oldt=0$old; else oldt=$old; fi;
+  fi
+  if [ -f $mainlog.$oldt ]; then
+    $mv $mainlog.$oldt $mainlog.$countt
+  elif [ -f $mainlog.$oldt.$suffix ]; then
+    $mv $mainlog.$oldt.$suffix $mainlog.$countt.$suffix
+  fi
+  if [ -f $rejectlog.$oldt ]; then
+    $mv $rejectlog.$oldt $rejectlog.$countt
+  elif [ -f $rejectlog.$oldt.$suffix ]; then
+    $mv $rejectlog.$oldt.$suffix $rejectlog.$countt.$suffix
+  fi
+  if [ -f $paniclog.$oldt ]; then
+    $mv $paniclog.$oldt $paniclog.$countt
+  elif [ -f $paniclog.$oldt.$suffix ]; then
+    $mv $paniclog.$oldt.$suffix $paniclog.$countt.$suffix
+  fi
+  count=$old
+  countt=$oldt
+done
+
+# Now rename the current files as 01 or 001 if keeping more than 99
+
+if [ $keep -gt 99 ]; then first=001; else first=01; fi
+
+# Grab our pid ro avoid race in file creation
+ourpid=$$
+
+if [ -f $mainlog ]; then
+  $mv $mainlog $mainlog.$first
+  $chown $user:$group $mainlog.$first
+  $touch $mainlog.$ourpid
+  $chown $user:$group $mainlog.$ourpid
+  $chmod 640 $mainlog.$ourpid
+  $mv $mainlog.$ourpid $mainlog
+fi
+
+if [ -f $rejectlog ]; then
+  $mv $rejectlog $rejectlog.$first
+  $chown $user:$group $rejectlog.$first
+  $touch $rejectlog.$ourpid
+  $chown $user:$group $rejectlog.$ourpid
+  $chmod 640 $rejectlog.$ourpid
+  $mv $rejectlog.$ourpid $rejectlog
+fi
+
+if [ -f $paniclog ]; then
+  $mv $paniclog $paniclog.$first
+  $chown $user:$group $paniclog.$first
+  $touch $paniclog.$ourpid
+  $chown $user:$group $paniclog.$ourpid
+  $chmod 640 $paniclog.$ourpid
+  $mv $paniclog.$ourpid $paniclog
+fi
+
+# Now scan the (0)02 and later files, compressing where necessary, and
+# ensuring that their owners and groups are correct.
+
+count=2;
+
+while [ $count -le $keep ]; do
+  if [ $keep -gt 99 ]; then
+    if   [ $count -lt 10 ]; then countt=00$count
+    elif [ $count -lt 100 ]; then countt=0$count
+    else countt=$count
+    fi
+  else
+    if [ $count -lt 10 ]; then countt=0$count; else countt=$count; fi
+  fi
+  if [ -f $mainlog.$countt ]; then $compress $mainlog.$countt; fi
+  if [ -f $mainlog.$countt.$suffix ]; then
+    $chown $user:$group $mainlog.$countt.$suffix
+  fi
+  if [ -f $rejectlog.$countt ]; then $compress $rejectlog.$countt; fi
+  if [ -f $rejectlog.$countt.$suffix ]; then
+    $chown $user:$group $rejectlog.$countt.$suffix
+  fi
+  if [ -f $paniclog.$countt ]; then $compress $paniclog.$countt; fi
+  if [ -f $paniclog.$countt.$suffix ]; then
+    $chown $user:$group $paniclog.$countt.$suffix
+  fi
+
+  count=`expr -- $count + 1`
+done
+
+# End of exicyclog

@@ -1,0 +1,76 @@
+/* Exim: OS-specific C header file for FreeBSD */
+/* Copyright (c) University of Cambridge 1995 - 2018 */
+/* See the file NOTICE for conditions of use and distribution. */
+
+
+#include <sys/types.h>
+#include <sys/param.h>
+
+#define HAVE_BSD_GETLOADAVG
+#define HAVE_SETCLASSRESOURCES
+#define HAVE_MMAP
+#define HAVE_SYS_MOUNT_H
+#define SIOCGIFCONF_GIVES_ADDR
+#define HAVE_SRANDOMDEV
+#define HAVE_ARC4RANDOM
+
+/* Applications should not call arc4random_stir() explicitly after
+ * FreeBSD r227520 (approximately 1000002).
+ * Set NOT_HAVE_ARC4RANDOM_STIR if the version released is past
+ * that point. */
+#if __FreeBSD_version >= 1000002
+# define NOT_HAVE_ARC4RANDOM_STIR
+#endif
+
+typedef struct flock flock_t;
+
+/* iconv arg2 type: libiconv in Ports uses "const char* * inbuf" and was
+ * traditionally the only approach available.  The iconv functionality
+ * in libc is "char ** restrict src".
+ *
+ * <https://www.freebsd.org/doc/en/books/porters-handbook/using-iconv.html>
+ * says that libc has iconv since 2013, in 10-CURRENT.  FreeBSD man-pages
+ * shows it included in 10.0-RELEASE.  Writing this in 2017, 10.3 is the
+ * oldest supported release, so we should assume non-libiconv by default.
+ * (Actually, people still using old releases past EOL; we shouldn't support
+ * them but I don't want to deal with howls of complaints because we dare
+ * to not support the unsupported, so guard this on FreeBSD 10+)
+ *
+ * Thus we no longer override iconv.
+ *
+ * However, if libiconv is installed, and anything adds /usr/local/include
+ * to include-path (likely) then we'll get that.  So define a variable
+ * which makes the libiconv try to not interfere with OS iconv.
+ */
+#if __FreeBSD__ >= 10
+# define LIBICONV_PLUG
+#endif
+/* for more specific version constraints, look at __FreeBSD_version
+ * from <sys/param.h> */
+
+/* When using DKIM, setting OS_SENDFILE can increase
+performance on outgoing mail a bit. */
+
+#define OS_SENDFILE
+extern ssize_t os_sendfile(int, int, off_t *, size_t);
+
+
+/*******************/
+
+/* TCP_FASTOPEN support.  There does not seems to be a
+MSG_FASTOPEN defined yet... */
+#define EXIM_TFO_PROBE
+
+#include <netinet/tcp.h>        /* for TCP_FASTOPEN */
+#include <sys/socket.h>         /* for MSG_FASTOPEN */
+#if defined(TCP_FASTOPEN) && !defined(MSG_FASTOPEN)
+# define MSG_FASTOPEN 0x20000000
+#endif
+
+/* for TCP state-variable values, for TFO logging */
+#include <netinet/tcp_fsm.h>
+#define TCP_SYN_RECV TCPS_SYN_RECEIVED
+
+/*******************/
+
+/* End */

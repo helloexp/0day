@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_log_forensic</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_log_forensic</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_log_forensic</code> module "captures" log messages generated
+by <code>proftpd</code>, for all sorts of log destinations, <i>even if those
+log messages would otherwise <b>not</b> be written out</i>, and buffers them
+in memory.  When certain criteria are met (<i>e.g.</i> failed logins,
+segfaults, <i>etc</i>), the <code>mod_log_forensic</code> module will flush
+the buffered log messages out to a file.  Installation instructions are
+discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_log_forensic</code> is distributed with
+the ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#ForensicLogBufferSize">ForensicLogBufferSize</a>
+  <li><a href="#ForensicLogCapture">ForensicLogCapture</a>
+  <li><a href="#ForensicLogCriteria">ForensicLogCriteria</a>
+  <li><a href="#ForensicLogEngine">ForensicLogEngine</a>
+  <li><a href="#ForensicLogFile">ForensicLogFile</a>
+</ul>
+
+<p>
+<hr>
+<h3><a name="ForensicLogBufferSize">ForensicLogBufferSize</a></h3>
+<strong>Syntax:</strong> ForensicLogBufferSize <em>count</em><br>
+<strong>Default:</strong> 1024<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_log_forensic<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>ForensicLogBufferSize</code> directives configures the <em>count</em>
+of log messages that <code>mod_log_forensic</code> will buffer.  It is
+effectively the count of the last <em>count</em> log messages you wish to
+see logged, when one of the
+<a href="#ForensicLogCriteria"><code>ForensicLogCriteria</code></a> are met.
+
+<p>
+<hr>
+<h3><a name="ForensicLogCapture">ForensicLogCapture</a></h3>
+<strong>Syntax:</strong> ForensicLogCapture <em>log-type1 ...</em><br>
+<strong>Default:</strong> Unspec TransferLog syslog SystemLog ExtendedLog TraceLog<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_log_forensic<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>ForensicLogCapture</code> directive configures which log types
+the <code>mod_log_forensic</code> module "captures" for later writing. By
+default, <code>mod_log_forensic</code> captures messages for all log types.
+
+<p>
+The supported log types are:
+<ul>
+  <li><code>Unspec</code>
+    <p>
+    This "type" covers any unspecified/unknown log, <i>e.g.</i> module-specific
+    log files such as <code>SFTPLog</code>, <code>SQLLogFile</code>,
+    <code>TLSLog</code>, <i>etc</i>.
+  </li>
+
+  <p>
+  <li><code>TransferLog</code>
+  <li><code>syslog</code>
+  <li><code>SystemLog</code>
+  <li><code>ExtendedLog</code>
+  <li><code>TraceLog</code>
+</ul>
+
+<p>
+<hr>
+<h3><a name="ForensicLogCriteria">ForensicLogCriteria</a></h3>
+<strong>Syntax:</strong> ForensicLogCriteria <em>criterion1 ...</em><br>
+<strong>Default:</strong> FailedLogin UntimelyDeath<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_log_forensic<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>ForensicLogCriteria</code> directive configures the criteria
+which determine when <code>mod_log_forensic</code> will flush its buffered
+log messages out to the configured
+<a href="#ForensicLogFile"><code>ForensicLogFile</code></a>.  Multiple
+criteria can be specified.
+
+<p>
+The currently supported criteria are:
+<ul>
+  <li><code>FailedLogin</code>
+    <p>
+    The buffered log messages will be written to the
+    <code>ForensicLogFile</code> if the login fails for any reason.
+  </li>
+
+  <p>
+  <li><code>UntimelyDeath</code>
+    <p>
+    If a session dies prematurely, <i>e.g.</i> due to a segfault or other
+    internal error, the buffered log messages will be written to the
+    <code>ForensicLogFile</code>.
+  </li>
+
+  <p>
+  <li><code>ModuleConfig</code>
+    <p>
+    If a session dies due to a module-specific policy, the buffered log
+    messages will be written to the <code>ForensicLogFile</code>.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h3><a name="ForensicLogEngine">ForensicLogEngine</a></h3>
+<strong>Syntax:</strong> ForensicLogEngine <em>on|off</em><br>
+<strong>Default:</strong> off<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_log_forensic<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>ForensicLogEngine</code> directive enables or disables the
+<code>mod_log_forensic</code> module.
+
+<p>
+<hr>
+<h3><a name="ForensicLogFile">ForensicLogFile</a></h3>
+<strong>Syntax:</strong> ForensicLogFile <em>file</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_log_forensic<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>ForensicLogFile</code> directive configures a file used for logging
+by <code>mod_log_forensic</code>.  The configured <em>file</em> must be an
+absolute path.
+
+<p>
+<b>Note</b> that this directive is <b>required</b> for
+<code>mod_log_forensic</code> to function properly.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_log_forensic</code> module is distributed with ProFTPD.  For
+including <code>mod_log_forensic</code> as a statically linked module, use:
+<pre>
+  $ ./configure --with-modules=mod_log_forensic ...
+</pre>
+Alternatively, <code>mod_log_forensic</code> can be built as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_log_forensic ...
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your <code>proftpd</code> was compiled with DSO support, you
+can use the <code>prxs</code> tool to build <code>mod_log_forensic</code> as a
+shared module:
+<pre>
+  $ prxs -c -i -d mod_log_forensic.c
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+
+<p>
+Example <code>mod_log_forensic</code> configuration:
+<pre>
+  &lt;IfModule mod_log_forensic.c&gt;
+    ForensicLogEngine on
+    ForensicLogFile /path/to/forensic.log
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+For a failed login, the configured <code>ForensicLogFile</code> will
+contain a block of log lines, <i>e.g.</i>:
+<pre>
+  -----BEGIN FAILED LOGIN FORENSICS-----
+  Client-Address: 127.0.0.1
+  Server-Address: ::ffff:127.0.0.1:5376
+  Elapsed: 1245
+  Protocol: ftp
+  User: tj
+  UID: 501
+  GID: 501
+  Raw-Bytes-In: 46
+  Raw-Bytes-Out: 158
+  Total-Bytes-In: 0
+  Total-Bytes-Out: 0
+  Total-Files-In: 0
+  Total-Files-Out: 0
+
+  ...
+  [syslog:7, PID 16044] dispatching CMD command 'PASS (hidden)' to mod_auth
+  [syslog:7, PID 16044] retrieved UID 1000 for user 'tj'
+  [syslog:7, PID 16044] retrieved group IDs: 1000, 0, 4, 20, 24, 46, 108, 109, 110
+  [syslog:7, PID 16044] retrieved group names: tj, root, adm, dialout, cdrom, plugdev, lpadmin, sambashare, admin
+  [syslog:7, PID 16044] ROOT PRIVS at mod_auth_pam.c:312
+  [syslog:7, PID 16044] RELINQUISH PRIVS at mod_auth_pam.c:482
+  [syslog:7, PID 16044] ROOT PRIVS at mod_auth_unix.c:467
+  [syslog:7, PID 16044] RELINQUISH PRIVS at mod_auth_unix.c:548
+  [SystemLog:5] familiar proftpd[15509] localhost (localhost[127.0.0.1]): USER tj (Login failed): Incorrect password.
+  [syslog:7, PID 16044] dispatching POST_CMD_ERR command 'PASS (hidden)' to mod_delay
+  [syslog:7, PID 16044] dispatching LOG_CMD_ERR command 'PASS (hidden)' to mod_log
+  -----END FAILED LOGIN FORENSICS-----
+</pre>
+
+For sessions which suffer an "untimely death", the begin/end markers in the
+<code>ForensicLogFile</code> are:
+<pre>
+  -----BEGIN UNTIMELY DEATH FORENSICS-----
+  Client-Address: 127.0.0.1
+  Server-Address: ::ffff:127.0.0.1:5376
+  Elapsed: 1245
+  Protocol: ftp
+  User: tj
+  UID: 501
+  GID: 501
+  Raw-Bytes-In: 46
+  Raw-Bytes-Out: 158
+  Total-Bytes-In: 0
+  Total-Bytes-Out: 0
+  Total-Files-In: 0
+  Total-Files-Out: 0
+
+  ...
+  -----END UNTIMELY DEATH FORENSICS-----
+</pre>
+
+<p>
+<b>Advantages</b><br>
+What's the big deal with this module?  What advantage does it provide
+over the normal <code>proftpd</code> logging?  The advantage is that with
+<code>mod_log_forensic</code>, you do not have to configure ProFTPD to use
+verbose logging (<i>i.e.</i> high <code>DebugLevel</code> and/or
+<code>Trace</code> levels).  If ProFTPD generated a log message internally
+<b>but</b> that log message was filtered, then that log message would not
+normally be written to disk -- <i>but <code>mod_log_forensic</code> buffers
+that log message anyway</i>.
+
+<p>
+To see this, simply use the following in your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace DEFAULT:0
+
+  &lt;IfModule mod_log_forensic.c&gt;
+    ForensicLogEngine on
+    ForensicLogFile /path/to/ftpd/forensic.log
+  &lt;/IfModule&gt;
+</pre>
+This configured <code>proftpd</code> for trace logging, but turns the
+trace logging levels down to zero so that normally, nothing would be written
+in the configured <code>TraceLog</code> file.
+
+<p>
+Now attempt to log into <code>proftpd</code>, deliberately using a wrong/bad
+password (or unknown user).  The <code>mod_log_forensic</code> module will
+write out all of the trace logging messages
+(and the other <code>SystemLog</code>/syslog messages) to the
+<code>ForensicLogFile</code>, even though the debug level is at the default
+level of zero, and the trace levels are all zero.  Thus you get the verbose
+logging needed to help diagnose failed logins and such, without having
+the verbose logging enabled all of the time.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2011-2013 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

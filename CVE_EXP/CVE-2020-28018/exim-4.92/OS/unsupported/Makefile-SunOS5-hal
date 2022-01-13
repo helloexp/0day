@@ -1,0 +1,18 @@
+# Exim: OS-specific make file for SunOS5 on a HAL
+
+# Note: The HAL runs a standard SunOS5 except that it has a 64 bit C
+# compiler called hcc.  To make things work pass the -KV7 flag to force
+# 32bit compilation - this is necessary to interwork with some libraries.
+
+CC=hcc
+CFLAGS=-O -KV7
+LIBIDENTCFLAGS="-KV7 -O -DHAVE_ANSIHEADERS"
+LIBIDENTNAME=sunos5
+RANLIB=@true
+LIBS=-lsocket -lnsl -lkstat -lm
+LIBRESOLV=-lresolv
+X11=/usr/X11R6
+XINCLUDE=-I$(X11)/include
+XLFLAGS=-L$(X11)/lib -R$(X11)/lib
+
+# End

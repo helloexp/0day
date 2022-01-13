@@ -1,0 +1,82 @@
+@SET_MAKE@
+
+top_builddir=@top_builddir@
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+
+
+LS=/bin/ls
+VPATH=@srcdir@
+
+include $(top_builddir)/Make.rules
+
+CONTACT_ADDRESS=core@proftpd.org
+COPYRIGHT_HOLDER=The ProFTPD Project
+PACKAGE=proftpd
+
+# This file is generated using:
+#
+#   `find .. -name "*.[ch]" -print | grep -v tests\/ | egrep "contrib|include|modules|src" | sort > files.txt'
+#
+# and is then checked into git.
+FILES=files.txt
+
+LANGS=bg_BG en_US es_ES fr_FR it_IT ja_JP ko_KR ru_RU zh_CN zh_TW $(EXTRA_LANGS)
+
+# gettext utilities.  Note that this assumes gettext is installed and
+# available on the system.
+MSGCMP=msgcmp
+MSGFMT=msgfmt
+MSGINIT=msginit
+XGETTEXT=xgettext
+
+.SUFFIXES: .h
+
+.PHONY: ""
+
+all:
+	@echo "Running make from top level directory."
+	cd .. && $(MAKE) all
+
+Makefile: Makefile.in ../config.status
+	cd ../ && ./config.status
+
+$(PACKAGE).pot: .PHONY
+	$(RM) $(PACKAGE).pot
+	$(XGETTEXT) -L C --keyword=_ --flag=_:1:pass-c-format --keyword=N_ --flag=N_:1:pass-c-format --no-wrap --package-name=$(PACKAGE) --copyright-holder="$(COPYRIGHT_HOLDER)" --msgid-bugs-address="$(CONTACT_ADDRESS)" --sort-by-file -f $(FILES) -o $(PACKAGE).pot
+
+locale: $(LANGS)
+
+install: $(LANGS)
+	for lang in $(LANGS); do \
+		if [ -f $(top_builddir)/locale/$$lang.mo ]; then \
+ 			if [ ! -d $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES ]; then \
+				mkdir -p $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES; \
+				chown $(INSTALL_USER):$(INSTALL_GROUP) $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES; \
+				chmod 0755 $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES; \
+			fi; \
+			$(INSTALL_MAN) $$lang.mo $(DESTDIR)$(localedir)/$$lang/LC_MESSAGES/$(PACKAGE).mo; \
+		fi; \
+	done
+
+check:
+	-for lang in $(LANGS); do \
+		if [ -f $(srcdir)/$$lang.po ]; then \
+			echo "Checking $$lang.po format..."; \
+			$(MSGFMT) --check-format $(srcdir)/$$lang.po > /dev/null && echo "$$lang.mo OK"; \
+			echo "Checking $$lang.po against template...."; \
+			$(MSGCMP) $(srcdir)/$$lang.po $(srcdir)/$(PACKAGE).pot; \
+			echo "----------------------"; \
+		fi; \
+        done
+
+clean:
+	$(RM) *.gmo *.mo 
+
+$(LANGS):
+	-if [ ! -f "$(srcdir)/$@.po" ]; then \
+		$(MSGINIT) --no-translator -i $(srcdir)/$(PACKAGE).pot -o "$(srcdir)/$@.po" -l $@; \
+	fi
+	-if [ -f "$(srcdir)/$@.po" -a ! -f $@.mo ]; then \
+		 $(MSGFMT) -o $@.mo "$(srcdir)/$@.po"; \
+	fi

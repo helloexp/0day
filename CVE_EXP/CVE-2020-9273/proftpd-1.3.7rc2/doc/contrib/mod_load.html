@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_load</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_load</code></b></h2>
+</center>
+<hr><br>
+
+This module is contained in the <code>mod_load.h</code> and
+<code>mod_load.c</code> files for ProFTPD 1.2.<i>x</i>, and is not compiled by
+default.  Installation instructions are discussed
+<a href="#Installation">here</a>.  There are also some interesting notes
+on the <a href="#Usage">usage</a> of this module.
+
+<p>
+The code for determining load average on a given system is hairy, to say the
+least.  Unfortunately, it is necessary to do it this way, as there is no
+standard method for extracting such information from the kernel.  This module
+uses code from GNU's <code>make</code> application, which should function
+properly.  If not, please contact the author as soon as possible.
+
+<p>
+The most current version of <code>mod_load</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#MaxLoad">MaxLoad</a>
+</ul>
+
+<hr>
+<h3><a name="MaxLoad">MaxLoad</a></h3>
+<strong>Syntax:</strong> MaxLoad <em>number|&quot;none&quot; [message]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_load<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>MaxLoad</code> directive configures the server to refuse to accept
+connections if the system load is at or above the configured number.  An
+optional message can be specified, which will be displayed to clients who have
+been rejected.  The rejection is also logged.
+
+<p>
+The number can also be &quot;none&quot;, which is used to override any
+inherited load limits, as from a <code>&lt;Global&gt;</code> context.
+
+<p>
+The system load is the average number of processes ready to run during the
+last minute; this number varies from system to system.
+
+<p>
+Example:
+<pre>
+  # Reject connections to our busy server
+  MaxLoad 10.0 "Server busy, seek elsewhere"
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+<p>
+The <code>mod_load</code> module is very straightforward, providing only
+the single configuration directive.
+
+<p>
+<b><code>Display</code> Variables</b><br>
+The following variables are provided by <code>mod_load</code>, and
+can be used in any <code>Display</code> file <i>e.g.</i>
+<code>DisplayConnect</code> and <code>DisplayLogin</code>.
+<pre>
+  %{mod_load.curr_load}
+  %{mod_load.max_load}
+</pre>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+To install <code>mod_load</code>, follow the usual steps for using third-party
+modules in ProFTPD:
+<pre>
+  $ ./configure --with-modules=mod_load
+  $ make
+  $ make install
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2005 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

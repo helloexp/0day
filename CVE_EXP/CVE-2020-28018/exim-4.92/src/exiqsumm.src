@@ -1,0 +1,178 @@
+#! PERL_COMMAND
+
+# Mail Queue Summary
+# Christoph Lameter, 21 May 1997
+# Modified by Philip Hazel, June 1997
+# Bug fix: June 1998 by Philip Hazel
+#   Message sizes not listed by -bp with K or M
+#   suffixes were getting divided by 10.
+# Bug fix: October 1998 by Philip Hazel
+#   Sorting wasn't working right with Perl 5.005
+#   Fix provided by John Horne
+# Bug fix: November 1998 by Philip Hazel
+#   Failing to recognize domain literals in recipient addresses
+#   Fix provided by Malcolm Ray
+# Bug fix: July 2002 by Philip Hazel
+#   Not handling time periods of more than 100 days
+#   Fix provided by Randy Banks
+# Added summary line: September 2002 by Philip Hazel
+#   Code provided by Joachim Wieland
+# June 2003 by Philip Hazel
+#   Initialize $size, $age, $id to avoid warnings when bad
+#   data is provided
+# Bug fix: July 2003 by Philip Hazel
+#   Incorrectly skipping the first lines of messages whose
+#   message ID ends in 'D'! Before Exim 4.14 this didn't
+#   matter because they never did. Looks like an original
+#   typo. Fix provided by Chris Liddiard.
+# November 2006 by Jori Hamalainen
+#   Added feature to separate frozen and bounced messages from queue
+#   Added feature to list queue per source - destination pair
+#   Changed regexps to compile once to very minor speed optimization
+#   Short circuit for empty lines
+#
+# Usage: mailq | exiqsumm [-a] [-b] [-c] [-f] [-s]
+#   Default sorting is by domain name
+#   -a sorts by age of oldest message
+#   -b enables bounce message separation
+#   -c sorts by count of message
+#   -f enables frozen message separation
+#   -s enables source destination separation
+
+# Slightly modified sub from eximstats
+
+use warnings;
+BEGIN { pop @INC if $INC[-1] eq '.' };
+use File::Basename;
+
+if (@ARGV && $ARGV[0] eq '--version') {
+    print basename($0) . ": $0\n",
+        "build: EXIM_RELEASE_VERSIONEXIM_VARIANT_VERSION\n",
+        "perl(runtime): $]\n";
+        exit 0;
+}
+
+sub print_volume_rounded {
+my($x) = pop @_;
+if ($x < 10000)
+  {
+  return sprintf("%6d", $x);
+  }
+elsif ($x < 10000000)
+  {
+  return sprintf("%4dKB", ($x + 512)/1024);
+  }
+else
+  {
+  return sprintf("%4dMB", ($x + 512*1024)/(1024*1024));
+  }
+}
+
+sub s_conv {
+  my($x) = @_;
+  my($v,$s) = $x =~ /([\d\.]+)([A-Z]|)/o;
+  if ($s eq "K") { return $v * 1024 };
+  if ($s eq "M") { return $v * 1024 * 1024 };
+  return $v;
+}
+
+sub older {
+  my($x1,$x2) = @_;
+  my($v1,$s1) = $x1 =~ /(\d+)(\w)/o;
+  my($v2,$s2) = $x2 =~ /(\d+)(\w)/o;
+  return $v1 <=> $v2 if ($s1 eq $s2);
+  return (($s2 eq "m") ||
+          ($s2 eq "h" && $s1 eq "d") ||
+          ($s2 eq "d" && $s1 eq "w"))? 1 : -1;
+}
+
+#
+# Main Program
+#
+
+$sort_by_count = 0;
+$sort_by_age = 0;
+
+$size = "0";
+$age = "0d";
+$id = "";
+
+
+while (@ARGV > 0 && substr($ARGV[0], 0, 1) eq "-")
+  {
+  if ($ARGV[0] eq "-a") { $sort_by_age = 1; }
+  if ($ARGV[0] eq "-c") { $sort_by_count = 1; }
+  if ($ARGV[0] eq "-f") { $enable_frozen = 1; }
+  if ($ARGV[0] eq "-b") { $enable_bounces = 1; }
+  if ($ARGV[0] eq "-s") { $enable_source = 1; }
+  shift @ARGV;
+  }
+
+while (<>)
+{
+# Skip empty and already delivered lines
+
+if (/^$/o || /^\s*D\s\S+/o) { next; }
+
+# If it's the first line of a message, pick out the data. Note: it may
+# have text after the final > (e.g. frozen) so don't insist that it ends >.
+
+if (/^([\d\s]{2,3}\w)\s+(\S+)\s(\S+)\s\<(\S*)\>/o)
+  {
+  ($age,$size,$id,$src)=($1,$2,$3,$4);
+  $src =~ s/([^\@]*)\@(.*?)$/$2/o;
+  if (/\*\*\*\sfrozen\s\*\*\*/o) { $frozen=1; } else { $frozen=0; }
+  if ($src eq "") { $bounce=1; $src="<>"; } else { $bounce=0; }
+  }
+
+# Else check for a recipient line: to handle source-routed addresses, just
+# pick off the first domain.
+
+elsif (/^\s+[^@]*\@([\w\.\-]+|\[(\d+\.){3}\d+\])/o)
+  {
+  if ($enable_source) {
+      $domain = "\L$src > $1";
+  } else {
+      $domain = "\L$1";
+  }
+  $domain .= " (b)" if ($bounce && $enable_bounces);
+  $domain .= " (f)" if ($frozen && $enable_frozen);
+  $queue{$domain}++;
+  $q_oldest{$domain} = $age
+    if (!defined $q_oldest{$domain} || &older($age,$q_oldest{$domain}) > 0);
+  $q_recent{$domain} = $age
+    if (!defined $q_recent{$domain} || &older($q_recent{$domain},$age) > 0);
+  $q_size{$domain} = 0 if (!defined $q_size{$domain});
+  $q_size{$domain} += &s_conv($size);
+  }
+}
+
+print "\nCount  Volume  Oldest  Newest  Domain";
+print "\n-----  ------  ------  ------  ------\n\n";
+
+my ($count, $volume, $max_age, $min_age) = (0, 0, "0m", undef);
+
+foreach $id (sort
+            {
+            $sort_by_age? &older($q_oldest{$b}, $q_oldest{$a}) :
+            $sort_by_count? ($queue{$b} <=> $queue{$a}) :
+            $a cmp $b
+            }
+            keys %queue)
+  {
+  printf("%5d  %.6s  %6s  %6s  %.80s\n",
+    $queue{$id}, &print_volume_rounded($q_size{$id}), $q_oldest{$id},
+    $q_recent{$id}, $id);
+    $max_age = $q_oldest{$id} if &older($q_oldest{$id}, $max_age) > 0;
+    $min_age = $q_recent{$id}
+      if (!defined $min_age || &older($min_age, $q_recent{$id}) > 0);
+    $volume += $q_size{$id};
+    $count += $queue{$id};
+  }
+  $min_age ||= "0000d";
+printf("---------------------------------------------------------------\n");
+printf("%5d  %.6s  %6s  %6s  %.80s\n",
+  $count, &print_volume_rounded($volume), $max_age, $min_age, "TOTAL");
+print "\n";
+
+# End

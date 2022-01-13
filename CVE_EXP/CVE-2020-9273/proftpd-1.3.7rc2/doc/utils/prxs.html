@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>prxs: PRoftpd eXtenSion tool</title>
+</head>
+
+<body bgcolor=white>
+
+<hr><br>
+<center>
+<h2><b><code>prxs</code>: PRoftpd eXtenSion tool</b></h2>
+</center>
+<hr><br>
+
+This <code>prxs</code> program is used to build
+<a href="../howto/DSO.html">DSO</a> modules (also known as "shared" modules).
+
+<p>
+The most current version of <code>prxs</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this program.
+
+<p>
+<hr><br>
+<h2><a name="Usage">Usage</a></h2>
+<code>prxs</code> is a tool for building and installing extension modules for
+the ProFTPD FTP server. This is achieved by building a dynamic shared object
+(<a href="../howto/DSO.html">DSO</a>) from one or more source or object
+<em>files</em> which then can be loaded into the ProFTPD server at runtime via
+the <a href="../modules/mod_dso.html#LoadModule"><code>LoadModule</code></a>
+directive from the <a href="../modules/mod_dso.html"><code>mod_dso</code></a>
+module.
+
+<p>
+To use this extension mechanism your platform has to support the DSO feature
+<b>and</b> your <code>proftpd</code> executable has to be built with the
+<a href="../modules/mod_dso.html"><code>mod_dso</code></a> module. The
+<code>prxs</code> tool automatically complains if this is not the case.  You
+can check this yourself by manually running the command:
+<pre>
+  $ proftpd -l
+</pre>
+The module <a href="../modules/mod_dso.html"><code>mod_dso</code></a> should
+be part of the displayed list.  If these requirements are fulfilled you can
+easily extend your ProFTPD server's functionality by installing your own
+modules with the DSO mechanism by the help of this <code>prxs</code> tool.
+
+<p>
+The <a href="../howto/DSO.html#prxs"><code>DSO</code></a> documentation also
+describes how <code>prxs</code> works in more details.
+
+<p>
+<hr><br>
+<h2><a name="Options">Options</a></h2>
+The following is the output from running <code>prxs --help</code>:
+<pre>
+usage: prxs &lt;action&gt; &lt;opts&gt; &lt;source files&gt;
+
+Actions:
+
+ -c, --compile          Compiles the listed .c source files into a proftpd
+                        DSO module.
+
+ -i, --install          Installs a compiled proftpd DSO module into the
+                        directory where proftpd expects to find loadable
+                        DSO modules.
+
+ -d, --clean            Removes any generated files, returning the build
+                        directory to a clean state.
+
+Options:
+
+ -h, --help             Displays this message.
+
+ -n, --name             Tells prxs the name of the module being compiled.
+                        By default, prxs determines the module name from
+                        the list of .c files listed, expecting to see a
+                        "mod_$name.c" file.
+
+ -D key                 Passes these macros through to the compilation step.
+ -D key=value           Note that the space before the key is important.
+
+ -I includedir          Specify additional include file search directories.
+                        Note that the space before the directory is important.
+
+ -L libdir              Specify additional library file search directories.
+                        Note that the space before the directory is important.
+
+ -l library             Specify additional libraries for linking.
+                        Note that the space before the library name is
+                        important.
+
+At least one of the above actions must be specified when using prxs.  More
+than one action can be specified at the same time.
+
+To use prxs all in one step, you could do:
+
+  prxs -c -i -d mod_custom.c
+
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2016 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

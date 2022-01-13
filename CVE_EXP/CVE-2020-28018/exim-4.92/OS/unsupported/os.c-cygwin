@@ -1,0 +1,531 @@
+/*************************************************
+*     Exim - an Internet mail transport agent    *
+*************************************************/
+
+/* Cygwin-specific code. December 2002. Updated Jan 2015.
+   This is prefixed to the src/os.c file.
+
+   This code was supplied by Pierre A. Humblet <Pierre.Humblet@ieee.org>
+*/
+
+/* We need a special mkdir that
+   allows names starting with // */
+#undef mkdir
+int cygwin_mkdir( const char *path, mode_t mode )
+{
+  const char * p = path;
+  if (*p == '/') while(*(p+1) == '/') p++;
+  return mkdir(p, mode);
+}
+
+#ifndef COMPILE_UTILITY /* Utilities don't need special code */
+
+#ifdef INCLUDE_PAM
+#include "../pam/pam.c"
+#endif
+#include <alloca.h>
+
+unsigned int cygwin_WinVersion;
+
+/* Conflict between Windows definitions and others */
+#ifdef NOERROR
+#undef NOERROR
+#endif
+#ifdef DELETE
+#undef DELETE
+#endif
+
+#include <windows.h>
+#include <ntstatus.h>
+#include <lmcons.h>
+
+#define EqualLuid(Luid1, Luid2) \
+  ((Luid1.LowPart == Luid2.LowPart) && (Luid1.HighPart == Luid2.HighPart))
+#include <sys/cygwin.h>
+
+/* Special static variables */
+static BOOL cygwin_debug = FALSE;
+static int fakesetugid = 1; /* when not privileged, setugid = noop */
+
+#undef setuid
+int cygwin_setuid(uid_t uid )
+{
+  int res = 0;
+  if (fakesetugid == 0) { 
+    res = setuid(uid);
+    if (cygwin_debug)
+      fprintf(stderr, "setuid %u %u %d pid: %d\n",
+              uid, getuid(),res, getpid());
+  }
+  return res;
+}
+
+#undef setgid
+int cygwin_setgid(gid_t gid )
+{
+  int res = 0;
+  if (fakesetugid == 0) { 
+    res = setgid(gid);
+    if (cygwin_debug)
+      fprintf(stderr, "setgid %u %u %d pid: %d\n",
+              gid, getgid(), res, getpid());
+  }
+  return res;
+}
+
+/* Background processes run at lower priority */
+static void cygwin_setpriority()
+{
+  if (!SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS))
+    SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
+  return;
+}
+
+
+/* GetVersion()
+   MSB: 1 for 95/98/ME; Next 7: build number, except for 95/98/ME
+   Next byte: 0
+   Next byte: minor version of OS
+   Low  byte: major version of OS (3 or 4 for for NT, 5 for 2000 and XP) */
+//#define VERSION_IS_58M(x) (x & 0x80000000) /* 95, 98, Me   */
+//#define VERSION_IS_NT(x)  ((x & 0XFF) < 5) /* NT 4 or 3.51 */
+
+/*
+  Routine to find if process or thread is privileged
+*/
+
+enum {
+  CREATE_BIT = 1,
+};
+
+static DWORD get_privileges ()
+{
+  char buffer[1024];
+  DWORD i, length;
+  HANDLE hToken = NULL;
+  PTOKEN_PRIVILEGES privs;
+  LUID cluid, rluid;
+  DWORD ret = 0;
+
+  privs = (PTOKEN_PRIVILEGES) buffer;
+
+  if (OpenProcessToken (GetCurrentProcess(), TOKEN_QUERY, &hToken)
+      && LookupPrivilegeValue (NULL, SE_CREATE_TOKEN_NAME, &cluid)
+      && LookupPrivilegeValue(NULL, SE_RESTORE_NAME, &rluid)
+      && (GetTokenInformation( hToken, TokenPrivileges,
+                               privs, sizeof (buffer), &length)
+          || (GetLastError () == ERROR_INSUFFICIENT_BUFFER
+              && (privs = (PTOKEN_PRIVILEGES) alloca (length))
+              && GetTokenInformation(hToken, TokenPrivileges,
+                                     privs, length, &length)))) {
+    for (i = 0; i < privs->PrivilegeCount; i++) {
+      if (EqualLuid(privs->Privileges[i].Luid, cluid))
+        ret |= CREATE_BIT;
+      if (ret == (CREATE_BIT))
+        break;
+    }
+  }
+  else
+    fprintf(stderr, "has_create_token_privilege %u\n", GetLastError());
+
+  if (hToken)
+    CloseHandle(hToken);
+
+  return ret;
+}
+
+/* 
+  We use cygwin_premain to fake a few things 
+	and to provide some debug info 
+*/
+void cygwin_premain2(int argc, char ** argv, struct per_process * ptr)
+{
+  int i, res, is_daemon = 0, is_spoolwritable, is_privileged, is_eximuser;
+  uid_t myuid, systemuid;
+  gid_t mygid, adminsgid;
+  struct passwd * pwp = NULL;
+  struct stat buf;
+  char *cygenv;
+  SID(1, SystemSid, SECURITY_LOCAL_SYSTEM_RID);
+  SID(2, AdminsSid, SECURITY_BUILTIN_DOMAIN_RID, DOMAIN_ALIAS_RID_ADMINS);
+  DWORD priv_flags;
+
+  myuid = getuid();
+  mygid = getgid();
+  cygwin_WinVersion = GetVersion();
+  if ((cygenv = getenv("CYGWIN")) == NULL) cygenv = "";
+  /* Produce some debugging on stderr,
+     cannot yet use exim's debug functions.
+     Exim does not use -c and ignores -n.
+     Set lower priority for daemons */
+  for (i = 1; i < argc; i++) {
+    if (argv[i][0] == '-') {
+      if (argv[i][1] == 'c') {
+        ssize_t size;
+        wchar_t *win32_path;
+        argv[i][1] = 'n';  /* Replace -c by -n */
+        cygwin_debug = TRUE;
+        fprintf(stderr, "CYGWIN = \"%s\".\n", cygenv);
+        if (((size = cygwin_conv_path(CCP_POSIX_TO_WIN_W,"/", win32_path, 0)) > 0)
+ 	 && ((win32_path = malloc(size)) != NULL)
+         && (cygwin_conv_path(CCP_POSIX_TO_WIN_W,"/", win32_path, size) == 0)) {
+	        fprintf(stderr, " Root / mapped to %ls.\n", win32_path);
+		free(win32_path);
+	}
+      }
+      else if (argv[i][1] == 'b' && argv[i][2] == 'd') {
+        is_daemon = 1;
+        cygwin_setpriority();
+    }
+  }
+  }
+
+  /* Nt/2000/XP
+     We initially set the exim uid & gid to those of the "exim user",
+       or to the root uid (SYSTEM) and exim gid (ADMINS),
+     If privileged, we setuid to those.
+     We always set the configure uid to the system uid.
+     We always set the root uid to the real uid
+       to allow exim imposed restrictions (bypassable by recompiling)
+       and to avoid exec that cause loss of privilege
+     If not privileged and unable to chown,
+       we set the exim uid to our uid.
+     If unprivileged and /var/spool/exim is writable and not running as listening daemon, 
+       we fake all subsequent setuid. */
+
+  /* Get the system and admins uid from their sids */
+  if ((systemuid = cygwin_internal(CW_GET_UID_FROM_SID, & SystemSid)) == -1) {
+	fprintf(stderr, "Cannot map System sid. Aborting\n");
+	exit(1);
+  }
+  if ((adminsgid = cygwin_internal(CW_GET_GID_FROM_SID, & AdminsSid)) == -1) {
+	fprintf(stderr, "Cannot map Admins sid. Aborting\n");
+	exit(1);
+  }
+
+  priv_flags = get_privileges ();
+  is_privileged = !!(priv_flags & CREATE_BIT);
+
+  /* Call getpwnam for account exim after getting the local exim name */
+  char exim_username[DNLEN + UNLEN + 2];
+  if (cygwin_internal(CW_CYGNAME_FROM_WINNAME, "exim", exim_username, sizeof exim_username) != 0)
+     pwp = getpwnam (exim_username);
+
+  /* If cannot setuid to exim or and is not the daemon (which is assumed to be
+     able to chown or to be the exim user) set the exim ugid to our ugid to avoid
+     chown failures after creating files and to be able to setuid to exim in 
+     exim.c ( "privilege not needed" ). */
+  if ((is_privileged == 0) && (!is_daemon)) {
+    exim_uid = myuid;
+    exim_gid = mygid;
+  }
+  else if (pwp != NULL) {
+    exim_uid = pwp->pw_uid;  /* Set it according to passwd */
+    exim_gid = pwp->pw_gid;
+    is_eximuser = 1;
+  }
+  else {
+    exim_uid = systemuid;
+    exim_gid = adminsgid;
+    is_eximuser = 0;
+  }
+
+  res = stat("/var/spool/exim", &buf);
+  /* Check if writable (and can be stat) */
+  is_spoolwritable = ((res == 0) && ((buf.st_mode & S_IWOTH) != 0));
+
+  fakesetugid = (is_privileged == 0) && (is_daemon == 0) && (is_spoolwritable == 1);
+
+  if (is_privileged) {             /* Can setuid */
+     if (cygwin_setgid(exim_gid) /* Setuid to exim */
+         || cygwin_setuid(exim_uid)) {
+	   fprintf(stderr, "Unable to setuid/gid to exim. priv_flags: %x\n", priv_flags);
+      	   exit(0);          /* Problem... Perhaps not in 544 */
+     }
+  }
+
+  /* Set the configuration file uid and gid to the system uid and admins gid. */
+  config_uid = systemuid;
+  config_gid = adminsgid;
+
+  /* Pretend we are root to avoid useless exec
+     and avoid exim set limitations.
+     We are limited by file access rights */
+  root_uid = getuid ();
+
+  if (cygwin_debug) {
+    fprintf(stderr, "Starting uid %u, gid %u, priv_flags %x, is_privileged %d, is_daemon %d, is_spoolwritable %d.\n",
+            myuid, mygid, priv_flags, is_privileged, is_daemon, is_spoolwritable);
+    fprintf(stderr, "root_uid %u, exim_uid %u, exim_gid %u, config_uid %u, config_gid %u, is_eximuser %d.\n",
+            root_uid, exim_uid, exim_gid, config_uid, config_gid, is_eximuser);
+  }
+  return;
+}
+
+#ifndef OS_LOAD_AVERAGE /* Can be set on command line */
+#define OS_LOAD_AVERAGE /* src/os.c need not provide it */
+
+/*****************************************************************
+ Functions for average load measurements
+
+ Uses NtQuerySystemInformation.
+ This requires definitions that are not part of
+ standard include files.
+
+ This is discouraged starting with WinXP.
+
+*************************************************************/
+/* Structure to compute the load average efficiently */
+typedef struct {
+  DWORD Lock;
+  unsigned long long Time100ns;   /* Last measurement time */
+  unsigned long long IdleCount;   /* Latest cumulative idle time */
+  unsigned long long LastCounter; /* Last measurement counter */
+  unsigned long long PerfFreq;    /* Perf counter frequency */
+  int LastLoad;                   /* Last reported load, or -1 */
+} cygwin_perf_t;
+
+static struct {
+   HANDLE handle;
+   pid_t pid;
+   cygwin_perf_t *perf;
+} cygwin_load = {NULL, 0, NULL};
+
+#include <ntdef.h>
+
+typedef enum _SYSTEM_INFORMATION_CLASS
+{
+  SystemBasicInformation = 0,
+  SystemPerformanceInformation = 2,
+  SystemTimeOfDayInformation = 3,
+  SystemProcessesAndThreadsInformation = 5,
+  SystemProcessorTimes = 8,
+  SystemPagefileInformation = 18,
+  /* There are a lot more of these... */
+} SYSTEM_INFORMATION_CLASS;
+
+typedef struct _SYSTEM_BASIC_INFORMATION
+{
+  ULONG Unknown;
+  ULONG MaximumIncrement;
+  ULONG PhysicalPageSize;
+  ULONG NumberOfPhysicalPages;
+  ULONG LowestPhysicalPage;
+  ULONG HighestPhysicalPage;
+  ULONG AllocationGranularity;
+  ULONG LowestUserAddress;
+  ULONG HighestUserAddress;
+  ULONG ActiveProcessors;
+  UCHAR NumberProcessors;
+} SYSTEM_BASIC_INFORMATION, *PSYSTEM_BASIC_INFORMATION;
+
+typedef struct __attribute__ ((aligned (8))) _SYSTEM_PROCESSOR_TIMES
+{
+  LARGE_INTEGER IdleTime;
+  LARGE_INTEGER KernelTime;
+  LARGE_INTEGER UserTime;
+  LARGE_INTEGER DpcTime;
+  LARGE_INTEGER InterruptTime;
+  ULONG InterruptCount;
+} SYSTEM_PROCESSOR_TIMES, *PSYSTEM_PROCESSOR_TIMES;
+
+typedef NTSTATUS NTAPI (*NtQuerySystemInformation_t) (SYSTEM_INFORMATION_CLASS, PVOID, ULONG, PULONG);
+typedef ULONG NTAPI (*RtlNtStatusToDosError_t) (NTSTATUS);
+
+static NtQuerySystemInformation_t NtQuerySystemInformation;
+static RtlNtStatusToDosError_t RtlNtStatusToDosError;
+
+/*****************************************************************
+ *
+ LoadNtdll()
+ Load special functions from the NTDLL
+ Return TRUE if success.
+
+ *****************************************************************/
+
+static BOOL LoadNtdll()
+{
+  HINSTANCE hinstLib;
+
+  if ((hinstLib = LoadLibrary("NTDLL.DLL"))
+      && (NtQuerySystemInformation =
+          (NtQuerySystemInformation_t) GetProcAddress(hinstLib,
+                                                        "NtQuerySystemInformation"))
+      && (RtlNtStatusToDosError =
+          (RtlNtStatusToDosError_t) GetProcAddress(hinstLib,
+                                                     "RtlNtStatusToDosError")))
+    return TRUE;
+
+  DEBUG(D_load)
+    debug_printf("perf: load: %u (Windows)\n", GetLastError());
+  return FALSE;
+}
+/*****************************************************************
+ *
+ ReadStat()
+ Measures current Time100ns and IdleCount
+ Return TRUE if success.
+
+ *****************************************************************/
+
+static BOOL ReadStat(unsigned long long int *Time100nsPtr,
+                     unsigned long long int *IdleCountPtr)
+{
+  NTSTATUS ret;
+  SYSTEM_BASIC_INFORMATION sbi;
+  PSYSTEM_PROCESSOR_TIMES spt;
+
+  *Time100nsPtr = *IdleCountPtr = 0;
+
+  if ((ret = NtQuerySystemInformation(SystemBasicInformation,
+                                      (PVOID) &sbi, sizeof sbi, NULL))
+      != STATUS_SUCCESS) {
+    DEBUG(D_load)
+      debug_printf("Perf: NtQuerySystemInformation: %u (Windows)\n",
+                   RtlNtStatusToDosError(ret));
+  }
+  else if (!(spt = (PSYSTEM_PROCESSOR_TIMES) alloca(sizeof(spt[0]) * sbi.NumberProcessors))) {
+    DEBUG(D_load)
+      debug_printf("Perf: alloca: errno %d (%s)\n", errno, strerror(errno));
+  }
+  else if ((ret = NtQuerySystemInformation(SystemProcessorTimes, (PVOID) spt,
+                                           sizeof spt[0] * sbi.NumberProcessors, NULL))
+           != STATUS_SUCCESS) {
+    DEBUG(D_load)
+      debug_printf("Perf: NtQuerySystemInformation: %u (Windows)\n",
+                   RtlNtStatusToDosError(ret));
+  }
+  else {
+    int i;
+    for (i = 0; i < sbi.NumberProcessors; i++) {
+      *Time100nsPtr += spt[i].KernelTime.QuadPart;;
+      *Time100nsPtr += spt[i].UserTime.QuadPart;
+      *IdleCountPtr += spt[i].IdleTime.QuadPart;
+    }
+    return TRUE;
+  }
+  return FALSE;
+}
+
+/*****************************************************************
+ *
+ InitLoadAvg()
+ Initialize the cygwin_load.perf structure.
+ and set cygwin_load.perf->Flag to TRUE if successful.
+ This is called the first time os_getloadavg is called
+ *****************************************************************/
+static void InitLoadAvg(cygwin_perf_t *this)
+{
+  BOOL success = TRUE;
+
+  /* Get perf frequency and counter */
+  QueryPerformanceFrequency((LARGE_INTEGER *)& this->PerfFreq);
+  QueryPerformanceCounter((LARGE_INTEGER *)& this->LastCounter);
+
+  /* Get initial values for Time100ns and IdleCount */
+  success = success
+            && ReadStat( & this->Time100ns,
+                         & this->IdleCount);
+  /* If success, set the Load to 0, else to -1 */
+  if (success) this->LastLoad = 0;
+  else {
+    log_write(0, LOG_MAIN, "Cannot obtain Load Average");
+    this->LastLoad = -1;
+  }
+}
+
+
+/*****************************************************************
+ *
+ os_getloadavg()
+
+ Return -1 if not available;
+ Return the previous value if less than AVERAGING sec old.
+ else return the processor load on a [0 - 1000] scale.
+
+ The first time we are called we initialize the counts
+ and return 0 or -1.
+ The initial load cannot be measured as we use the processor 100%
+*****************************************************************/
+static SECURITY_ATTRIBUTES sa = {sizeof (SECURITY_ATTRIBUTES), NULL, TRUE};
+#define AVERAGING 10
+
+int os_getloadavg()
+{
+  unsigned long long Time100ns, IdleCount, CurrCounter;
+  int value;
+  pid_t newpid;
+
+  /* New process.
+     Reload the dlls and the file mapping */
+  if ((newpid = getpid()) != cygwin_load.pid) {
+    BOOL new;
+    cygwin_load.pid = newpid;
+
+    if (!LoadNtdll()) {
+      log_write(0, LOG_MAIN, "Cannot obtain Load Average");
+      cygwin_load.perf = NULL;
+      return -1;
+    }
+
+    if ((new = !cygwin_load.handle)) {
+      cygwin_load.handle = CreateFileMapping (INVALID_HANDLE_VALUE, &sa, PAGE_READWRITE,
+                                              0, sizeof(cygwin_perf_t), NULL);
+      DEBUG(D_load)
+        debug_printf("Perf: CreateFileMapping: handle %p\n", (void *) cygwin_load.handle);
+    }
+    cygwin_load.perf = (cygwin_perf_t *) MapViewOfFile (cygwin_load.handle,
+                                                        FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+    DEBUG(D_load)
+      debug_printf("Perf: MapViewOfFile: addr %p\n", (void *) cygwin_load.perf);
+    if (new && cygwin_load.perf)
+      InitLoadAvg(cygwin_load.perf);
+  }
+
+  /* Check if initialized OK */
+  if (!cygwin_load.perf || cygwin_load.perf->LastLoad < 0)
+    return -1;
+
+  /* If we cannot get the lock, we return 0.
+     This is to prevent any lock-up possibility.
+     Finding a lock busy is unlikely, and giving up only
+     results in an immediate delivery .*/
+
+  if (InterlockedCompareExchange(&cygwin_load.perf->Lock, 1, 0)) {
+    DEBUG(D_load)
+      debug_printf("Perf: Lock busy\n");
+    return 0;
+  }
+
+    /* Get the current time (PerfCounter) */
+    QueryPerformanceCounter((LARGE_INTEGER *)& CurrCounter);
+    /* Calls closer than AVERAGING sec apart use the previous value */
+  if (CurrCounter - cygwin_load.perf->LastCounter >
+      AVERAGING * cygwin_load.perf->PerfFreq) {
+      /* Get Time100ns and IdleCount */
+      if (ReadStat( & Time100ns, & IdleCount)) { /* Success */
+        /* Return processor load on 1000 scale */
+      value = 1000 - ((1000 * (IdleCount - cygwin_load.perf->IdleCount)) /
+                      (Time100ns - cygwin_load.perf->Time100ns));
+      cygwin_load.perf->Time100ns = Time100ns;
+      cygwin_load.perf->IdleCount = IdleCount;
+      cygwin_load.perf->LastCounter = CurrCounter;
+      cygwin_load.perf->LastLoad = value;
+      DEBUG(D_load)
+        debug_printf("Perf: New load average %d\n", value);
+      }
+      else { /* Something bad happened.
+                Refuse to measure the load anymore
+                but don't bother releasing the buffer */
+        log_write(0, LOG_MAIN, "Cannot obtain Load Average");
+      cygwin_load.perf->LastLoad = -1;
+    }
+  }
+  else
+  DEBUG(D_load)
+      debug_printf("Perf: Old load average %d\n", cygwin_load.perf->LastLoad);
+  cygwin_load.perf->Lock = 0;
+  return cygwin_load.perf->LastLoad;
+}
+#endif /* OS_LOAD_AVERAGE */
+#endif /* COMPILE_UTILITY */

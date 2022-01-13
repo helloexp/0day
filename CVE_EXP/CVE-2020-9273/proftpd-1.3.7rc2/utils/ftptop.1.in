@@ -1,0 +1,88 @@
+.TH ftptop 1 "March 2003"
+.\" Process with
+.\" groff -man -Tascii ftptop.1 
+.\"
+.SH NAME
+ftptop \- display running status on proftpd server connections
+.SH SYNOPSIS
+.B ftptop
+.SH DESCRIPTION
+The
+.BI ftptop
+command displays the current status of FTP sessions in a continuously updating
+.I top
+like format.
+.SH OPTIONS
+.TP 12
+.B \-A
+Filter the display to show sessions that are authenticating.
+.TP
+.B \-a
+Filter the display to hide sessions that are authenticating.
+.TP
+.B \-D
+Filter the display to show sessions that are downloading.
+.TP
+.B \-S
+Specify the ServerName for a specific virtual host.  If used,
+.I ftptop
+will only show sessions for the given virtual host.
+.TP
+.B \-d
+Specify the delay, in seconds, between display refreshes.  The default is 2
+seconds.  Only values between 0 and 15 seconds are accepted.
+.TP
+.BI \-f
+Specify the full path to proftpd's run\-time scoreboard file (configured
+via the \fBScoreboardFile\fP directive in proftpd.conf).  If proftpd's
+default directory has been changed via this directive, \fIftptop\fP
+must either be recompiled or this option must be used in order to find
+proftpd's scoreboard.
+.B \-h
+Display a short usage description, including all available options.
+.TP
+.B \-I
+Filter the display to show sessions that are idle.
+.TP
+.B \-i
+Filter the display to hide sessions that are idle.
+.TP
+.B \-U
+Filter the display to show sessions that are uploading.
+.TP
+.B \-V
+Print out the version of
+.I ftptop
+and quit.
+.PP
+While
+.I ftptop
+is running, hit the 'q' key to quit.  The 't' key toggles between display
+modes.  Currently there are two display modes:
+.B normal
+and
+.B transfer speed
+modes.
+.SH FILES
+.PD 0
+.B @BINDIR@/ftptop
+.br
+.B @LOCALSTATEDIR@/proftpd.scoreboard
+.PD
+.SH AUTHORS
+.PP
+ProFTPD is written and maintained by a number of people, full credits
+can be found on
+.BR http://www.proftpd.org/credits.html
+.PD
+.SH SEE ALSO
+.BR inetd(8), ftp(1), proftpd(8), ftpwho(1), ftptop(1), ftpshut(8)
+.PP
+Full documentation on ProFTPD, including configuration and FAQs, is available at
+.BR http://www.proftpd.org/
+.PP 
+For help/support, try the ProFTPD mailing lists, detailed on
+.BR http://www.proftpd.org/lists.html
+.PP
+Report bugs at
+.BR http://bugs.proftpd.org/

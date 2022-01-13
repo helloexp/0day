@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Virtual Servers</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Virtual Servers</b></h2></center>
+<hr>
+
+<p><a name="Definition"></a>
+<b>What is a virtual server?</b><br>
+A virtual server, also known as a virtual host (or <i>vhost</i> for short),
+refers to the practice of serving more than one address/site on a single host
+machine.  The fact that these multiple sites are being served by the same
+physical machine is transparent to the end user.
+
+<p>
+Until very recently, the definition of FTP did not allow for <i>name</i>-based
+virtual hosts, such as supported by HTTP/1.1.  That changed with
+<a href="https://tools.ietf.org/html/rfc7151">RFC 7151</a>, which defined a
+<code>HOST</code> FTP command.  ProFTPD virtual hosts are IP-based <i>and</i>
+name-based.
+
+<p>
+In some documents, one might see reference to both &quot;daemon&quot; and
+&quot;server&quot;.  Sometimes these words are used interchangeably; however,
+there is a slight difference.  A &quot;daemon&quot; is a long-lived process
+on a host machine, and a &quot;server&quot; is a process that provides some
+service, typically to remote clients.  A process, such as a standalone
+<code>proftpd</code> process, can be considered both a &quot;daemon&quot;
+and a &quot;server&quot;.  With this in mind, then, a &quot;virtual server&quot;
+is not a separate process itself; it just looks like one to the remote clients.
+Hence the &quot;virtual&quot;.
+
+<p><a name="Configuration"></a>
+There are three &quot;server&quot; contexts (sometimes also called
+<i>sections</i>) in the <code>proftpd.conf</code> configuration file:
+<a href="../modules/mod_core.html#VirtualHost"><code>&lt;VirtualHost&gt;</code></a>, <a href="../modules/mod_core.html#Global"><code>&lt;Global&gt;</code></a>,
+and &quot;server config&quot;.
+
+<p>
+The <code>&lt;VirtualHost&gt;</code> context is used to define the configuration
+for a particular virtual host, bound to an IP address.  For example:
+<pre>
+  &lt;VirtualHost 1.2.3.4&gt;
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+defines a configuration for a virtual server that <code>proftpd</code> should
+use whenever a remote client connects to the IP address 1.2.3.4.  DNS names,
+too, can be used with the <code>&lt;VirtualHost&gt;</code> configuration
+directive:
+<pre>
+  &lt;VirtualHost ftp.mydomain.com&gt;
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+When <code>proftpd</code> parses this section on startup, it will resolve the
+given DNS name to its IP address and use that, just as if that IP address
+had been used in the first place.  In addition, when DNS names are used like
+this, ProFTPD will <i>automatically</i> create a <a href="../modules/mod_core.html#ServerAlias"><code>ServerAlias</code></a> directive using that DNS name.
+This allows for multiple <code>&lt;VirtualHost&gt;</code> sections using the
+same DNS name to be defined in your <code>proftpd.conf</code>.
+
+<p>
+If you want the same vhost to be used for multiple different names at the
+same time (<i>e.g.</i> because you have multiple DNS names for the same
+server), you would use the <code>ServerAlias</code> directive to list those
+other names, like so:
+<pre>
+  &lt;VirtualHost ftp.mydomain.com&gt;
+    # Use this vhost for other names, too
+    ServerAlias ftp.mydomain.org ftp2.mydomain.com ftp.otherdomain.org
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+
+<p>
+The <code>&lt;Global&gt;</code> section is provided as a convenience.  Imagine
+that the administrator has many <code>&lt;VirtualHost&gt;</code> sections
+in her <code>proftpd.conf</code>, and yet has a lot of the same configuration
+for each virtual host, such as common <code>&lt;Directory&gt;</code> sections,
+<code>DefaultRoot</code> settings, <i>etc</i>.  Rather than including the
+same configuration over and over, she could use the <code>&lt;Global&gt;</code>
+section:
+<pre>
+  &lt;Global&gt;
+    ...
+  &lt;/Global&gt;
+</pre>
+Anything inside of a <code>&lt;Global&gt;</code> section is applied to every
+server configuration in the file, to every <code>&lt;VirtualHost&gt;</code> as
+well as the default &quot;server config&quot; server.
+
+<p>
+Which brings us to the &quot;server config&quot; section.  The name is
+ill-suited, and is really borrowed directly from Apache's naming conventions.
+The &quot;server config&quot; context refers to anything <b>not</b> in a
+<code>&lt;VirtualHost&gt;</code> or <code>&lt;Global&gt;</code> section in
+the <code>proftpd.conf</code> file.  Unlike Apache's <code>httpd.conf</code>,
+ProFTPD's configuration is designed such that one should be able to use
+the simplest file as possible.  In fact, <code>proftpd</code> will start
+if the <code>proftpd.conf</code> is completely empty; try it!  This will
+cause the daemon to use all of the default settings, which in most cases
+is not what is wanted, but it <i>is</i> possible.  With this in mind,
+there is always at least <i>one</i> server configuration present: the default
+server context, and it is this context that is known as the
+&quot;server config&quot;.  Just like the <code>&lt;VirtualHost&gt;</code>
+section, any configuration directives inside the &quot;server config&quot;
+section <b>do not apply</b> outside of the context.  Many administrators often
+<i>assume</i> that this is the case.  It is not.  This is what the
+<code>&lt;Global&gt;</code> section is for.
+
+<p>
+However, one particular drawback to the &quot;server config&quot; section was
+that it did not provide a way to specify to which IP address that configuration
+pertained.  By default, when <code>proftpd</code> parses the
+<code>proftpd.conf</code> file, it will use the <code>gethostname()</code>
+function to determine the IP address to which the default server should listen.
+On a single address, single interface system, this default is fine. It is one
+a multiple address system that the default handling does not always work;
+the administrator may wish to explicitly specify to which address the default
+server should listen.  This is what the <a href="../modules/mod_core.html#DefaultAddress"><code>DefaultAddress</code></a> configuration directive provides: the
+ability to specify to which IP address the &quot;server config&quot; vhost
+should listen.
+
+<p>
+By default, every server will listen to port 21, the IANA standard port for
+FTP.  If you want to have server react to a different port, use the
+<a href="../modules/mod_core.html#Port"><code>Port</code></a> directive to
+change the port.  As might be mentioned elsewhere, if you have many different
+<code>&lt;VirtualHost&gt;</code> sections using the <i>same address</i> but
+different <i>ports</i>, you'll want to make sure that you leave each
+<code>Port</code>-1 number empty.  <a href="http://www.faqs.org/rfcs/rfc959.html">RFC 959</a> specifies that the source port for an active
+data transfer (read <a href="http://slacksite.com/other/ftp.html">here</a>)
+must be <code>L-1</code>, where <code>L</code> is the port on which your server
+listens.  Also, as mentioned in the <code>Port</code> documentation, using:
+<pre>
+  Port 0
+</pre>
+in any server context will effectively &quot;disable&quot; that server.  This
+is sometimes used to disable the &quot;server config&quot; configuration.
+
+<p>
+There is another configuration directive that comes into play in all of this
+: <a href="../modules/mod_core.html#DefaultServer"><code>DefaultServer</code></a>.  Here is why: when a client contacts <code>proftpd</code>, the server has to
+determine which configuration to use for handling the client.  To do this, it
+searches its list of configured vhosts, searching for a vhost whose IP address
+matches the IP address that the client contacted.  If there is a matching vhost
+for that IP address, simple: use that configuration.  If not,
+<code>proftpd</code> will then resort to using the configuration that bears the
+<code>DefaultServer</code> directive, which says that the server configuration
+in which it appears should be used in cases like this.  If there is no
+<code>DefaultServer</code> directive in the <code>proftpd.conf</code> file,
+and no matching configuration can be found, then the client will see a message
+such as &quot;no server available to service your request&quot;.  The
+<code>DefaultServer</code> can be used to say that a
+<code>&lt;VirtualHost&gt;</code> should be the default, and not necessarily the
+&quot;server config&quot; context, as is common.
+
+<p>
+If you would like the same virtual host configuration to be used for
+multiple different IP addresses (or DNS names), the
+<code>&lt;VirtualHost&gt;</code> supports this:
+<pre>
+  &lt;VirtualHost 1.2.3.4 5.6.7.8&gt;
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+
+<p>
+If, however, you want to specific the address to which the configuration
+of the &quot;server config&quot; context, use <code>DefaultAddress</code>
+(mentioned above).
+
+<p>
+There is one last configuration directive about which an administrator should
+know: <a href="../modules/mod_core.html#SocketBindTight"><code>SocketBindTight</code></a>.  By default, the
+<code>proftpd</code> daemon will listen on all addresses, port 21, for the
+connection requests of remote clients.  Sometimes, the administrator may
+wish to have the <code>proftpd</code> daemon listen <b>only</b> on the IP
+addresses for which it has been configured, and not <i>every</i> address.
+To accomplish this, simply use the <code>SocketBindTight</code> configuration
+directive:
+<pre>
+  SocketBindTight on
+</pre>
+This configures the daemon to &quot;bind tightly&quot; only to those IP
+addresses to which it has been configured to listen, rather than every address.
+By default, the <code>proftpd</code> daemon will listen to every address on
+the host machine.
+
+<p><a name="FAQ"></a>
+<b>Frequently Asked Questions</b><br>
+
+<p>
+<font color=red>Question</font>: Why do I see the following when I start <code>proftpd</code>?<br>
+<pre>
+- warning: "Virtual Server" address/port (1.2.3.4:21) already in use by "Main Server"
+</pre>
+<font color=blue>Answer</font>: This happens when a <code>&lt;VirtualHost&gt;</code> section is "hidden" behind the default server in the "server config"
+section (<i>i.e.</i> the context that is outside of all <code>&lt;VirtualHost&gt;</code> and <code>&lt;Global&gt;</code> sections).  It is "hidden" because
+both the <code>&lt;VirtualHost&gt;</code> section and the "server config"
+section are using the same IP address and port.
+
+<p>
+It is quite common to configure <code>&lt;VirtualHost&gt;</code> sections
+using DNS names, rather than IP addresses.  And the "server config" section
+in the <code>proftpd.conf</code> file, by default, uses the IP address of
+the machine's hostname.  This makes it quite easy to inadvertently have
+multiple sections trying to use the same IP address and port.
+
+<p>
+The quick-and-easy fix is to place the following your "server config" section
+in your <code>proftpd.conf</code>:
+<pre>
+  Port 0
+</pre>
+as mentioned above.  You can also use the <code>DefaultAddress</code>
+directive in the "server config" section to explicitly tell the "server config"
+section to use a different IP address/DNS name.
+
+<p>
+<font color=red>Question</font>: How can I have my "server config" section
+(or a <code>&lt;VirtualHost&gt;</code> section) listen for multiple IP
+addresses/DNS names?<br>
+<font color=blue>Answer</font>: In version 1.3.0rc1 and later, the
+<code>&lt;VirtualHost&gt;</code> configuration was enhanced so that it could
+handle multiple IP addresses/DNS names, <i>e.g.</i>:
+<pre>
+  &lt;VirtualHost 1.2.3.4 ftp.example.com&gt;
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+And for the "server config" context, you would use the
+<code>DefaultAddress</code> directive, which can also handle multiple IP
+addresses/DNS names:
+<pre>
+  DefaultAddress 1.2.3.4 ftp.example.com
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

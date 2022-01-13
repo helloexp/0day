@@ -1,0 +1,31 @@
+-----------------------------------------------------------------------------
+TJ Saunders <tj@castaglia.org>
+2002-01-03
+-----------------------------------------------------------------------------
+
+To install mod_wrap, copy the mod_wrap.c file into
+
+  <proftpd-dir>/contrib
+
+after unpacking the proftpd-1.2.5rc1 (or later) source code.  Then run:
+
+  ./configure --with-modules=mod_wrap
+  make
+  make install
+
+Solaris system users will need to obtain and build the tcpwrappers library, as
+it does not come installed by default with Solaris.
+
+mod_wrap-1.2.2 and later will not build properly on FreeBSD-4.4, as they, in
+their wisdom, decided to put the NIS/YP functions in a library other than
+libnsl.a (which is where Solaris and Linux have those functions).  This means
+that, when building proftpd with mod_wrap-1.2.2 (or later) on FreeBSD-4.4
+(possibly earlier?) platforms will need to change this line in mod_wrap.c:
+
+ * $Libraries: -lwrap -lnsl$
+
+to be:
+
+ * $Libraries: -lwrap$
+
+----------------------------------------------------------------------------

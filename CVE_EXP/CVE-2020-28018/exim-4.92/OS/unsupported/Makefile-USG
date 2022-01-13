@@ -1,0 +1,33 @@
+# Exim: OS-specific make file for Unixware 2.x
+#
+# Note that Unixware does not include db/dbm/ndbm with their standard compiler
+# (it is available with /usr/ucb/cc, but that has bugs of its own). You
+# should install gcc and Berkeley DB (or another dbm library if you really
+# insist). If you use a different dbm library you will need to override
+# DBMLIB below.
+#
+# DB 1.85 and 2.x can be found at http://www.sleepycat.com/.
+# They have different characteristics. See the discussion of dbm libraries
+# in doc/dbm.discuss.txt in the Exim distribution.
+#
+# DB needs to be compiled with gcc and you need a 'cc' in your path
+# before the Unixware CC to compile it.
+#
+# Don't bother even starting to install exim on Unixware unless
+# you have installed gcc and use it for everything.
+
+CC=gcc -I/usr/local/include
+CFLAGS=-O
+
+RANLIB=@true
+DBMLIB=-ldb -L/usr/local/lib
+USE_DB=YES
+ERRNO_QUOTA=0
+LIBS=-lsocket -lelf -lgen -lnsl -lresolv -lm
+
+X11=/usr/lib/X11
+XINCLUDE=-I/usr/include/X11
+XLFLAGS=-L/usr/lib -L$(X11)/lib
+X11_LD_LIB=$(X11)/lib
+
+# End

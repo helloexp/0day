@@ -1,0 +1,28 @@
+/* Exim: OS-specific C header file for DGUX */
+
+/* Written by Ken Bailey (K.Bailey@rbgkew.org.uk) Feb 1998 */
+/* on dgux R4.11MU04 generic AViiON mc88100                */
+/* Modified Dec 1998 by PH after message from Ken.         */
+
+#define HAVE_SYS_STATVFS_H
+#define F_FAVAIL                 f_favail
+
+#define NO_SYSEXITS              /* DGUX doesn't ship sysexits.h */
+#define NO_IP_VAR_H              /* DGUX has no netinet/ip_var.h */
+
+#define os_strsignal             dg_strsignal
+#define OS_STRSIGNAL
+
+#define HAVE_MMAP
+
+/* The definition of ipoptions in netinet/in.h (masquerading as ip_opts) used
+in smtp_in.c is for Intel DG _IX86_ABI only. You may be able to get this to
+work on Intel DG but it's certainly easier to skip it on M88k. This means we
+forego the detection of some source-routing based IP attacks. */
+
+#define NO_IP_OPTIONS
+
+/* default is non-const */
+#define ICONV_ARG2_TYPE const char **
+
+/* End */

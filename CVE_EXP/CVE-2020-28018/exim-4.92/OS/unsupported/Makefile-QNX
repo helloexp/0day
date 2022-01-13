@@ -1,0 +1,30 @@
+# Exim: OS-specific makefile for QNX
+
+BASENAME_COMMAND=/bin/basename
+MAKE_SHELL=/usr/bin/bash
+
+CHOWN_COMMAND=/bin/chown
+CHGRP_COMMAND=/bin/chgrp
+CHMOD_COMMAND=/bin/chmod
+HOSTNAME_COMMAND=/bin/hostname
+MV_COMMAND=/bin/mv
+PERL_COMMAND=/usr/bin/perl
+RM_COMMAND=/bin/rm
+
+AR=ar -rc
+
+CC=cc
+CFLAGS=-Otax
+LIBIDENTCFLAGS=
+
+RANLIB=@true
+DBMLIB=-ldb
+USE_DB=yes
+LIBS=-lsocket -lm
+
+X11=/usr/X11R6
+XINCLUDE=-I$(X11)/include
+XLFLAGS=-L$(X11)/lib
+X11_LD_LIB=$(X11)/lib
+
+# End

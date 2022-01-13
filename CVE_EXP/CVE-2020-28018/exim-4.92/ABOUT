@@ -1,0 +1,9 @@
+Exim repository: src
+--------------------
+
+This directory contains everything that is included in an Exim distribution
+tarball, with the exception of the doc directory and an empty Local directory.
+You can build Exim from the contents of this directory by adding a Local
+directory that contains appropriate configuration files.
+
+End

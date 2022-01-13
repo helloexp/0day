@@ -1,0 +1,472 @@
+#! /bin/sh
+
+# Script to install Exim binaries in BIN_DIRECTORY, which is defined in
+# the local Makefile. It expects to be run in a build directory. It needs
+# to be run as root in order to make exim setuid to root. If exim runs setuid
+# to (e.g.) exim, this script should be run as that user or root.
+
+# This script also installs a default configuration file in CONFIGURE_FILE
+# if there is no configuration file there, but only if CONFIGURE_FILE specifies
+# single file. If it specifies a list, no action is taken.
+
+# If a default configuration file is installed, the existence of the system
+# aliases file is tested. A default, containing only comments, is installed if
+# necessary.
+
+# If INFO_DIRECTORY is defined in any of the local Makefiles, and the Exim doc
+# directory contains the Texinfo documentation, this script also installs a
+# the info files in INFO_DIRECTORY.
+
+# If DESTDIR is defined, all file paths are prefixed with ${DESTDIR}, with the
+# sole exception of the reference to the system aliases file in the default
+# configuration, because it is assumed that Exim is not actually going to be
+# run from this position. For backward compatibility, if DESTDIR is not
+# defined, ROOT is used instead.
+
+# The script can be made to output what it would do, without actually doing
+# anything, by giving it the option "-n" (cf make). Arguments are the names
+# of things to install. No arguments installs everything.
+
+do_chown=yes
+do_symlink=yes
+
+while [ $# -gt 0 ] ; do
+  case "$1" in
+    -n)
+      real="true || "
+      ver="verification "
+      com=": "
+      echo $com ""
+      echo $com "*** Verification mode only: no commands will actually be obeyed"
+      echo $com "*** You can cut and paste the bits you want to a shell, etc"
+      echo $com ""
+      echo cd `pwd`
+      ;;
+
+    -no_chown)
+      do_chown=no
+      ;;
+
+    -no_symlink)
+      do_symlink=no
+      ;;
+
+    *)
+      break
+      ;;
+  esac
+  shift
+done
+
+# Get the values of BIN_DIRECTORY, CONFIGURE_FILE, INFO_DIRECTORY, NO_SYMLINK,
+# SYSTEM_ALIASES_FILE, and EXE from the global Makefile (in the build
+# directory). EXE is empty except in the Cygwin environment. In each case, keep
+# the latest definition, thus respecting the Makefiles precedence. The sed
+# sequences here are messy, but have to be very "basic" in order to work on
+# Solaris, where the regular expressions in sed are primitive indeed. Modify at
+# your peril.
+
+BIN_DIRECTORY=`sed -n   -e '/^ *BIN_DIRECTORY *=/{s/^[^=]*= *//; s/ \{1,\}#.*//;s/ *$//;h;}' -e '${g;p;}' Makefile`
+CONFIGURE_FILE=`sed -n -e '/^ *CONFIGURE_FILE *=/{s/^[^=]*= *//; s/ \{1,\}#.*//;s/ *$//;h;}' -e '${g;p;}' Makefile`
+INFO_DIRECTORY=`sed -n -e '/^ *INFO_DIRECTORY *=/{s/^[^=]*= *//; s/ \{1,\}#.*//;s/ *$//;h;}' -e '${g;p;}' Makefile`
+NO_SYMLINK=`sed -n         -e '/^ *NO_SYMLINK *=/{s/^[^=]*= *//; s/ \{1,\}#.*//;s/ *$//;h;}' -e '${g;p;}' Makefile`
+
+CHOWN=`sed -n           -e '/^ *CHOWN_COMMAND *=/{s/^[^=]*= *//; s/ \{1,\}#.*//;s/ *$//;h;}' -e '${g;p;}' Makefile`
+MV=`sed -n                 -e '/^ *MV_COMMAND *=/{s/^[^=]*= *//; s/ \{1,\}#.*//;s/ *$//;h;}' -e '${g;p;}' Makefile`
+
+SYSTEM_ALIASES_FILE=`sed -n -e '/^ *SYSTEM_ALIASES_FILE *=/{s/^[^=]*= *//; s/ \{1,\}#.*//;s/ *$//;h;}' -e '${g;p;}' Makefile`
+EXE=`sed -n                                 -e '/^ *EXE *=/{s/^[^=]*= *//; s/ \{1,\}#.*//;s/ *$//;h;}' -e '${g;p;}' Makefile`
+
+# Set a default for SYSTEM_ALIASES_FILE
+
+if [ "${SYSTEM_ALIASES_FILE}" = "" ] ; then
+  SYSTEM_ALIASES_FILE=/etc/aliases
+fi
+
+# Allow INST_xx to over-ride xx
+case "$INST_BIN_DIRECTORY"       in ?*) BIN_DIRECTORY="$INST_BIN_DIRECTORY";; esac
+case "$INST_CONFIGURE_FILE"      in ?*) CONFIGURE_FILE="$INST_CONFIGURE_FILE";; esac
+case "$INST_INFO_DIRECTORY"      in ?*) INFO_DIRECTORY="$INST_INFO_DIRECTORY";; esac
+case "$INST_SYSTEM_ALIASES_FILE" in ?*) SYSTEM_ALIASES_FILE="$INST_SYSTEM_ALIASES_FILE";; esac
+
+case "$INST_CHOWN"               in ?*) CHOWN="$INST_CHOWN";; esac
+case "$INST_MV"                  in ?*) MV="$INST_MV";; esac
+
+case "$INST_UID"     in '') INST_UID=root;;    *) INST_UID="$INST_UID";; esac
+case "$INST_CP"      in '') CP=cp;;            *) CP="$INST_CP";; esac
+case "$INST_LN"      in '') LN=ln;;            *) LN="$INST_LN";; esac
+case "$INST_CHMOD"   in '') CHMOD=chmod;;      *) CHMOD="$INST_CHMOD";; esac
+case "$INST_DIRNAME" in '') DIRNAME=dirname;;  *) DIRNAME="$INST_DIRNAME";; esac
+case "$INST_MKDIR"   in '') MKDIR=mkdir;;      *) MKDIR="$INST_MKDIR";; esac
+
+# Allow the user to over-ride xx
+case "$inst_dest"    in ?*) BIN_DIRECTORY="$inst_dest";; esac
+case "$inst_conf"    in ?*) CONFIGURE_FILE="$inst_conf";; esac
+case "$inst_info"    in ?*) INFO_DIRECTORY="$inst_info";; esac
+case "$inst_aliases" in ?*) SYSTEM_ALIASES_FILE="$inst_aliases";; esac
+
+# Insert ${DESTDIR} at the start of all paths so that the whole thing can be
+# installed under a different file root. For backwards compatibility, use
+# ${ROOT} if ${DESTDIR} is not set. However, we need to save the value of
+# the real system aliases file, and use that in the default configuration.
+
+ACTUAL_SYSTEM_ALIASES_FILE=${SYSTEM_ALIASES_FILE}
+DESTDIR=${DESTDIR:-${ROOT}}
+
+BIN_DIRECTORY=${DESTDIR}${BIN_DIRECTORY}
+CONFIGURE_FILE=${DESTDIR}${CONFIGURE_FILE}
+SYSTEM_ALIASES_FILE=${DESTDIR}${SYSTEM_ALIASES_FILE}
+
+if [ "${INFO_DIRECTORY}" != "" ] ; then
+  INFO_DIRECTORY=${DESTDIR}${INFO_DIRECTORY}
+fi
+
+# Overrides of other things
+case "$inst_uid"     in ?*) INST_UID="$inst_uid";; esac
+case "$inst_cp"      in ?*) CP="$inst_cp";; esac
+case "$inst_mv"      in ?*) MV="$inst_mv";; esac
+case "$inst_ln"      in ?*) LN="$inst_ln";; esac
+case "$inst_chown"   in ?*) CHOWN="$inst_chown";; esac
+case "$inst_chmod"   in ?*) CHMOD="$inst_chmod";; esac
+case "$inst_dirname" in ?*) DIRNAME="$inst_dirname";; esac
+case "$inst_mkdir"   in ?*) MKDIR="$inst_mkdir";; esac
+
+# chown is a special case; in at least one OS it is in /usr/etc instead
+# of in /usr/bin, and therefore not likely to be on the path. Another OS
+# has it in /usr/sbin. This fudge tries to cope with these variations.
+
+# Otherwise, and for other commands, we assume that the normal PATH will
+# give access to where they are on your operating system (normally /usr/bin
+# or /bin).
+
+if [ "${CHOWN}" = "chown" -a -x /usr/sbin/chown ] ; then
+  CHOWN=/usr/sbin/chown
+fi
+
+if [ "${CHOWN}" = "chown" -a ! -f /usr/bin/chown -a -f /usr/etc/chown ] ; then
+  CHOWN=/usr/etc/chown
+fi
+
+# The values of CHOWN and MV taken from the Makefile are sometimes set to
+# "look_for_it", which causes a search of the usual suspects. This code is
+# similar to that in exicyclog, but has to be fudged for upper/lower case
+# distinctions.
+
+for cmd in CHOWN MV ; do
+  eval "oldcmd=\$$cmd"
+  if [ "$oldcmd" != "look_for_it" ] ; then continue ; fi
+  if [ "$cmd" = "CHOWN" ] ; then cmdlc="chown" ; fi
+  if [ "$cmd" = "MV" ] ; then cmdlc="mv" ; fi
+  newcmd=$cmdlc
+  for dir in /bin /usr/bin /usr/sbin /usr/etc ; do
+    if [ -f $dir/$cmdlc ] ; then
+      newcmd=$dir/$cmdlc
+      break
+    fi
+  done
+  eval $cmd=$newcmd
+done
+
+# See if the exim monitor has been built
+
+if [ -f eximon -a -f eximon.bin ]; then
+  exim_monitor="eximon eximon.bin"
+fi
+
+# If bin directory doesn't exist, try to create it
+
+if [ ! -d "${BIN_DIRECTORY}" ]; then
+  echo mkdir -p ${BIN_DIRECTORY}
+  ${real} mkdir -p ${BIN_DIRECTORY}
+  if [ $? -ne 0 ]; then
+    echo $com ""
+    echo $com "*** Exim installation ${ver}failed ***"
+    exit 1
+  else
+    ${real} echo $com ${BIN_DIRECTORY} created
+  fi
+fi
+
+# If no arguments, install everything
+
+if [ $# -gt 0 ]; then
+  set $@
+else
+  set exim${EXE} ${exim_monitor} exim_dumpdb${EXE} exim_fixdb${EXE} \
+      exim_tidydb${EXE} exinext exiwhat exim_dbmbuild${EXE} exicyclog \
+      exigrep eximstats exipick exiqgrep exiqsumm exim_lock${EXE} \
+      exim_checkaccess
+fi
+
+echo $com ""
+echo $com Installation directory is ${BIN_DIRECTORY}
+echo $com ""
+
+while [ $# -gt 0 ]; do
+  name=$1
+  shift
+
+  if [ ! -s ${name} ]; then
+    echo $com ""
+    echo $com "*** `pwd`/${name} does not exist or is empty"
+    echo $com "*** Have you built Exim successfully?"
+    echo $com "*** Exim installation ${ver}failed ***"
+    exit 1
+  fi
+
+  # The exim binary is handled specially
+
+  if [ $name = exim${EXE} ]; then
+    exim="./exim -bV -C /dev/null"
+    version=exim-`$exim 2>/dev/null | \
+      awk '/Exim version/ { OFS=""; print $3,"-",substr($4,2,length($4)-1) }'`${EXE}
+
+    if [ "${version}" = "exim-${EXE}" ]; then
+      echo $com ""
+      echo $com "*** Could not run $exim to find version number ***"
+      echo $com "*** Exim installation ${ver}failed ***"
+      $exim
+      exit 1
+    fi
+
+    # Do something only if newer than existing file, or no existing file
+
+    if ../scripts/newer ${name} ${BIN_DIRECTORY}/${version}; then
+      echo ${CP} ${name} ${BIN_DIRECTORY}/${version}
+      ${real} ${CP} ${name} ${BIN_DIRECTORY}/${version}
+      if [ $? -ne 0 ]; then
+        echo $com ""
+        echo $com "*** Exim installation ${ver}failed ***"
+        exit 1
+      fi
+
+      # After copy, set ownership and permissions, unless disabled
+
+      if [ "$do_chown" != "no" ]; then
+        echo ${CHOWN} ${INST_UID} ${BIN_DIRECTORY}/${version}
+        ${real} ${CHOWN} ${INST_UID} ${BIN_DIRECTORY}/${version}
+        if [ $? -ne 0 ]; then
+          echo $com ""
+          echo $com "*** You must be ${INST_UID} to install exim ***"
+          exit 1
+        fi
+        echo ${CHMOD} a+x ${BIN_DIRECTORY}/${version}
+        ${real} ${CHMOD} a+x ${BIN_DIRECTORY}/${version}
+        if [ $? -ne 0 ]; then
+          echo $com ""
+          echo $com "*** Exim installation ${ver}failed ***"
+          exit 1
+        fi
+        echo ${CHMOD} u+s ${BIN_DIRECTORY}/${version}
+        ${real} ${CHMOD} u+s ${BIN_DIRECTORY}/${version}
+        if [ $? -ne 0 ]; then
+          echo $com ""
+          echo $com "*** Exim installation ${ver}failed ***"
+          exit 1
+        fi
+      else
+        echo $com "$CHOWN $INST_UID omitted: -no_chown was specified"
+        echo $com "$CHMOD u+s omitted: -no_chown was specified"
+      fi
+
+      # Now sort out the "exim" alias, unless NO_SYMLINK is set.
+
+      if [ "X$NO_SYMLINK" = "X" ] && [ "$do_symlink" != "no" ] ; then
+
+        #  First check whether "exim" exists in the directory.
+        if [ -f ${BIN_DIRECTORY}/exim ]; then
+
+          # If it's not a symbolic link, make a copy with the old version number
+          if [ `ls -l ${BIN_DIRECTORY}/exim | cut -c1-1` != 'l' ]; then
+            oldversion=exim-`${BIN_DIRECTORY}/exim -bV -C /dev/null | \
+              awk '/Exim version/ { OFS=""; print $3,"-",substr($4,2,length($4)-1) }'`${EXE}
+            if [ "${version}" = "${oldversion}" ] ; then
+              echo $com ""
+              echo $com "*** Existing file called exim has the same version and compile number ***"
+              echo $com "*** Exim installation ${ver}failed ***"
+              exit 1
+            fi
+            echo ${CP} ${BIN_DIRECTORY}/exim ${BIN_DIRECTORY}/${oldversion}
+            ${real} ${CP} ${BIN_DIRECTORY}/exim ${BIN_DIRECTORY}/${oldversion}
+            if [ $? -ne 0 ]; then
+              echo $com ""
+              echo $com "*** Exim installation ${ver}failed ***"
+              exit 1
+            fi
+          fi
+
+          # Now we can move the name "exim" to be a symbolic link to the new
+          # version, atomically.
+
+          echo \(cd ${BIN_DIRECTORY}\; ${LN} -s ${version} temporary_exim\)
+          (${real} cd ${BIN_DIRECTORY}; ${real} ${LN} -s ${version} temporary_exim)
+          if [ $? -ne 0 ]; then
+            echo $com ""
+            echo $com "*** Exim installation ${ver}failed ***"
+            exit 1
+          fi
+
+          echo ${MV} -f ${BIN_DIRECTORY}/temporary_exim ${BIN_DIRECTORY}/exim
+          ${real} ${MV} -f ${BIN_DIRECTORY}/temporary_exim ${BIN_DIRECTORY}/exim
+          if [ $? -ne 0 ]; then
+            echo $com ""
+            echo $com "*** Exim installation ${ver}failed ***"
+            exit 1
+          fi
+
+        # If "exim" does not already exist just create a symbolic link.
+
+        else
+          echo \(cd ${BIN_DIRECTORY}\; ${LN} -s ${version} exim\)
+          (${real} cd ${BIN_DIRECTORY}; ${real} ${LN} -s ${version} exim)
+          if [ $? -ne 0 ]; then
+            echo $com ""
+            echo $com "*** Exim installation ${ver}failed ***"
+            exit 1
+          fi
+        fi
+
+      else
+        echo $com "creation of symlink omitted"
+        if [ "X$NO_SYMLINK" != "X" ] ; then
+          echo $com "(NO_SYMLINK is specified in Local/Makefile)"
+        else
+          echo $com "(-no_symlink was specified)"
+        fi
+      fi
+
+    # New binary is not newer than the installed file
+
+    else
+      echo $com ${name} is not newer than ${BIN_DIRECTORY}/${version}
+    fi
+
+  # Handle everything other than the exim binary itself
+
+  else
+    if ../scripts/newer ${name} ${BIN_DIRECTORY}/${name}; then
+      if [ -f ${BIN_DIRECTORY}/${name} ]; then
+        echo ${CP} ${BIN_DIRECTORY}/${name} ${BIN_DIRECTORY}/${name}.O
+        ${real} ${CP} ${BIN_DIRECTORY}/${name} ${BIN_DIRECTORY}/${name}.O
+        if [ $? -ne 0 ]; then
+          echo $com ""
+          echo $com "*** Exim installation ${ver}failed ***"
+          exit 1
+        fi
+      fi
+      echo ${CP} ${name} ${BIN_DIRECTORY}
+      ${real} ${CP} ${name} ${BIN_DIRECTORY}
+      if [ $? -ne 0 ]; then
+        echo $com ""
+        echo $com "*** Exim installation ${ver}failed ***"
+        exit 1
+      fi
+    else
+      echo $com ${name} is not newer than ${BIN_DIRECTORY}/${name}
+    fi
+  fi
+
+done
+
+
+
+# If there is no configuration file, install the default, modifying it to refer
+# to the configured system aliases file. If there is no setting for
+# SYSTEM_ALIASES_FILE, use the traditional /etc/aliases. If the file does not
+# exist, install a default (dummy) for that too.
+
+# However, if CONFIGURE_FILE specifies a list of files, skip this code.
+
+echo $com ""
+
+if [ `expr -- "${CONFIGURE_FILE}" : ".*:"` -ne 0 ] ; then
+  echo $com Runtime configuration is specified as the following list:
+  echo $com ' ' ${CONFIGURE_FILE}
+  echo $com Therefore, skipping automatic installation.
+
+elif [ ! -f ${CONFIGURE_FILE} ]; then
+  echo $com Installing default configuration in ${CONFIGURE_FILE}
+  echo $com because there is no existing configuration file.
+  if [ "${SYSTEM_ALIASES_FILE}" = "" ] ; then
+    SYSTEM_ALIASES_FILE=/etc/aliases
+    echo $com This configuration has system aliases in ${SYSTEM_ALIASES_FILE}.
+  fi
+
+  echo ${MKDIR} -p `${DIRNAME} ${CONFIGURE_FILE}`
+  ${real} ${MKDIR} -p `${DIRNAME} ${CONFIGURE_FILE}`
+
+  echo sed -e '\\'
+  echo "  \"/SYSTEM_ALIASES_FILE/ s'SYSTEM_ALIASES_FILE'${ACTUAL_SYSTEM_ALIASES_FILE}'\"" '\\'
+  echo "  ../src/configure.default > \${CONFIGURE_FILE}"
+
+  # I can't find a way of writing this using the ${real} feature because
+  # it seems that the output redirection always happens, even when -n was
+  # specified. So control it the hard way.
+
+  if [ "$real" = "" ] ; then
+    sed -e \
+      "/SYSTEM_ALIASES_FILE/ s'SYSTEM_ALIASES_FILE'${ACTUAL_SYSTEM_ALIASES_FILE}'" \
+      ../src/configure.default > ${CONFIGURE_FILE}
+  else
+    true
+  fi
+
+  if [ $? -ne 0 ]; then
+    echo $com ""
+    echo $com "*** Exim installation ${ver}failed ***"
+    exit 1
+  fi
+  if [ ! -f ${SYSTEM_ALIASES_FILE} ]; then
+    echo $com '****'
+    echo $com Installing a dummy ${SYSTEM_ALIASES_FILE} file because you do not have
+    echo $com one, and the default configuration requires it. You should
+    echo $com edit ${SYSTEM_ALIASES_FILE} and at least create an alias for postmaster.
+    echo $com '***'
+    echo ${CP} ../src/aliases.default ${SYSTEM_ALIASES_FILE}
+    ${real} ${CP} ../src/aliases.default ${SYSTEM_ALIASES_FILE}
+  fi
+
+else
+  echo $com Configuration file ${CONFIGURE_FILE} already exists
+fi
+
+# Install info files if the directory is defined and the Texinfo
+# source documentation is present.
+
+if [ "${INFO_DIRECTORY}" != "" -a -f ../doc/spec.texinfo ] ; then
+  echo $com ""
+  if [ ! -d "${INFO_DIRECTORY}" ] ; then
+    echo mkdir -p ${INFO_DIRECTORY}
+    ${real} mkdir -p ${INFO_DIRECTORY}
+    if [ $? -ne 0 ]; then
+      echo $com ""
+      echo $com "*** Exim installation ${ver}failed ***"
+      exit 1
+    else
+      echo $com ${INFO_DIRECTORY} created
+    fi
+  fi
+
+  echo $com Info installation directory is ${INFO_DIRECTORY}
+  echo $com ""
+
+  ${real} makeinfo --no-split --output exim.info ../doc/spec.texinfo
+  echo ${CP} exim.info ${INFO_DIRECTORY}
+  ${real} ${CP} exim.info ${INFO_DIRECTORY}
+  ${real} install-info --section="Exim" \
+      --entry "* User guide: (exim).           Exim manual" \
+      ${INFO_DIRECTORY}/exim.info ${INFO_DIRECTORY}/dir
+  ${real} makeinfo --no-split --output exim_filter.info ../doc/filter.texinfo
+  echo ${CP} exim_filter.info ${INFO_DIRECTORY}
+  ${real} ${CP} exim_filter.info ${INFO_DIRECTORY}
+  ${real} install-info --section="Exim" \
+      --entry "* Filtering: (exim_filter).     Filtering mail with Exim" \
+      ${INFO_DIRECTORY}/exim_filter.info ${INFO_DIRECTORY}/dir
+fi
+
+# Everything OK
+
+echo $com ""
+echo $com Exim installation ${ver}complete
+
+# End of exim_install

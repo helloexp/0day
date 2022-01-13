@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_quotatab_radius</title>
+</head>
+
+<body bgcolor=white>
+
+<hr><br>
+<center>
+<h2><b>ProFTPD module <code>mod_quotatab_radius</code></b></h2>
+</center>
+<hr><br>
+
+This <code>mod_quotatab</code> submodule is contained in the
+<code>mod_quotatab_radius.c</code>, part of the <code>mod_quotatab</code>
+package and is not compiled by default.  See the <code>mod_quotatab</code>
+documentation for <a href="mod_quotatab.html#Installation">installation</a>
+instructions.
+
+<p>
+This submodule provides the RADIUS-specific &quot;driver&quot; for retrieving
+quota limit table information from a RADIUS server.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<p>
+<hr><h2><a name="RADIUSTables">RADIUS Limit Quota Tables</a></h2>
+RADIUS-based quota tables (<em>source-type</em> of &quot;radius&quot;) can
+only be used for limit tables, <b>not</b> for tally tables.  The frequent
+updates needed for maintaining tally tables mean that RADIUS is not well-suited
+to handle tally table storage.
+
+<p>
+The <code>mod_quotatab_radius</code> module supports the &quot;radius&quot;
+string for the <em>source-type</em> parameter of the
+<a href="mod_quotatab.html#QuotaLimitTable"><code>QuotaLimitTable</code></a>
+configuration directive.  To configure these quota attributes, use the
+<a href="mod_radius.html#RadiusQuotaInfo"><code>RadiusQuotaInfo</code></a>
+configuration directive.
+
+<p>
+An example <code>proftpd.conf</code> configuration might look like:
+<pre>
+  &lt;IfModule mod_quotatab.c&gt;
+    &lt;IfModule mod_quotatab_radius.c&gt;
+      # Use a RADIUS-based limit table
+      QuotaLimitTable radius:
+    &lt;/IfModule&gt;
+
+    # Use a file-based tally table
+    QuotaTallyTable file:/usr/local/proftpd/ftpquota.tallytab
+
+    # See the RadiusQuotaInfo description for more details
+    RadiusQuotaInfo false soft 3.0 2.0 1.0 7 8 9
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2005-2007 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

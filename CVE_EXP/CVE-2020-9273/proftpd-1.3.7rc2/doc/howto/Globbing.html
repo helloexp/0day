@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Globbing</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Globbing</b></h2></center>
+<hr>
+
+<p>
+<b>What is Globbing?</b><br>
+Globbing is a common Unix shell mechanism for expanding wildcard patterns,
+for matching multiple filenames.  From the <code>glob(7)</code> man page:
+<pre>
+  A string is a wildcard pattern if it contains one of the characters
+  `?', `*' or `['. Globbing is the operation that expands a wildcard pattern
+  into the list of pathnames matching the pattern. Matching is defined by:
+
+    A `?' (not between brackets) matches any single character.
+
+    A `*' (not between brackets) matches any string, including the empty
+    string.
+</pre>
+The RFCs that define FTP do not explicitly mention globbing; this means that
+FTP servers are <i>not</i> required to support globbing in order to be
+compliant.  However, many FTP servers <i>do</i> support globbing (including
+ProFTPD), as a measure of convenience for FTP clients and users.
+
+<p>
+The <code>mget</code> <code>ftp(1)</code> command commonly uses globbing
+to retrieve multiple files, <i>e.g.</i>:
+<pre>
+  ftp&gt; mget *.gz
+</pre>
+or:
+<pre>
+  ftp&gt; mget pub/music/*.mp3
+</pre>
+Other FTP clients may have similar client-side commands for listing and
+retrieiving multiple files based on globbing expressions.
+
+<p>
+<b>Why Globbing is an Issue</b><br>
+In order to search for and match the given globbing expression, the code
+has to search (possibly) many directories, examine each contained filename,
+and build a list of matching files in memory.  This operation can be quite
+intensive, both CPU- and memory-wise.  This intense use of resources led
+to the original posting of possible Denial of Service (DoS) attacks
+against <code>proftpd</code> (later, when the culprit was tracked to the
+underlying library globbing code, other applications were found to be
+vulnerable as well):
+<pre>
+  <a href="http://bugs.proftpd.org/show_bug.cgi?id=1066">http://bugs.proftpd.org/show_bug.cgi?id=1066</a>
+</pre>
+The above bug report shows an example of a globbing expression that was
+used to attempt a DoS by means of many directory levels.
+
+<p>
+Some servers (<i>e.g.</i> <code>wu-ftpd</code>) come with their own custom code
+for handling globs; others (including <code>proftpd</code>) make use of the
+system's C library routines for globbing.  The GNU globbing code, bundled
+with <code>proftpd</code>, was updated to match the current GNU implementation
+of globbing in their C library (<code>glibc</code>), and <code>proftpd</code>
+was changed to always use that bundled GNU code, rather than the host system's
+globbing functions (as the host code might possibly be unsafe).
+
+<p>
+Every now and then, this issue is reported on various mailing lists.  As
+<i>some</i> system resources are needed when handling globbing expression,
+some users report this as a DoS possibility.  Which is why <code>proftpd</code>
+supports a few ways to restrict how globbing is handled, according to the
+needs of the site.
+
+<p>
+<b>Globbing Restrictions</b><br>
+ProFTPD has several mechanisms in place for limiting, or disabling entirely,
+support for globbing.  If your site does not require globbing, it is highly
+recommended that globbing be disabled altogether, by adding this to your
+<code>proftpd.conf</code>:
+<pre>
+  UseGlobbing off
+</pre>
+
+<p>
+If, on the other hand, your site <i>does</i> need to support globbing (many
+FTP users will assume that globbing is supported), there are other ways of
+limiting the amount of resources used when globbing: the
+<a href="../modules/mod_rlimit.html#RLimitCPU"><code>RLimitCPU</code></a> and
+<a href="../modules/mod_rlimit.html#RLimitMemory"><code>RLimitMemory</code></a>
+configuration directives.  In <code>proftpd-1.2.7</code>, these directives were enhanced so that they could be applied
+strictly to session processes (rather than the daemon process):
+<pre>
+  RLimitCPU session ...
+  RLimitMemory session ...
+</pre>
+And, for the paranoid system administrator, a way of limiting the number
+of directories supported in a globbing expression was added in <code>1.2.8rc1</code>: <code>PR_TUNABLE_GLOBBING_MAX_RECURSION</code>.  By default, the maximum
+number of levels supported is 8 (this is the hardcoded default in the GNU
+library implementation of globbing).  To change this to a lower number, compile
+<code>proftpd</code> using a <code>configure</code> line that looks
+something like this:
+<pre>
+  $ ./configure CFLAGS="-DPR_TUNABLE_GLOBBING_MAX_RECURSION=3" ...
+</pre>
+A globbing expression that contains more than the maximum number of supported
+levels is not executed, but instead an error code signalling
+&quot;out of memory&quot; is immediately returned, which is GNU's way of saying
+that it will not handle the expression.
+
+<p>
+There is a similar limit on the maximum number of files that will be checked
+for a glob expression.  By default, this limit is 100000 (the hardcoded default
+in the GNU library <code>glob(3)</code> implementation).  In the
+<code>1.3.3rc1</code> ProFTPD release, a way of altering this limit was
+added: <code>PR_TUNABLE_GLOBBING_MAX_MATCHES</code>.  For sites which really
+do require a higher number of files to be matched for their glob expressions,
+the following <code>configure</code> command can be used:
+<pre>
+  $ ./configure CFLAGS="-DPR_TUNABLE_GLOBBING_MAX_MATCHES=200000UL" ...
+</pre>
+A globbing expression that needs to examine more files than this limit will
+have the number of matches silently truncated to the limit (or just below).
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

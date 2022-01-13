@@ -1,0 +1,118 @@
+/*************************************************
+*     Exim - an Internet mail transport agent    *
+*************************************************/
+
+/* Copyright (c) University of Cambridge 2001 */
+/* See the file NOTICE for conditions of use and distribution. */
+
+/* Irix-specific code. This is concatenated onto the generic src/os.c file.
+Irix has a unique way of finding all the network interfaces, so we provide a
+unique function here, and define FIND_RUNNING_INTERFACES to stop src/os.c
+trying to provide the function. The macro may be set initially anyway, when
+compiling os. for utilities that don't want this function. */
+
+#ifndef FIND_RUNNING_INTERFACES
+#define FIND_RUNNING_INTERFACES
+
+/* This is the special form of the function using sysctl() which is the only
+form that returns all the aliases on IRIX systems. This code has its origins
+in a sample program that came from within SGI. */
+
+#include <sys/sysctl.h>
+#include <net/if_dl.h>
+#include <net/if_types.h>
+#include <net/soioctl.h>
+#include <net/route.h>
+
+#define ROUNDUP(a) ((a) > 0 ? (1 + (((a) - 1) | (sizeof(__uint64_t) -1))) \
+                    : sizeof(__uint64_t))
+#ifdef _HAVE_SA_LEN
+#define ADVANCE(x, n) (x += ROUNDUP((n)->sa_len))
+#else
+#define ADVANCE(x, n) (x += ROUNDUP(_FAKE_SA_LEN_DST(n)))
+#endif
+
+
+ip_address_item *
+os_find_running_interfaces(void)
+{
+ip_address_item *yield = NULL;
+ip_address_item *last = NULL;
+ip_address_item *next;
+
+size_t needed;
+int mib[6];
+char *buf, *nextaddr, *lim;
+register struct if_msghdr *ifm;
+
+mib[0] = CTL_NET;
+mib[1] = PF_ROUTE;
+mib[2] = 0;
+mib[3] = 0;
+mib[4] = NET_RT_IFLIST;
+mib[5] = 0;
+
+/* Get an estimate of the amount of store needed, then get the store and
+get the data into it. Any error causes a panic death. */
+
+if (sysctl(mib, 6, NULL, &needed, NULL, 0) < 0)
+  log_write(0, LOG_PANIC_DIE, "iflist-sysctl-estimate failed: %s",
+    strerror(errno));
+
+buf = store_get(needed);
+
+if (sysctl(mib, 6, buf, &needed, NULL, 0) < 0)
+  log_write(0, LOG_PANIC_DIE, "sysctl of ifnet list failed: %s",
+    strerror(errno));
+
+/* Now fish out the data for each interface */
+
+lim  = buf + needed;
+for (nextaddr = buf; nextaddr < lim; nextaddr += ifm->ifm_msglen)
+  {
+  ifm = (struct if_msghdr *)nextaddr;
+
+  if (ifm->ifm_type != RTM_IFINFO)
+    {
+    struct ifa_msghdr *ifam = (struct ifa_msghdr *)ifm;
+    struct sockaddr_in *mask = NULL, *addr = NULL;
+
+    if ((ifam->ifam_addrs & RTA_NETMASK) != 0)
+      mask = (struct sockaddr_in *)(ifam + 1);
+
+    if ((ifam->ifam_addrs & RTA_IFA) != 0)
+      {
+      char *cp = CS mask;
+      struct sockaddr *sa = (struct sockaddr *)mask;
+      ADVANCE(cp, sa);
+      addr = (struct sockaddr_in *)cp;
+      }
+
+    /* Create a data block for the address, fill in the data, and put it on
+    the chain. This data has to survive for ever, so use malloc. */
+
+    if (addr != NULL)
+      {
+      next = store_malloc(sizeof(ip_address_item));
+      next->next = NULL;
+      next->port = 0;
+      (void)host_ntoa(-1, addr, next->address, NULL);
+
+      if (yield == NULL) yield = last = next; else
+        {
+        last->next = next;
+        last = next;
+        }
+
+      DEBUG(D_interface) debug_printf("Actual local interface address is %s\n",
+        last->address);
+      }
+    }
+  }
+
+return yield;
+}
+
+#endif  /* FIND_RUNNING_INTERFACES */
+
+/* End of os.c-IRIX */

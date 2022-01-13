@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Connection ACLs</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Connection ACLs</b></h2></center>
+<hr>
+
+<p>
+Many sites running <code>proftpd</code> have the need to limit/reject
+connections from known bad addresses, or to accept connections only from
+known good addresses.  ProFTPD supports several different mechanisms for
+implementing FTP connection ACLs.
+
+<p>
+However, there is one important thing to note: <b>ProFTPD is not a firewall.</b>
+Never forget this.  You <b>cannot</b> <i>prevent</i> TCP connections from ever
+reaching <code>proftpd</code> in the first place by using <code>proftpd</code>
+itself.  This means that for many sites with connection ACL needs, their
+system's firewall capabilities may be a better mechanism for implementing ACLs.
+
+<p>
+<b><code>&lt;Limit LOGIN&gt;</code>, and Whitelists versus Blacklists</b><br>
+The easiest way of accepting/rejecting connections is to use ProFTPD's
+<a href="Limit.html"><code>&lt;Limit&gt;</code></a> syntax, particularly
+<code>&lt;Limit LOGIN&gt;</code>.
+
+<p>
+For example, you can simply reject all connections to your <code>proftpd</code>
+instance by using:
+<pre>
+  &lt;Limit LOGIN&gt;
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+A more practical example would look like:
+<pre>
+  &lt;Limit LOGIN&gt;
+    # These are trusted addresses
+    Allow from 1.2.3.4 5.6.7.8
+    Allow from trusted-domain.com
+
+    # Everyone else is denied
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+
+<p>
+The above configuration demonstrates the concept of a <i>whitelist</i>: known
+trusted (<i>i.e.</i> "white") addresses are explicitly listed and allowed, and
+all others are denied.  Conversely, you might use a <i>blacklist</i>, where
+known bad/malicious/untrusted (<i>i.e.</i> "black") addresses are explicitly
+listed and denied, and all others are allowed:
+<pre>
+  &lt;Limit LOGIN&gt;
+    Order deny,allow
+
+    # These are known bad addresses
+    Deny from 1.2.3.4 5.6.7.8
+    Deny from evil-domain.com
+
+    # Everyone else is allowed
+    AllowAll
+  &lt;/Limit&gt;
+</pre>
+
+<p>
+It is useful to know about whitelists versus blacklists, as it can affect
+how large your ACLs become.  Sites which run publicly available FTP servers
+but which need to weed out bad clients tend to use blacklists; over time,
+these blacklists can become quite large.  Sites which know who will be using
+their FTP server and only want those people to be able to connect will use
+whitelists; these whitelists tend to remain fairly small/short.
+
+<p>
+<b>Large Blacklists</b><br>
+Let's assume that you are running a public FTP server, and that you are using
+a <code>&lt;Limit LOGIN&gt;</code> section to make a blacklist.  Your site
+may even have some script which detects bad clients, and automatically adds
+them to your blacklist, <i>e.g.</i>:
+<pre>
+  &lt;Limit LOGIN&gt;
+    Order deny,allow
+
+    # -- Add blacklisted addresses here --
+    Deny from ...
+    Deny from ...
+    # <b>Many</b> more <code>Deny from</code> lines
+
+    # Allow everyone not explicitly blacklisted
+    AllowAll
+  &lt;/Limit&gt;
+</pre>
+Over time, your number of blacklisted IP addresses starts to become large
+and unwieldy.  You might have thousands of such addresses; you notice that
+<code>proftpd</code> starts acting strangely, and starts slowing down.
+
+<p>
+When this happens, you should start looking for ways to make your list shorter.
+If your list is comprised of entries for each individual IP address, you
+should think about using glob expressions and netmasks to reduce the number
+of entries.  For example, rather than using something like
+this:
+<pre>
+  Deny from 1.2.3.4
+  Deny from 1.2.3.5
+  Deny from 1.2.3.6
+  Deny from 1.2.3.7
+  Deny from 1.2.3.8
+  Deny from 1.2.3.9
+</pre>
+you could (as of <code>proftpd-1.3.4rc1</code> and later) use a range:
+<pre>
+  Deny 1.2.3.[4-9]
+</pre>
+or even use a glob wildcard such as this, which makes for even fewer entries
+in your address lists:
+<pre>
+  Deny 1.2.3.*
+</pre>
+Or you could use netmasks such as:
+<pre>
+  Deny 1.2.3.0/8
+</pre>
+
+<p>
+<b>Using Classes</b><br>
+Now let's assume that at this point you have used glob ranges and wildcards
+and netmasks to make your ACL shorter, but it is still large, and
+<code>proftpd</code> is still slow.  It is time for you to use ProFTPD's
+connection <a href="Classes.html">classes</a>.
+
+<p>
+To do this, you would rewrite your large <code>&lt;Limit LOGIN&gt;</code>
+section to look something like this:
+<pre>
+  &lt;Class blacklist&gt;
+    # Put all of your blacklisted address/range lines here, as <code>From</code> lines
+    From ...
+    From ...
+    From ...
+  &lt;/Class&gt;
+
+  &lt;Limit LOGIN&gt;
+    Order deny,allow
+
+    # Rejected blacklisted clients
+    DenyClass blacklist
+
+    # Allow everyone else
+    AllowAll
+  &lt;/Limit&gt;
+</pre>
+
+<p>
+Why does using classes like this make things faster?  When using classes, the
+label (<i>i.e.</i> the class name in the <code>&lt;Class&gt;</code> section,
+like "blacklist" in the above example) is determined when the client
+<i>first</i> connects to <code>proftpd</code>, before any comands are sent.
+That is when all of the various netmasks and such are checked -- and
+<i>only</i> at that time.  After that, all of the configuration-based ACLs
+are evaluated just using that label.
+
+<p>
+When you do not use classes, then proftpd scans each configuration, each
+netmask/address <b><i>for each command</i></b>.  That's why things slow down so
+much.
+
+<p>
+<b>Alternatives</b><br>
+There are a couple of other ways in which to implement connection ACLs; these
+alternatives may be more efficient and/or better suited to your site's needs.
+
+<p>
+You can use a module like
+<a href="../contrib/mod_wrap2.html"><code>mod_wrap2</code></a>, particular its
+support for storing ACLs in SQL tables.  SQL lookups can be very quick, and
+can easily support large numbers of addresses efficiently.
+
+<p>
+And if you find yourself starting to block large blocks of addresses from
+countries/regions, you should start thinking about connection ACLs in terms of
+geolocation information.  For this, the <a href="../contrib/mod_geoip.html"><code>mod_geoip</code></a> module for ProFTPD is quite useful.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p>
+<font color=red>Question</font>: Is there a limit to how many addresses can
+appear in a single line in the config file?<br>
+<font color=blue>Answer</font>: No.  However, there <i>is</i> a maximum line
+length, which is determined by the buffer size used by the configuration file
+parser.  That buffer size is usually 1024 bytes (1K).
+
+<p>
+This 1024 byte length limitation can be worked around, however, by breaking
+a single line in the configuration file into multiple lines using the
+line continuation syntax, <i>e.g.</i>:
+<pre>
+  Allow 1.2.3.4 5.6.7.8 9.10.11.12
+</pre>
+can also appear as:
+<pre>
+  Allow \
+    1.2.3.4 \
+    5.6.7.8 \
+    9.10.11.12
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

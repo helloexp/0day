@@ -1,0 +1,55 @@
+/*************************************************
+*     Exim - an Internet mail transport agent    *
+*************************************************/
+
+/* See the file NOTICE for conditions of use and distribution. */
+
+/* GNU-specific code. This is concatenated onto the generic src/os.c file.
+GNU/Hurd has approximately the same way to determine the load average as NeXT,
+so a variant of this could also be in the generic os.c file. See the GNU EMacs
+getloadavg.c file, from which this snippet was derived. getloadavg.c from Emacs
+is copyrighted by the FSF under the terms of the GPLv2 or any later version.
+Changes are hereby placed under the same license, as requested by the GPL. */
+
+#ifndef OS_LOAD_AVERAGE
+#define OS_LOAD_AVERAGE
+
+#include <mach.h>
+
+static processor_set_t default_set;
+static int getloadavg_initialized;
+
+int
+os_getloadavg (void)
+{
+host_t host;
+struct processor_set_basic_info info;
+unsigned info_count;
+
+if (!getloadavg_initialized)
+  {
+  if (processor_set_default (mach_host_self(), &default_set) == KERN_SUCCESS)
+    getloadavg_initialized = 1;
+  }
+
+if (getloadavg_initialized)
+  {
+  info_count = PROCESSOR_SET_BASIC_INFO_COUNT;
+  if (processor_set_info(default_set, PROCESSOR_SET_BASIC_INFO, &host,
+       (processor_set_info_t)&info, &info_count) != KERN_SUCCESS)
+    getloadavg_initialized = 0;
+  else
+    {
+    #if LOAD_SCALE == 1000
+    return info.load_average;
+    #else
+    return (int) (((double) info.load_average * 1000) / LOAD_SCALE));
+    #endif
+    }
+  }
+
+return -1;
+}
+#endif  /* OS_LOAD_AVERAGE */
+
+/* End of os.c-GNU */

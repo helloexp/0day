@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Running by Nonroot User</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b><i>ProFTPD: Running as a Nonroot User</i></b></h2></center>
+<hr>
+
+<p>
+Occasionally, one might want to run ProFTPD on a system where root privs
+are not available to you as a user.  It is still possible to setup a
+functioning FTP server without root privileges.  There are a few catches
+and special considerations for this, however.
+
+<p>
+Here are the configuration directives that you will need to use in order
+to run the server without root privileges:<br>
+
+<ul>
+  <li><b><code>Port</code></b><br>
+  This needs to be a number greater than 1023.  Lower number ports require
+  root privileges in order for the process to bind to that address.  This
+  will also mean that clients wishing to contact your server will need to
+  know the port on which it is listening.  Most FTP clients connect to the
+  standard FTP port (21).
+ 
+  <p>
+  Example:
+<pre>
+    Port 20021
+</pre>
+  </li>
+ 
+  <li><b><code>AuthUserFile, AuthGroupFile</code></b><br> 
+  In order to authenticate users, by default the server looks in
+  <code>/etc/passwd</code> for account information, and in
+  <code>/etc/shadow</code> for the password.  Comparing stored passwords
+  requires root privileges, which this nonroot-running daemon will not have.
+  You can get around this requirement by supplying your own passwd (and
+  possibly group) files via the <a href="../modules/mod_auth_file.html#AuthUserFile"><code>AuthUserFile</code></a> and
+  <a href="../modules/mod_auth_file.html#AuthGroupFile"><code>AuthGroupFile</code></a> directives.  Make sure the permissions on your
+  custom files allow for the daemon to read them (but hopefully not other
+  users).
+
+  <p>
+  Example:
+<pre>
+    AuthUserFile /path/to/custom/ftpd.passwd
+    AuthGroupFile /path/to/custom/ftpd.group
+</pre>
+  </li>
+
+  <li><b><code>AuthPAM</code></b><br>
+  PAM authentication requires root privileges.  This directive will need
+  to be set <i>off</i>.
+  
+  <p>
+  Example:
+<pre>
+    AuthPAM off
+</pre>
+  </li>
+
+  <p>
+  <li><b><code>PidFile</code></b><br>
+  This directive will need to be used to cause the server to write its PID
+  to some file writable by the user.
+
+  <p>
+  Example:
+<pre>
+    PidFile /home/bob/ftpd/proftpd.pid
+</pre>
+  </li>
+
+  <p>
+  <li><b><code>ScoreboardFile</code></b><br>
+  This directive will need to be used to cause the server to write its
+  scoreboard to some file writable by the user.
+
+  <p>
+  Example:
+<pre>
+    ScoreboardFile /home/bob/ftpd/proftpd.scoreboard
+</pre>
+  </li>
+
+  <li><b><code>WtmpLog</code></b><br>
+  Logging to <code>wtmp</code> files requires root privileges.  While it is
+  not strictly necessary for this directive to be set to <i>off</i>, failure
+  to do so will result in server log messages like:
+<pre>
+  host.domain.net (localhost[127.0.0.1]) - wtmpx /var/adm/wtmpx: Permission denied
+</pre> 
+
+  <p>
+  Example:
+<pre>
+    WtmpLog off
+</pre>
+  </li>
+
+  <li><b><code>User, Group</code></b><br>
+  The ability to switch the identity of the server process to those configured
+  by the <a href="../modules/mod_core.html#Userl"><code>User</code></a> and
+  <a href="../modules/mod_core.html#Group"><code>Group</code></a> directives requires, of course, root privileges.  It is best to
+  configure <code>User</code> to be your username, and <code>Group</code> to
+  be the name of your primary group (which is usually the first group listed
+  by the <code>groups</code> command).
+
+  <p>
+  Example:
+<pre>
+    User bob
+    Group bob
+</pre>
+  </li>
+</ul>
+
+<p>
+Note that other configuration directives will be affected by the lack of
+root privileges:  <code>DefaultRoot</code> will not work, nor will
+<code>&lt;Anonymous&gt;</code> sections, nor <code>UserOwner</code>.
+Basically any operation that requires root privileges will be disabled.
+
+<p>
+If using the <code>SystemLog</code> directive, make sure the file to which the
+server is to log can be written to by the configured daemon <code>User</code>
+or <code>Group</code>.
+
+<p>
+The daemon should now start successfully.  Complaints about not being able
+to switch UIDs and such will be logged, but the daemon should still function
+properly.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

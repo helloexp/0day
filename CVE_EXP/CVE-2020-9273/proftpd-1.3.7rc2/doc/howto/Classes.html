@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Classes</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Classes</b></h2></center>
+<hr>
+
+<p>
+<b>What are Classes?</b><br>
+When configuring <code>proftpd</code>, it is sometimes nice, or even necessary,
+to tag or label a client as belonging to some group, based on that client's
+IP address or DNS hostname.  A &quot;class&quot; is the name for such
+connection-based groupings in ProFTPD terms.  A class is defined to have
+a <em>name</em>, and as having certain criteria such as IP addresses, IP
+subnets/masks, and DNS hostnames.  A client that connects to the daemon
+that has matching characteristics is then labeled as belonging to that class.
+<b>Note</b> that a connecting client can belong to only <b>one</b> class;
+see the description below for how the winning class is selected for a session
+from among multiple possible matches.
+
+<p>
+<b>How are Classes Defined?</b><br>
+To define a class, use a <code>&lt;Class&gt;</code> section in your
+<code>proftpd.conf</code>:
+<pre>
+  &lt;Class internal&gt;
+    From 192.168.0.0/16
+  &lt;/Class&gt;
+</pre>
+This defines a class named &quot;internal&quot;; any client connecting from
+192.168.0.0/16 will belong to this class.  And if you wanted to define a
+class for all clients not connecting from 192.168.0.0/16 address space:
+<pre>
+  &lt;Class external&gt;
+    From !192.168.0.0/16
+  &lt;/Class&gt;
+</pre>
+A more complicated class might include matching DNS names as well:
+<pre>
+  &lt;Class test&gt;
+    From 1.2.3.4
+    From proxy.*.com
+    From my.example.com
+    From 5.6.7.8
+  &lt;/Class&gt;
+</pre>
+This &quot;test&quot; class will then be used for a client with any of the
+defined characteristics.
+
+<p>
+Note that if your class rules use only DNS names, and <code>proftpd</code>
+is unable to resolve the IP address of a client to a DNS name, that
+class may not be matched as you might expect.  This can be seen in
+the server debugging output, at level 10, as something like:
+<pre>
+  comparing DNS name '1.2.3.4' to pattern 'proxy.*.com'
+</pre>
+Here you see the 1.2.3.4 IP address, where a DNS name should be.  In order
+for DNS name based class rules to function properly, both a) DNS resolution
+is needed (<i>i.e.</i> <code>UseReverseDNS</code> must be <em>on</em>, which
+is the default), and b) the IP address of a connecting client must be
+resolvable to a DNS name.
+
+<p>
+What if there are multiple classes defined, and the classes overlap, <i>e.g.</i>
+two classes both have:
+<pre>
+  From *.example.com
+</pre>
+Which one will be used for the connecting client?  This will depend on the
+order in which classes are defined in the <code>proftpd.conf</code> file.
+When searching the list of classes for the one that matches the client,
+<code>proftpd</code> checks each class in the order in which they are defined.
+The first class definition (in order of appearance in
+<code>proftpd.conf</code>) that matches is used.
+
+<p>
+How do you define a class that includes all clients from a certain
+domain <b>except</b> one specific host in that domain?  To define a class with
+these sorts of characteristics, use the <code>Satisfy</code> configuration
+directive:
+<pre>
+  &lt;Class foo&gt;
+    From *.example.com
+    From !bad.example.com
+    Satisfy all
+  &lt;/Class&gt;
+</pre>
+
+<p>
+<b>Using <code>Satisfy</code></b><br>
+The <code>Satisfy</code> directive, when used within a
+<code>&lt;Class&gt;</code> section, indicates whether <i>any</i> of the
+<code>From</code> rules in the section need to match, or whether <i>all</i> of
+the <code>From</code> rules in the section need to match.  The default
+<code>Satisfy</code> setting for a <code>&lt;Class&gt;</code> section is
+"any".
+
+<p>
+To illustrate, the following class definition will never match:
+<pre>
+  &lt;Class impossible&gt;
+    From 127.0.0.1
+    From !127.0.0.1
+    Satisfy all
+  &lt;/Class&gt;
+</pre>
+It is impossible to both an address and <b>not</b> match that same address,
+but that is what is demanded by the "Satisfy all" setting in the above
+class definition.
+
+<p>
+Now, where the use of "Satisfy all" comes in handy is when you have a general
+rule with exceptions:
+<pre>
+  &lt;Class customers&gt;
+    From .domain.com
+    From !host1.domain.com !host2.domain.com
+    Satisfy all
+  &lt;/Class&gt;
+</pre>
+Specifically, the use of "Satisfy all" is necessary when you have multiple
+<i>not</i> matches (<i>i.e.</i> using the <code>!</code> prefix), <i>all</i>
+of which need to be evaluated.
+
+<p>
+<b>How are Classes Used?</b><br>
+By itself, a class does nothing.  It is merely a way to define a set of clients
+and to give that set a name.  Once that name is defined, though, it can be
+use as part of your configuration.  There are a limited number of configuration
+directives that make use of classes directly:
+<ul>
+  <li><code>AllowClass</code>
+  <li><code>DenyClass</code>
+  <li><code>DisplayGoAway</code>
+  <li><code>MaxClientsPerClass</code>
+</ul>
+The <code>AllowClass</code> and <code>DenyClass</code> directives are the
+main directives to use, for example in <code>&lt;Limit&gt;</code> sections:
+<pre>
+  &lt;Limit ALL&gt;
+    AllowClass internal
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+
+<p>
+The <a href="../contrib/mod_ifsession.html"><code>mod_ifsession</code></a>
+module also makes use of classes with its <code>&lt;IfClass&gt;</code>
+configuration section.  Using classes and <code>mod_ifsession</code>, you can
+write a <code>proftpd.conf</code> that has specific configurations for specific
+classes of clients.  Here's an example snippet demonstrating use of
+<code>&lt;IfClass&gt;</code>:
+<pre>
+  &lt;IfClass internal&gt;
+    MaxClients 100
+  &lt;/IfClass&gt;
+
+  &lt;IfClass !internal&gt;
+    MaxClients 25
+  &lt;/IfClass&gt;
+</pre>
+This allows clients from class &quot;internal&quot; to see an effective
+<code>MaxClients</code> limit of 100 simultaneous clients, and clients
+<b>not</b> in class &quot;internal&quot; to see an effective limit of only 25.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

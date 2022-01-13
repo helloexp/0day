@@ -1,0 +1,215 @@
+Configuring Exim for different Operating Systems
+------------------------------------------------
+
+These notes describe the way in which Exim is configured at the C program level
+for different operating systems. The normal configuration options that apply
+independently of the operating system are specified by creating files in the
+Local directory, as described in chapter 4 of the manual.
+
+These notes cover the os.* files in the OS directory, and contain information
+for people who want to port the program to some new OS, or to modify the
+configuration for an existing port. If you are just wanting to compile Exim on
+a system that it already knows about, you do not need to read further unless
+there are problems.
+
+The os.c-<ostype> files
+-----------------------
+
+There may be an os.c-<ostype> file for each operating system, but for many of
+them it is not necessary. No error occurs is there isn't one. There is a
+generic file called os.c which contains code that is common to two or more OS
+for setting a restarting or a non-restarting signal, for computing the load
+average, and for finding all the network interface addresses. A few OS have
+their own individual code for one or more of these. When they do, the code is
+put into an os.c-<ostype> file, which also defines a macro such as
+OS_RESTARTING_SIGNAL (for example) to cut out the common code in the generic
+os.c.
+
+The os.h-<ostype> files
+-----------------------
+
+For each OS that Exim knows about, there is an os.h-<ostype> file, where
+<ostype> is the OS name. The relevant file is included as a C header file for
+all Exim compilation by pointing a symbolic link called os.h at it from the
+build directory. The settings are as follows:
+
+The select() function
+---------------------
+
+There is a difference in the data type for the second argument to the select()
+function in some OS. The macro SELECT_ARG2_TYPE can be used to define the type.
+If it is not defined in os.h, then it is defaulted to fs_set in exim.h.
+
+The dn_expand() function
+------------------------
+
+There is a difference in the data type for the fourth argument to the
+dn_expand() function in some OS. The macro DN_EXPAND_ARG4_TYPE can be used to
+define the type. If it is not defined in os.h, then it is defaulted to char *
+in exim.h.
+
+The h_errno variable
+--------------------
+
+If NEED_H_ERRNO is defined, then a definition of the form
+
+extern int h_errno
+
+is included in the compiled code of Exim.
+
+The strerror() function
+-----------------------
+
+Most systems provide the ANSI standard strerror() function; older systems may
+instead have an errlist[] variable in which to look up error texts. Defining
+STRERROR_FROM_ERRLIST causes Exim to build its own strerror() function that
+mimics the ANSI function by lookup up the error code in errlist.
+
+Truncating files
+----------------
+
+The fcntl() option for truncating the length of a file is called F_FREESP in
+most systems; in some, however, it is called O_TRUNC. Some os.h files define
+F_FREESP to be O_TRUNC for this reason.
+
+Finding local interfaces
+------------------------
+
+The SIOCGIFCONF ioctl for finding local interfaces behaves differently on BSD
+systems. It returns a vector of ifreq blocks containing sockaddr structures
+that can be longer than their sizeof definition, making the returned ifreq
+blocks longer than their sizeof definitions. BSD sockaddrs structures contain
+an sa_len field giving the actual size. To cope with difference, there is a
+macro called HAVE_SA_LEN. If it is defined, code that works on BSD systems is
+used. Otherwise, the objects returned by SIOCGIFCONF are assumed to be of
+length sizeof(struct ifreq).
+
+On some operating systems, the SIOCGIFCONF ioctl returns the IP addresses
+with the list of interfaces, and there is no need to call SIOCGIFADDR for each
+individual address. Mostly, making the second call does no harm, but on Linux
+when there are IP aliases, it causes things to go wrong. This also happens on
+BSDI and GNU Hurd. Therefore, there is now a macro to cut it out, called
+SIOCGIFCONF_GIVES_ADDR.
+
+Note that, if IPv6 support is configured, Exim cannot find the IPv6 addresses
+on local interfaces by itself. You need to set the local_interfaces option in
+this situation.
+
+Computing load averages
+-----------------------
+
+There are several different ways that load averages are computed. One-off code
+is put in the os.c-<ostype>, but several OS use similar methods, and these
+are coded in the generic os.c, using a number of parameters to make variations
+between OS.
+
+Sometimes the load average is not available to unprivileged callers. If
+LOAD_AVG_NEEDS_ROOT is set, Exim ensures that it is root before trying to
+obtain a load average value.
+
+(1) If HAVE_BSD_GETLOADAVG is defined, Exim uses a simple call to the
+getloadavg() function.
+
+(2) If HAVE_KSTAT is defined, Exim uses the kstat package as found in Solaris 2
+(but nowhere else as yet). It uses some supplementary definitions:
+
+  LOAD_AVG_KSTAT          the kstat to use
+  LOAD_AVG_KSTAT_MODULE   the module to access
+  LOAD_AVG_KSTAT_SYMBOL   the symbol containing the value we want
+  LOAD_AVG_KSTAT_FIELD    the field identity
+
+(3) If HAVE_DEV_KMEM is defined, Exim reads load average values from the
+/dev/kmem device. It uses some supplementary definitions:
+
+  LOAD_AVG_TYPE           the data type
+  LOAD_AVG_SYMBOL         the symbol to look up
+  KERNEL_PATH             the name of the kernel
+  FSCALE                  a scaling factor
+
+Sometimes FSCALE is defined in system headers so need not be defined in the
+os.h-<ostype> file.
+
+Glibc systems and IP options
+----------------------------
+
+The code for inspecting IP options is the same in all OS except for systems
+using glibc (e.g. Linux), which uses a different structure to return data from
+getsockopt(). To handle this, there is a macro called
+
+  GLIBC_IP_OPTIONS
+
+which should be set for Linux (in os.h-Linux) and any other operating system
+that uses glibc.
+
+Options for statvfs()
+---------------------
+
+The following settings apply to the compilation of the Exim monitor as well as
+to the main Exim binary.
+
+#undefine HAVE_STATFS
+
+Exim has options for checking the amount of space in the spool partition
+before accepting a message, and the monitor has the ability to display a
+stripchart of the percentage fullness of a particular disc partition, usually
+/var/spool/mail. The standard way of finding out the data is to call the
+statvfs() function, but some operating systems use statfs() and some may not
+have the ability at all. The Exim code uses STATVFS() for this function and
+this gets defined appropriately. HAVE_STATFS is defined before including the
+os.h file; undefining it suppresses the code for checking a partition in the
+main binary, and for monitoring disc partition in the monitor.
+
+When HAVE_STATFS is defined, the distinction between statvfs() and statfs() is
+made by checking HAVE_SYS_STATVFS_H. If it is defined, then sys/statvfs.h is
+included. Otherwise, STATVFS() is defined as a macro for statfs(), and some
+further includes are done, according to the following definitions:
+
+#define HAVE_SYS_MOUNT_H
+#define HAVE_VFS_H
+
+Each of those definitions causes the inclusion of the corresponding system
+header file in the Exim monitor compilation. For example, the first one causes
+
+#include <sys/mount.h>
+
+to be obeyed. Different systems may require different combinations of these
+headers.
+
+The sys/resource.h header
+-------------------------
+
+One OS does not have the sys/resource.h header. If NO_SYS_RESOURCE_H is defined
+in an os.h-<ostype> file, then the #include for this header is skipped in
+exim.h.
+
+Support for login_cap functions
+-------------------------------
+
+Some of the BSD systems support functions for controlling the resources that
+user processes can use (e.g. login_getpwclass). If HAVE_SETCLASSRESOURCES is
+defined, Exim supports this feature for running pipe deliveries, using the
+setclassresources() function.
+
+The crypt_h header
+------------------
+
+Some OS require crypt.h to be included to get a prototype for the crypt()
+function. This is needed only when compiling with AUTH support. If CRYPT_H is
+defined, then this header is included.
+
+mmap() support
+--------------
+
+The CDB support includes the option of handling file operations by using
+mmap()/munmap(). This gives a reasonable performance increase which will
+probably scale over multiple processes (since the files are mapped read-only
+shared). The vast majority of modern operating systems will support mmap
+(certainly in the simplified way that it is being used here). For example any
+BSD 4.x derived or POSIX compliant system will support it, as will pretty much
+any system using dynamically shared link libraries.
+
+If the OS is believed to support mmap() then the symbol HAVE_MMAP is defined.
+Not all systems that support mmap will have had their config files updated to
+reflect this. Currently Linux, Sun, BSD and SGI/mips systems have been updated.
+
+*** End ***

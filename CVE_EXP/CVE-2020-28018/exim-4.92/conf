@@ -1,0 +1,2 @@
+perl_startup = $| = 1; print "<${^TAINT}>\n";
+perl_taintmode = yes

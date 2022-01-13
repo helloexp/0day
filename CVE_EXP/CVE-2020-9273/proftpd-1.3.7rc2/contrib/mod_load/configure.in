@@ -1,0 +1,89 @@
+dnl ProFTPD - mod_load
+dnl Copyright (c) 2012-2017 TJ Saunders <tj@castaglia.org>
+dnl
+dnl This program is free software; you can redistribute it and/or modify
+dnl it under the terms of the GNU General Public License as published by
+dnl the Free Software Foundation; either version 2 of the License, or
+dnl (at your option) any later version.
+dnl
+dnl This program is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+dnl GNU General Public License for more details.
+dnl
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; if not, write to the Free Software
+dnl Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA.
+dnl
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(./mod_load.c)
+
+AC_CANONICAL_SYSTEM
+
+ostype=`echo $build_os | sed 's/\..*$//g' | sed 's/-.*//g' | tr abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ`
+
+AC_PROG_CC
+AC_PROG_CPP
+AC_AIX
+AC_ISC_POSIX
+AC_MINIX
+
+dnl Need to support/handle the --with-includes and --with-libraries options
+AC_ARG_WITH(includes,
+  [AC_HELP_STRING(
+    [--with-includes=LIST],
+    [add additional include paths to proftpd. LIST is a colon-separated list of include paths to add e.g. --with-includes=/some/mysql/include:/my/include])
+  ],
+  [ ac_addl_includes=`echo "$withval" | sed -e 's/:/ /g'` ;
+    for ainclude in $ac_addl_includes; do
+      if test x"$ac_build_addl_includes" = x ; then
+        ac_build_addl_includes="-I$ainclude"
+      else
+        ac_build_addl_includes="-I$ainclude $ac_build_addl_includes"
+      fi
+    done
+    CPPFLAGS="$CPPFLAGS $ac_build_addl_includes"
+  ])
+
+AC_ARG_WITH(libraries,
+  [AC_HELP_STRING(
+    [--with-libraries=LIST],
+    [add additional library paths to proftpd. LIST is a colon-separated list of include paths to add e.g. --with-libraries=/some/mysql/libdir:/my/libs])
+  ],
+  [ ac_addl_libdirs=`echo "$withval" | sed -e 's/:/ /g'` ;
+    for alibdir in $ac_addl_libdirs; do
+      if test x"$ac_build_addl_libdirs" = x ; then
+        ac_build_addl_libdirs="-L$alibdir"
+      else
+        ac_build_addl_libdirs="-L$alibdir $ac_build_addl_libdirs"
+      fi
+    done
+    LDFLAGS="$LDFLAGS $ac_build_addl_libdirs"
+  ])
+
+AC_HEADER_STDC
+AC_CHECK_HEADERS(stdlib.h unistd.h limits.h fcntl.h)
+
+dnl _Must_ come before AC_FUNC_GETLOADAVG
+AC_CHECK_LIB(kstat, kstat_open)
+
+dnl Supposedly in AC_FUNC_GETLOADAVG, but...?
+AC_CHECK_FUNCS(pstat_getdynamic)
+AC_FUNC_GETLOADAVG
+
+INCLUDES="$ac_build_addl_includes"
+LIBDIRS="$ac_build_addl_libdirs"
+
+AC_SUBST(INCLUDES)
+AC_SUBST(LDFLAGS)
+AC_SUBST(LIBDIRS)
+
+MODULE_LIBS=
+if test "$ostype" = "SOLARIS" ; then
+  MODULE_LIBS="-lkstat"
+fi
+AC_SUBST(MODULE_LIBS)
+
+AC_CONFIG_HEADER(mod_load.h)
+AC_OUTPUT(Makefile)

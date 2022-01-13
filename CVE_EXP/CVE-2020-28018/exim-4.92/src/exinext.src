@@ -1,0 +1,262 @@
+#! /bin/sh
+
+# Copyright (c) University of Cambridge, 1995 - 2007
+# See the file NOTICE for conditions of use and distribution.
+
+# Except when they appear in comments, the following placeholders in this
+# source are replaced when it is turned into a runnable script:
+#
+# CONFIGURE_FILE_USE_NODE
+# CONFIGURE_FILE
+# BIN_DIRECTORY
+
+# PROCESSED_FLAG
+
+# A shell+perl script to fish out the next retry time for a given domain;
+# it first calls exim to find out which hosts are set up for that domain and
+# then fishes out the retry data for each one.
+
+# For testing the selection and formatting logic, and perhaps for use in
+# special cases, the script can have an argument -C <filename> to specify
+# the use of an alternate Exim configuration file. It may also have any number
+# of -D options to set macros that are passed to exim.
+
+config=
+eximmacdef=
+exim_path=
+
+if test "x$1" = x--version
+then
+    echo "`basename $0`: $0"
+    echo "build: EXIM_RELEASE_VERSIONEXIM_VARIANT_VERSION"
+    exit 0
+fi
+
+if expr -- $1 : '\-' >/dev/null ; then
+  while expr -- $1 : '\-' >/dev/null ; do
+    if [ "$1" = "-C" ]; then
+      config=$2
+      shift
+      shift
+    elif expr -- $1 : '\-D' >/dev/null ; then
+      eximmacdef="$eximmacdef $1"
+      if expr -- $1 : '\-DEXIM_PATH=' >/dev/null ; then
+        exim_path=`expr -- $1 : '\-DEXIM_PATH=\(.*\)'`
+      fi
+      shift
+    else
+      break
+    fi
+  done
+fi
+
+# We need to save the script's argument because in the absence of -C we need to
+# use shell arguments for sorting out the configuration file name.
+
+argone=$1
+
+# This is the normal case when no config file or macros are specified
+
+if [ "$config" = "" ]; then
+  # See if this installation is using the esoteric "USE_NODE" feature of Exim,
+  # in which it uses the host's name as a suffix for the configuration file name.
+
+  if [ "CONFIGURE_FILE_USE_NODE" = "yes" ]; then
+    hostsuffix=.`uname -n`
+  fi
+
+  # Now find the configuration file name. This has got complicated because
+  # CONFIGURE_FILE may now be a list of files. The one that is used is the first
+  # one that exists. Mimic the code in readconf.c by testing first for the
+  # suffixed file in each case.
+
+  set `awk -F: '{ for (i = 1; i <= NF; i++) print $i }' <<End
+CONFIGURE_FILE
+End
+`
+  while [ "$config" = "" -a $# -gt 0 ] ; do
+    if [ -f "$1$hostsuffix" ] ; then
+      config="$1$hostsuffix"
+    elif [ -f "$1" ] ; then
+      config="$1"
+    fi
+    shift
+  done
+fi
+
+# Determine where the spool directory is. Search for an exim_path setting
+# in the configure file; otherwise use the bin directory. Call that version of
+# Exim to find the spool directory and the qualify domain. BEWARE: a tab
+# character is needed in the command below. It has had a nasty tendency to get
+# lost in the past. Use a variable to hold a space and a tab to keep the tab in
+# one place.
+
+st='     '
+
+if [ "$exim_path" = "" ]; then
+  exim_path=`grep "^[$st]*exim_path" $config | sed "s/.*=[$st]*//"`
+fi
+
+if test "$exim_path" = ""; then exim_path=BIN_DIRECTORY/exim; fi
+spool_directory=`$exim_path $eximmacdef -C $config -bP spool_directory | sed 's/.*=[  ]*//'`
+qualify_domain=`$exim_path $eximmacdef -C $config -bP qualify_domain | sed 's/.*=[  ]*//'`
+
+# Now do the job. Perl uses $ so frequently that we don't want to have to
+# escape them all from the shell, so pass in shell variable values as
+# arguments.
+
+# 16-May-1996  Fixed it to do better if routing fails to complete.
+#              Improved the format of the output.
+# 10-Jun-1996  Complain if no argument given.
+# 02-Aug-1996  Lower case the domain.
+# 14-Jan-1999  Add subject to want list even if remote host found, so as to
+#              pick up routing delays after temporary recipient errors.
+#              Also add unqualified subject if it looks like a message id.
+# 01-Apr-2004  Add the -C feature for testing
+# 22-Dec-2005  Complete the -C feature (!)
+
+if [ "$argone" = "" ]; then
+  echo "Usage: exinext <address>|<domain>|<local-part>"
+  exit 1
+fi
+
+perl - $exim_path "$eximmacdef" $argone $spool_directory $qualify_domain $config <<'End'
+
+  # We don't import anything, but guard against future changes which do
+  BEGIN { pop @INC if $INC[-1] eq '.' };
+
+  # Name the arguments
+
+  $exim = $ARGV[0];
+  $eximmacdef = $ARGV[1];
+  $subject = $ARGV[2];
+  $spool = $ARGV[3];
+  $qualify = $ARGV[4];
+  $config = $ARGV[5];
+
+  # If the subject doesn't contain an @ then construct an address
+  # for the domain, and ensure that in both cases the domain is
+  # lower cased.
+
+  $address = ($subject =~ /^([^\@]*)\@([^\@]*)$/)?
+    "$1\@\L$2\E" : "User\@\L$subject\E";
+
+  # Run Exim to get a list of hosts for the given domain; for
+  # each one construct the appropriate retry key.
+
+  open(LIST, "$exim -C $config -v -bt $address |") ||
+    die "can't run exim to route $address";
+
+  while (<LIST>)
+    {
+    chop;
+    push(@list, $_) if s/\s*host (\S+)\s+\[(.+)\].*/$1:$2/;
+    print "$_\n" if /cannot be resolved/;
+    }
+  close(LIST);
+
+  # If there were no hosts, assume that what was given was a local
+  # username, unless it contains an @, and construct a suitable retry
+  # key for that. Also, if it looks like a message id, search for that
+  # as well, so as to pick up message-specific retry data.
+
+  if (scalar(@list) == 0)
+    {
+    push(@list, $subject) if $subject =~ /^\w{6}-\w{6}-\w{2}$/;
+
+    if ($subject !~ /\@/ && $subject !~ /\./)
+      {
+      push(@list, "$subject\@$qualify");
+      }
+    else
+      {
+      print "No remote hosts found for $subject\n";
+      }
+    }
+
+  # Always search for the full address, even if hosts are found, in case
+  # there is a routing delay caused by a temporary recipient error.
+
+  push(@list, $subject);
+
+  # Run exim_dumpdb to get out the retry data and pick off what we want
+
+  open(DATA, "${exim}_dumpdb $spool retry |") ||
+    die "can't run exim_dumpdb";
+
+  while (<DATA>)
+    {
+    for ($i = 0; $i <= $#list; $i++)
+      {
+      if (/$list[$i]/)
+        {
+        $printed = 1;
+        if (/^\s*T:[^:\s]*:/)
+          {
+          ($key,$error,$error2,$text) = /^\s*T:(\S+)\s+(\S+)\s+(\S+)\s*(.*)$/;
+
+          # Parsing the keys is a nightmare because of IPv6. The design of the
+          # format for the keys is a complete shambles. All my fault (PH). But
+          # I don't want to change it just for this purpose. If they key
+          # contains more than 3 colons, we have an IPv6 address, because
+          # an IPv6 address must contain at least two colons.
+
+          # Deal with IPv4 addresses (3 colons or fewer)
+
+          if ($key !~ /:([^:]*?:){3}/)
+            {
+            ($host,$ip,$port,$msgid) = $key =~
+              /^([^:]*):([^:]*)(?::([^:]*)(?::(\S*)|)|)/;
+            }
+
+          # Deal with IPv6 addresses; sorting out the colons is a complete
+          # mess. We should be able to find the host name and IP address from
+          # further in the message. That seems the easiest escape plan here. We
+          # can use those to match the rest of the key.
+
+          else
+            {
+            ($host,$ip) = $text =~ /host\s(\S+)\s\[([^]]+)\]/;
+            if (defined $host)
+              {
+              ($port,$msgid) = $key =~
+                /^$host:$ip(?::([^:]*)(?::(\S*)|)|)/;
+              }
+
+           # This will probably be wrong...
+
+           else
+             {
+             ($host,$ip) = $key =~ /([^:]*):(.*)/;
+             }
+            }
+
+          printf("Transport: %s [%s]", $host, $ip);
+          print ":$port" if defined $port;
+          print " $msgid" if defined $msgid;
+          print " error $error: $text\n";
+          }
+
+        else
+          {
+          ($type,$domain,$error,$error2,$text) =
+            /^\s*(\S):(\S+)\s+(\S+)\s+(\S+)\s*(.*)$/;
+          $type = ($type eq 'R')? "Route: " :
+                  ($type eq 'T')? "Transport: " : "";
+          print "$type$domain error $error: $text\n";
+          }
+        $_ = <DATA>;
+        ($first,$last,$next,$expired) =
+          /^(\S+\s+\S+)\s+(\S+\s+\S+)\s+(\S+\s+\S+)\s*(\*?)/;
+        print "  first failed: $first\n";
+        print "  last tried:   $last\n";
+        print "  next try at:  $next\n";
+        print "  past final cutoff time\n" if $expired eq "*";
+        }
+      }
+    }
+
+  close(DATA);
+  print "No retry data found for $subject\n" if !$printed;
+End
+

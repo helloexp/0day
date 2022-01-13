@@ -1,0 +1,16 @@
+# Exim: OS-specific make file for RiscOS4bsd
+
+HOSTNAME_COMMAND=/usr/ucb/hostname
+EXIT_FAILURE=1
+EXIT_SUCCESS=0
+LIBRESOLV=-lresolv
+LIBS=-liberty -lm
+XINCLUDE=-I/usr/X11R6/include
+
+CFLAGS=-O
+
+EXIWHAT_PS_ARG=-ax
+EXIWHAT_EGREP_ARG='/exim( |$$)'
+EXIWHAT_KILL_SIGNAL=-30
+
+# End

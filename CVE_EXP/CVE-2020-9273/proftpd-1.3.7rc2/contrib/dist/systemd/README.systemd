@@ -1,0 +1,25 @@
+Using proftpd with systemd's built-in inetd functionality
+---------------------------------------------------------
+
+On systemd-based systems, you can use systemd's built-in inetd
+functionality to start proftpd on demand. Note that this is not
+full "socket activation" where systemd would start a single
+long-running process to handle the current and subsequent
+connections, but a simple inetd equivalent where a new instance
+of proftpd is run for each new incoming connection, each session
+lasting until its connection drops. This makes it best suited to
+low-volume applications.
+
+1. Install the files proftpd.socket and proftpd@.service from the
+   contrib/dist/systemd directory into either the system unit directory
+   (usually /usr/lib/systemd/system - recommended for downstream
+   packagers) or the local unit directory (/etc/systemd/system -
+   recommended for admins installing from source locally).
+
+2. Set "ServerType inetd" in /etc/proftpd.conf
+
+3. Run "systemctl enable proftpd.socket" as root to enable
+   listening for connections at boot time.
+
+4. Run "systemctl start proftpd.socket" as root to start
+   listening for connections immediately.

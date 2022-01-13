@@ -1,0 +1,191 @@
+dnl ProFTPD - mod_dnsbl
+dnl Copyright (c) 2012-2017 TJ Saunders <tj@castaglia.org>
+dnl
+dnl This program is free software; you can redistribute it and/or modify
+dnl it under the terms of the GNU General Public License as published by
+dnl the Free Software Foundation; either version 2 of the License, or
+dnl (at your option) any later version.
+dnl
+dnl This program is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+dnl GNU General Public License for more details.
+dnl
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; if not, write to the Free Software
+dnl Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA.
+dnl
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(./mod_dnsbl.c)
+
+AC_CANONICAL_SYSTEM
+
+ostype=`echo $build_os | sed 's/\..*$//g' | sed 's/-.*//g' | tr abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ`
+
+AC_PROG_CC
+AC_PROG_CPP
+AC_AIX
+AC_ISC_POSIX
+AC_MINIX
+
+dnl Need to support/handle the --with-includes and --with-libraries options
+AC_ARG_WITH(includes,
+  [AC_HELP_STRING(
+    [--with-includes=LIST],
+    [add additional include paths to proftpd. LIST is a colon-separated list of include paths to add e.g. --with-includes=/some/mysql/include:/my/include])
+  ],
+  [ ac_addl_includes=`echo "$withval" | sed -e 's/:/ /g'` ;
+    for ainclude in $ac_addl_includes; do
+      if test x"$ac_build_addl_includes" = x ; then
+        ac_build_addl_includes="-I$ainclude"
+      else
+        ac_build_addl_includes="-I$ainclude $ac_build_addl_includes"
+      fi
+    done
+    CPPFLAGS="$CPPFLAGS $ac_build_addl_includes"
+  ])
+
+AC_ARG_WITH(libraries,
+  [AC_HELP_STRING(
+    [--with-libraries=LIST],
+    [add additional library paths to proftpd. LIST is a colon-separated list of include paths to add e.g. --with-libraries=/some/mysql/libdir:/my/libs])
+  ],
+  [ ac_addl_libdirs=`echo "$withval" | sed -e 's/:/ /g'` ;
+    for alibdir in $ac_addl_libdirs; do
+      if test x"$ac_build_addl_libdirs" = x ; then
+        ac_build_addl_libdirs="-L$alibdir"
+      else
+        ac_build_addl_libdirs="-L$alibdir $ac_build_addl_libdirs"
+      fi
+    done
+    LDFLAGS="$LDFLAGS $ac_build_addl_libdirs"
+  ])
+
+AC_HEADER_STDC
+AC_CHECK_HEADERS(stdlib.h unistd.h limits.h fcntl.h)
+
+dnl Check whether libc provides the DNS resolver symbols (e.g. *BSD/Mac OSX)
+dnl or not.  And if not, check whether we need to link directly with
+dnl /usr/lib/libresolv.a (32-bit) or /usr/lib64/libresolv.a (64-bit).
+dnl
+dnl Ideally we would link with libresolv using -lresolv.  However, it seems
+dnl that many Linux distributions shipped a broken version of libresolv.so
+dnl which did not export the necessary ns_initparse/ns_parserr symbols.  The
+dnl static version of libresolv shipped DOES provide those symbols (probably
+dnl for use by libc).  For these cases, we link againt the static library.
+
+ac_dnsbl_libs=""
+AC_MSG_CHECKING([for resolver symbols in libc])
+AC_TRY_LINK(
+  [ #include <stdlib.h>
+    #include <sys/types.h>
+    #include <arpa/nameser.h>
+    #include <resolv.h>
+  ],
+  [
+    int res;
+    res = res_query(NULL, ns_c_in, ns_t_txt, NULL, 0);
+    res = ns_initparse(NULL, 0, NULL);
+    res = ns_parserr(NULL, ns_s_an, 0, NULL);
+  ],
+  [
+    AC_MSG_RESULT(yes)
+  ],
+  [
+    AC_MSG_RESULT(no)
+
+    AC_MSG_CHECKING([for resolver symbols in libresolv])
+    saved_libs="$LIBS"
+    LIBS="$LIBS -lresolv"
+   
+    AC_TRY_LINK(
+      [ #include <stdlib.h>
+        #include <sys/types.h>
+        #include <arpa/nameser.h>
+        #include <resolv.h>
+      ],
+      [
+        int res;
+        res = res_query(NULL, ns_c_in, ns_t_txt, NULL, 0);
+        res = ns_initparse(NULL, 0, NULL);
+        res = ns_parserr(NULL, ns_s_an, 0, NULL);
+      ],
+      [
+        AC_MSG_RESULT(yes)
+        LIBS="$saved_libs"
+        ac_dnsbl_libs="-lresolv"
+      ],
+      [
+        AC_MSG_RESULT(no)
+        LIBS="$saved_libs"
+
+        AC_MSG_CHECKING([for resolver symbols in /usr/lib64/libresolv.a])
+        saved_libs="$LIBS"
+        LIBS="$LIBS /usr/lib64/libresolv.a"
+   
+        AC_TRY_LINK(
+          [ #include <stdlib.h>
+            #include <sys/types.h>
+            #include <arpa/nameser.h>
+            #include <resolv.h>
+          ],
+          [
+            int res;
+            res = res_query(NULL, ns_c_in, ns_t_txt, NULL, 0);
+            res = ns_initparse(NULL, 0, NULL);
+            res = ns_parserr(NULL, ns_s_an, 0, NULL);
+          ],
+          [
+            AC_MSG_RESULT(yes)
+            LIBS="$saved_libs"
+            ac_dnsbl_libs="/usr/lib64/libresolv.a"
+          ],
+          [
+             AC_MSG_RESULT(no)
+             LIBS="$saved_libs"
+
+            AC_MSG_CHECKING([for resolver symbols in /usr/lib/libresolv.a])
+            saved_libs="$LIBS"
+            LIBS="$LIBS /usr/lib/libresolv.a"
+
+            AC_TRY_LINK(
+              [ #include <stdlib.h>
+                #include <sys/types.h>
+                #include <arpa/nameser.h>
+                #include <resolv.h>
+              ],
+              [
+                int res;
+                res = res_query(NULL, ns_c_in, ns_t_txt, NULL, 0);
+                res = ns_initparse(NULL, 0, NULL);
+                res = ns_parserr(NULL, ns_s_an, 0, NULL);
+              ],
+              [
+                AC_MSG_RESULT(yes)
+                LIBS="$saved_libs"
+                ac_dnsbl_libs="/usr/lib/libresolv.a"
+              ],
+              [
+                AC_MSG_RESULT(no)
+                LIBS="$saved_libs"
+              ]
+            )
+          ]
+        )
+      ]
+    )
+  ]
+) 
+
+INCLUDES="$ac_build_addl_includes"
+LIBDIRS="$ac_build_addl_libdirs"
+MODULE_LIBS="$ac_dnsbl_libs"
+
+AC_SUBST(INCLUDES)
+AC_SUBST(LDFLAGS)
+AC_SUBST(LIBDIRS)
+AC_SUBST(MODULE_LIBS)
+
+AC_CONFIG_HEADER(mod_dnsbl.h)
+AC_OUTPUT(Makefile)

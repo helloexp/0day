@@ -1,0 +1,51 @@
+#! /bin/sh
+
+# Shell script to build the configurable part of the Exim monitor's start-up
+# script. This is built from various configuration files. The final part is
+# added in the Makefile, using various macros that are available at that stage.
+
+scripts=../scripts
+
+# First off, get the OS type, and check that there is a make file for it.
+
+os=`$scripts/os-type -generic` || exit 1
+
+if	test ! -r ../OS/Makefile-$os
+then    echo ""
+	echo "*** Sorry - operating system $os is not supported"
+        echo "*** See OS/Makefile-* for supported systems" 1>&2
+        echo ""
+	exit 1;
+fi
+
+# We also need the architecture type, in order to test for any architecture-
+# specific configuration files.
+
+arch=`$scripts/arch-type` || exit 1
+
+# Build a file called eximon in the current directory by joining
+# the generic default configure file, the OS base configure file, and then
+# local generic, OS-specific, architecture-specific, and OS+architecture-
+# specific configurationfiles, if they exist. These files all contain variable
+# definitions, with later definitions overriding earlier ones.
+
+echo "#!/bin/sh" > eximon
+chmod a+x eximon
+
+# Concatenate the configuration files that exist
+
+for f in OS/eximon.conf-Default \
+         OS/eximon.conf-$os \
+         Local/eximon.conf \
+         Local/eximon.conf-$os \
+         Local/eximon.conf-$arch \
+         Local/eximon.conf-$os-$arch
+do   if test -r ../$f
+     then   echo "# From $f"
+	    sed '/^#/d;/^[   ]*$/d' ../$f || exit 1
+	    echo "# End of $f"
+	    echo ""
+     fi
+done >> eximon || exit 1
+
+# End of Configure-eximon

@@ -1,0 +1,40 @@
+The "util" directory in the Exim distribution
+---------------------------------------------
+
+This directory contains some small scripts that people have contributed which
+may be useful to others. They are probably not usable immediately without at
+least some minor editing. Take them as starting points.
+
+cramtest.pl
+-----------
+
+A Perl script to help with debugging CRAM-MD5 authentication.
+
+logargs.sh
+----------
+
+A shell script to interpose between a caller and Exim, to find out what command
+line arguments it is trying to use.
+
+mkcdb.pl
+--------
+
+A Perl script for a converting flat file into a format that is suitable for
+processing by cdbmake into a cdb file. It has some advantages over the
+cdbmake-12 awk script.
+
+ratelimit.pl
+------------
+
+A Perl script for computing peak sending rates from a log file. This is for
+use with the ratelimit ACL condition, so that you can get some idea of what a
+reasonable limit would be before deploying the feature.
+
+unknownuser.sh
+--------------
+
+This is historical, dating to the time when people tried to send back a helpful
+message when an incoming message's recipient was unknown. It recalls a
+different age...
+
+====

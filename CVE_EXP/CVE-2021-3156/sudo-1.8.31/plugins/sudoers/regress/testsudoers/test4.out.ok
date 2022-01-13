@@ -1,0 +1,6 @@
+testsudoers: test2.inc should be owned by uid 1
+Parse error in sudoers near line 1.
+
+Entries for user root:
+
+Command unmatched

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_dso</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_dso</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+<b>What are DSO modules?</b><br>
+&quot;On modern Unix derivatives there exists a nifty mechanism usually called
+dynamic linking/loading of <i>Dynamic Shared Objects</i> (DSO) which provides
+a way to build a piece of program code in a special format for loading it at
+run-time into the address space of an executable program.
+
+<p>
+This loading can usually be done in two ways: Automatically by a system program
+called <code>ld.so</code> when an executable program is started, or manually
+from within the executing program via a programmatic system interface to the
+Unix loader through the system calls <code>dlopen()/dlsym()</code>.
+
+<p>
+In the first way the DSO's are usually called <i>shared libraries</i> or
+<i>DSO libraries</i> and named <code>libfoo.so</code> or
+<code>libfoo.so.1.2</code>. They reside in a system directory (usually
+<code>/usr/lib/</code>) and the link to the executable program is established
+at build-time by specifying <code>-lfoo</code> to the linker command. This
+hard-codes library references into the executable program file so that at
+start-time the Unix loader is able to locate <code>libfoo.so</code> in
+<code>/usr/lib/</code>, in paths hard-coded via linker-options like
+<code>-R</code> or in paths configured via the environment variable
+<code>LD_LIBRARY_PATH</code>. It then resolves any (yet unresolved) symbols in
+the executable program which are available in the DSO.
+
+<p>
+Symbols in the executable program are usually not referenced by the DSO
+(because it's a reusable library of general code) and hence no further
+resolving has to be done. The executable program has no need to do anything on
+its own to use the symbols from the DSO because the complete resolving is done
+by the Unix loader. (In fact, the code to invoke <code>ld.so</code> is part of
+the run-time startup code which is linked into every executable program which
+has been bound non-static.) The advantage of dynamic loading of common library
+code is obvious: the library code needs to be stored only once, in a system
+library like libc.so, saving disk space for every program.
+
+<p>
+In the second way the DSO's are usually called <i>shared objects</i> or
+<i>DSO files</i> and can be named with an arbitrary extension (although the
+canonical name is <code>foo.so</code>). These files usually stay inside a
+program-specific directory and there is no automatically established link to
+the executable program where they are used. Instead the executable program
+manually loads the DSO at run-time into its address space via
+<code>dlopen()</code>. At this time no resolving of symbols from the DSO for
+the executable program is done. Instead the Unix loader automatically resolves
+any (yet unresolved) symbols in the DSO from the set of symbols exported by the
+executable program and its already loaded DSO libraries (especially all symbols
+from the ubiquitous <code>libc.so</code>). This way the DSO gets knowledge of
+the executable program's symbol set as if it had been statically linked with
+it in the first place.&quot;
+
+<p>
+<i>(Taken from <a href="http://httpd.apache.org/docs/dso.html">http://httpd.apache.org/docs/dso.html</a>)</i>
+
+<p>
+The <code>mod_dso</code> module is ProFTPD's module for handling the dynamic
+loading of modules.  This module is contained in the <code>mod_dso.c</code>
+file for ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_dso</code> can be found in the
+ProFTPD source distribution:
+<pre>
+  <a href="http://www.proftpd.org/">http://www.proftpd.org/</a>
+</pre>
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#LoadFile">LoadFile</a>
+  <li><a href="#LoadModule">LoadModule</a>
+  <li><a href="#ModuleControlsACLs">ModuleControlsACLs</a>
+  <li><a href="#ModuleOrder">ModuleOrder</a>
+  <li><a href="#ModulePath">ModulePath</a>
+</ul>
+
+<p>
+<h2>Control Actions</h2>
+<ul>
+  <li><a href="#insmod">insmod</a>
+  <li><a href="#lsmod">lsmod</a>
+  <li><a href="#rmmod">rmmod</a>
+</ul>
+
+<p>
+<hr>
+<h3><a name="LoadFile">LoadFile</a></h3>
+<strong>Syntax:</strong> LoadFile <em>path</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_dso<br>
+<strong>Compatibility:</strong> 1.3.0rc1 and later
+
+<p>
+The <code>LoadFile</code> directive is used to load any shared object
+(<code>.so</code> file extension), such as shared libraries.  On some
+platforms, it may be necessary to load all of the libraries needed by
+a DSO module, using <code>LoadFile</code>, prior to loading the module itself.
+
+<p>
+The <em>path</em> parameter must be the absolute path to the shared object
+to load.
+
+<p>
+Example:
+<pre>
+  # Load the zlib library
+  LoadFile /usr/lib/libz.so
+</pre>
+
+<p>
+<hr>
+<h3><a name="LoadModule">LoadModule</a></h3>
+<strong>Syntax:</strong> LoadModule <em>name</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_dso<br>
+<strong>Compatibility:</strong> 1.3.0rc1 and later
+
+<p>
+The <code>LoadModule</code> directive is used to dynamically load a module
+from the configuration file.
+
+<p>
+Example:
+<pre>
+  LoadModule mod_test.c
+</pre>
+
+<p>
+<hr>
+<h3><a name="ModuleControlsACLs">ModuleControlsACLs</a></h3>
+<strong>Syntax:</strong> ModuleControlsACLs <em>actions|all allow|deny user|group list</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_dso<br>
+<strong>Compatibility:</strong> 1.3.0rc1 and later
+
+<p>
+The <code>ModuleControlsACLs</code> directive configures access lists of
+<em>users</em> or <em>groups</em> who are allowed (or denied) the ability to
+use the <em>actions</em> implemented by <code>mod_dso</code>. The default
+behavior is to deny everyone unless an ACL allowing access has been explicitly
+configured.
+
+<p>
+If &quot;allow&quot; is used, then <em>list</em>, a comma-delimited list
+of <em>users</em> or <em>groups</em>, can use the given <em>actions</em>; all
+others are denied.  If &quot;deny&quot; is used, then the <em>list</em> of
+<em>users</em> or <em>groups</em> cannot use <em>actions</em> all others are
+allowed.  Multiple <code>ModuleControlsACLs</code> directives may be used to
+configure ACLs for different control actions, and for both users and groups.
+
+<p>
+The <em>actions</em> provided by <code>mod_dso</code> are &quot;insmod&quot;
+&quot;lsmod&quot;, and &quot;rmmod&quot;.
+
+<p>
+Example:
+<pre>
+  # Allow only user root to load and unload modules, but allow everyone
+  # to see which modules have been loaded
+  ModuleControlsACLs insmod,rmmod allow user root
+  ModuleControlsACLs lsmod allow user *
+</pre>
+
+<p>
+<hr>
+<h3><a name="ModuleOrder">ModuleOrder</a></h3>
+<strong>Syntax:</strong> ModuleOrder <em>...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_dso<br>
+<strong>Compatibility:</strong> 1.3.0rc1 and later
+
+<p>
+The <code>ModuleOrder</code> directive can be used to explicitly set the
+module order.  <b>Note</b>: do not use this directive unless you know what
+you are doing.  It is <i>very</i> easy to configure a non-working server with
+this directive.
+
+<p>
+If you <i>are</i> going to use <code>ModuleOrder</code>, make sure it is
+the very first directive in your <code>proftpd.conf</code> file.
+
+<p>
+Example:
+<pre>
+  # Make this one the very first things, if you're going to use it.
+  ModuleOrder \
+    mod_core.c \
+    mod_cap.c \
+    mod_auth_unix.c \
+    mod_auth_pam.c \
+    mod_ls.c \
+    mod_log.c \
+    mod_site.c \
+    mod_xfer.c \
+    mod_auth.c \
+    mod_ifsession.c \
+    mod_auth_file.c
+</pre>
+
+<p>
+<hr>
+<h3><a name="ModulePath">ModulePath</a></h3>
+<strong>Syntax:</strong> ModulePath <em>path</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_dso<br>
+<strong>Compatibility:</strong> 1.3.0rc1 and later
+
+<p>
+The <code>ModulePath</code> directive is used to configure an alternative
+directory from which <code>mod_dso</code> will load DSO modules.  By
+default, <code>mod_dso</code> uses <em>$prefix</em>/<code>libexec/</code>,
+where <em>$prefix</em> is where you installed <code>proftpd</code>,
+<i>e.g.</i> <code>/usr/local/</code>.
+
+<p>
+The <em>path</em> parameter must be an absolute path.
+
+<p>
+Example:
+<pre>
+  ModulePath /etc/proftpd/libexec
+</pre>
+
+<p>
+<hr>
+<h1>Control Actions</h1>
+
+<p>
+<hr>
+<h3><a name="insmod"><code>insmod</code></a></h3>
+<strong>Syntax:</strong> ftpdctl insmod <em>module</em><br>
+<strong>Purpose:</strong> Load a DSO module
+
+<p>
+The <code>insmod</code> control action can be used to load a DSO module
+into the running <code>proftpd</code> daemon.
+
+<p>
+A module cannot be loaded multiple times.
+
+<p>
+Example:
+<pre>
+  ftpdctl rmmod mod_test.c
+  ftpdctl: 'mod_test.c' loaded
+</pre>
+
+<p>
+<hr>
+<h3><a name="lsmod"><code>lsmod</code></a></h3>
+<strong>Syntax:</strong> ftpdctl lsmod<br>
+<strong>Purpose:</strong> Display list of all loaded modules
+
+<p>
+The <code>lsmod</code> control action is used to display a list of all
+loaded modules.
+
+<p>
+Example:
+<pre>
+  ftpdctl lsmod           
+  ftpdctl: Loaded Modules:
+  ftpdctl:   mod_core.c
+  ftpdctl:   mod_xfer.c
+  ftpdctl:   mod_auth_unix.c
+  ftpdctl:   mod_auth_file.c
+  ftpdctl:   mod_auth.c
+  ftpdctl:   mod_ls.c
+  ftpdctl:   mod_log.c
+  ftpdctl:   mod_site.c
+  ftpdctl:   mod_dso.c
+  ftpdctl:   mod_ctrls.c
+  ftpdctl:   mod_auth_pam.c
+  ftpdctl:   mod_cap.c
+</pre>
+
+<p>
+<hr>
+<h3><a name="rmmod"><code>rmmod</code></a></h3>
+<strong>Syntax:</strong> ftpdctl rmmod <em>module</em><br>
+<strong>Purpose:</strong> Unload a DSO module
+
+<p>
+The <code>rmmod</code> control action can be used to unload a DSO module
+from the running <code>proftpd</code> daemon.  Note that it is also
+possible to &quot;unload&quot; one of the statically-linked modules; this
+does not remove that module from the process' memory space, but does remove
+that module from the core engine, such that <code>proftpd</code> will
+act as if the module is not present.
+
+<p>
+Example:
+<pre>
+  ftpdctl rmmod mod_test.c
+  ftpdctl: 'mod_test.c' unloaded
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+Note that <code>mod_dso</code>'s control actions are only available if
+your <code>proftpd</code> has been compiled with Controls support.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_dso</code> module is distributed with ProFTPD.  To enable use
+of DSO modules, use the <code>--enable-dso</code> configure option:
+<pre>
+  $ ./configure --enable-dso
+  $ make
+  $ make install
+</pre>
+This option causes <code>mod_dso</code> to be compiled into
+<code>proftpd</code>.
+
+<p>
+<b>Logging</b><br>
+The <code>mod_dso</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>dso
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace dso:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="DSOAlreadyLoaded">
+<font color=red>Question</font>: When I try to start <code>proftpd</code>, it
+fails like this:
+<pre>
+  proftpd[1234]: mod_dso/0.5: module 'mod_radius.c' already loaded
+  proftpd[1234]: Fatal: LoadModule: error loading module 'mod_radius.c': Operation not permitted on line 9 of '/etc/proftpd/proftpd.conf'
+</pre>
+How do I fix this "module already loaded" error?<br>
+<font color=blue>Answer</font>:  This happens when the proftpd configuration
+either <i>a)</i> uses the <a href="#LoadModule"><code>LoadModule</code></a>
+on a module which was compiled in as a static module, or <i>b)</i> is
+inadvertently using <code>LoadModule</code> on the same module multiple times.
+
+<p>
+To check if the module has been statically compiled into your
+<code>proftpd</code> executable, use the <code>-l</code> command-line parameter,
+<i>e.g.</i>:
+<pre>
+  # proftpd -l
+  Compiled-in modules:
+    mod_core.c
+    mod_xfer.c
+    mod_auth_unix.c
+    mod_auth_file.c
+    mod_auth.c
+    mod_ls.c
+    mod_log.c
+    mod_site.c
+    mod_delay.c
+    mod_facts.c
+    mod_dso.c
+    mod_ident.c
+    mod_auth_pam.c
+    mod_tls.c
+    mod_cap.c
+</pre>
+The modules listed via the command are the static modules.  So if your
+<code>LoadModule</code> directive is used for one of the modules in this list,
+you can remove that <code>LoadModule</code> directive; that module will already
+be loaded.
+
+<p>
+The other cause, that of having multiple <code>LoadModule</code> directives
+for the same module, usually happens when your <code>proftpd.conf</code>
+file includes other config files, <i>e.g.</i>:
+<pre>
+  Include /path/to/modules.conf
+</pre>
+and it is those other config files which have <code>LoadModule</code> directives
+of their own.
+
+<p>
+If you find yourself needs to change the configuration to work around this
+error, you can use the following to see if the module has already been
+loaded, and if not, load it:
+<pre>
+  &lt;IfModule !mod_radius.c&gt;
+    LoadModule mod_radius.c
+  &lt;/IfModule&gt;
+</pre>
+
+<p><a name="DSOAlreadyLoadedSpecialModules">
+<font color=red>Question</font>: When I try to start <code>proftpd</code>, it
+fails like this:
+<pre>
+  proftpd[1234]: mod_dso/0.5: module 'mod_ctrls.c' already loaded
+  proftpd[1234]: Fatal: LoadModule: error loading module 'mod_ctrls.c': Operation not permitted on line 9 of '/etc/proftpd/proftpd.conf'
+</pre>
+I do not have any other <code>LoadModule</code> directives in my config, nor
+is the <code>mod_ctrls</code> module in my <code>--with-modules</code>
+configure option.<br><br>
+<font color=blue>Answer</font>: In this particular case, the
+<code>mod_ctrls</code> module is automatically compiled in, as a static module,
+when the <code>--enable-ctrls</code> configure option is used.  There are only
+a few such modules with this special handling:
+<ul>
+  <li><code>mod_ctrls</code> (<i>via the <code>--enable-ctrls</code> configure option</i>)
+  <li><code>mod_dso</code> (<i>via the <code>--enable-dso</code> configure option</i>)
+  <li><code>mod_lang</code> (<i>via the <code>--enable-nls</code> configure option</i>)
+  <li><code>mod_memcache</code> (<i>via the <code>--enable-memcache</code> configure option</i>)
+</ul>
+All of these modules would appear in the <code>`proftpd -l'</code> static
+module list.
+
+<p><a name="DSOLoadingStaticModule"></a>
+<font color=red>Question</font>: If I use <a href="../utils/prxs.html"><code>prxs</code></a> to compile a module like <code>mod_ldap</code>, which is already
+built into my <code>proftpd</code> as a static module, and then I use:
+<pre>
+  LoadModule mod_ldap.c
+</pre>
+in my <code>proftpd.conf</code>, then which <code>mod_ldap</code> code is used,
+the static module or the shared module?<br>
+<font color=blue>Answer</font>: Excellent question.  The short answer is: the
+static module wins.
+
+<p>
+When <code>mod_dso</code> goes to load a module, it first checks to see
+whether that module is already loaded -- and if so, the module will
+<b>not</b> be loaded again.  Static modules, by definition, are always
+"already loaded".  This means that your <code>mod_ldap</code> shared module
+code would not be loaded, and thus would not override the static module.
+
+<p><a name="DSOModulePathWorldWritable">
+<font color=red>Question</font>: I try to start my <code>proftpd</code>
+instance, but it fails to start with this error:
+<pre>
+  Fatal: ModulePath: <i>/usr/lib/proftpd</i> is world-writable on line <i>7</i> of <i>'/etc/proftpd/modules.conf'</i>
+</pre>
+Why?<br>
+<font color=blue>Answer</font>: The <code>mod_dso</code> module, used by
+ProFTPD for DSO/shared modules, ensures that the
+<a href="#ModulePath"><code>ModulePath</code></a> directory is secure.  DSO
+modules are code that are loaded directly into <code>proftpd</code>; loading
+these modules from a world-writable directory means that <b>any</b> system user
+could inject/replace any of those DSO modules with their own code, and get
+<code>proftpd</code> to do whatever they wanted.  Thus <code>mod_dso</code>
+will <b>refuse</b> to use a world-writable directory for loading of modules.
+
+<p>
+To fix this, you simply need to ensure that the <code>ModulePath</code> directory is not world-writable, <i>e.g.</i>:
+<pre>
+  $ chmod o-w /usr/lib/proftpd
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2004-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

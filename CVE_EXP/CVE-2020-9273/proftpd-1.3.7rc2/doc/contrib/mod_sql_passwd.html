@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_sql_passwd</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_sql_passwd</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+Many FTP sites use SQL databases for storing user accounts, including the
+user name and password.  And while the <code>mod_sql</code> module provides
+support for some formats for the passwords stored in SQL databases, many
+sites have other formats which are <i>not</i> supported by <code>mod_sql</code>.
+These other formats often include MD5 or SHA1 passwords, base64-encoded
+or hex-encoded, <i>without</i> the prefix which is required by
+<code>mod_sql</code>'s "OpenSSL" <code>SQLAuthType</code>.
+
+<p>
+The <code>mod_sql_passwd</code> module provides support for some of these
+other formats.  When the <code>mod_sql_passwd</code> module is enabled,
+you can configure <code>SQLAuthTypes</code> of:
+<ul>
+  <li>Argon2
+  <li>MD5
+  <li>PBKDF2
+  <li>Scrypt
+  <li>SHA1
+  <li>SHA256
+  <li>SHA512
+</ul>
+as well as the existing types supported by <code>mod_sql</code>.
+
+<p>
+This module is contained in the <code>mod_sql_passwd.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>; a discussion
+on <a href="#Usage">usage</a> is also available.
+
+<p>
+This product includes software developed by the OpenSSL Project for use in the
+OpenSSL Toolkit (http://www.openssl.org/).
+
+<p>
+This product includes cryptographic software written by Eric Young
+(eay@cryptsoft.com).
+
+<p>
+The most current version of <code>mod_sql_passwd</code> is distributed with
+ProFTPD.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#SQLPasswordArgon2">SQLPasswordArgon2</a>
+  <li><a href="#SQLPasswordCost">SQLPasswordCost</a>
+  <li><a href="#SQLPasswordEncoding">SQLPasswordEncoding</a>
+  <li><a href="#SQLPasswordEngine">SQLPasswordEngine</a>
+  <li><a href="#SQLPasswordOptions">SQLPasswordOptions</a>
+  <li><a href="#SQLPasswordPBKDF2">SQLPasswordPBKDF2</a>
+  <li><a href="#SQLPasswordRounds">SQLPasswordRounds</a>
+  <li><a href="#SQLPasswordSaltEncoding">SQLPasswordSaltEncoding</a>
+  <li><a href="#SQLPasswordSaltFile">SQLPasswordSaltFile</a>
+  <li><a href="#SQLPasswordScrypt">SQLPasswordScrypt</a>
+  <li><a href="#SQLPasswordUserSalt">SQLPasswordUserSalt</a>
+</ul>
+
+<hr>
+<h3><a name="SQLPasswordArgon2">SQLPasswordArgon2</a></h3>
+<strong>Syntax:</strong> SQLPasswordArgon2 <em>length</em><br>
+<strong>Default:</strong> <em>32</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.6rc5 and later
+
+<p>
+The <code>SQLPasswordArgon2</code> directive configures the <em>length</em>
+of the calculated Argon2 output hash <em>in bytes</em>.  The default length
+is 32 bytes.
+
+<hr>
+<h3><a name="SQLPasswordCost">SQLPasswordCost</a></h3>
+<strong>Syntax:</strong> SQLPasswordCost <em>interactive|sensitive</em><br>
+<strong>Default:</strong> <em>interactive</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.6rc3 and later
+
+<p>
+The <code>SQLPasswordCost</code> directive configures the high-level
+<em>cost</em> settings to use for memory-hard algorithms like
+<code>scrypt</code> and <code>argon2</code>.  The supported <em>cost</em>
+cost values are:
+<ul>
+  <li>interactive
+    <p>
+    This <em>cost</em> uses parameters where generating the value is part of
+    an "interactive" session.
+
+    <p>
+    For <code>scrypt</code>, depending on the version of <code>libsodium</code>
+    used, this <em>cost</em> uses:
+<pre>
+    N=16384, r=8, p=1
+</pre>
+  </li>
+
+  <p>
+  <li>sensitive
+    <p>
+    This <em>cost</em> uses parameters where the value generated is considered
+    very "sensitive".
+
+    <p>
+    For <code>scrypt</code>, depending on the version of <code>libsodium</code>
+    used, this <em>cost</em> uses:
+<pre>
+    N=1048576, r=8, p=1
+</pre>
+  </li>
+</ul>
+
+<hr>
+<h3><a name="SQLPasswordEncoding">SQLPasswordEncoding</a></h3>
+<strong>Syntax:</strong> SQLPasswordEncoding <em>encoding</em><br>
+<strong>Default:</strong> <em>hex</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.3rc2 and later
+
+<p>
+The <code>SQLPasswordEncoding</code> directive configures the encoding that
+<code>mod_sql_passwd</code> expects when handling password values retrieved
+from a SQL database.
+
+<p>
+The following <em>encoding</em> values are currently supported:
+<ul>
+  <li>base64
+  <li>hex (<i>for lowercase hex values</i>)
+  <li>HEX (<i>for uppercase hex values</i>)
+</ul>
+
+<p>
+If no <code>SQLPasswordEncoding</code> directive is configured,
+<code>mod_sql_passwd</code> will use "hex" by default.
+
+<hr>
+<h3><a name="SQLPasswordEngine">SQLPasswordEngine</a></h3>
+<strong>Syntax:</strong> SQLPasswordEngine <em>on|off</em><br>
+<strong>Default:</strong> <em>off</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.3rc2 and later
+
+<p>
+The <code>SQLPasswordEngine</code> directive enables or disables the module's
+registered <code>SQLAuthType</code> handlers.
+
+<hr>
+<h3><a name="SQLPasswordOptions">SQLPasswordOptions</a></h3>
+<strong>Syntax:</strong> SQLPasswordOptions <em>opts</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+The <code>SQLPasswordOptions</code> directive is used to configure various
+behaviors of <code>mod_sql_passwd</code>.  <b>Note</b>: all of the configured
+<code>SQLPasswordOptions</code> parameters <b>must</b> appear on the same line
+in the configuration; only the first <code>SQLPassworOptions</code> directive
+that appears in the configuration is used.
+
+<p>
+Example:
+<pre>
+  SQLPasswordOptions HashEncodeSalt HashEncodePassword
+</pre>
+
+<p>
+The following <em>options</em> are currently supported:
+<ul>
+  <li><code>HashPassword</code>
+  <li><code>HashEncodePassword</code>
+  <li><code>HashSalt</code>
+  <li><code>HashEncodeSalt</code>
+</ul>
+
+<p>
+See the <a href="#Transformations">transformations</a> section for a fuller
+description of how <code>mod_sql_passwd</code> operates on the password and
+salt data.
+
+<hr>
+<h3><a name="SQLPasswordPBKDF2">SQLPasswordPBKDF2</a></h3>
+<strong>Syntax:</strong> SQLPasswordPBKDF2 <em>digest</em> <em>iterations</em> <em>length</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.5rc3 and later
+
+<p>
+The <code>SQLPasswordPBKDF2</code> directive configures the input parameters
+to be used for <a href="http://en.wikipedia.org/wiki/PBKDF2">PBKDF2</a>
+(Password-Based Key Derivation Function, version 2) passwords.  The
+<em>digest</em> parameter specifies the digest algorithm to use (<i>e.g.</i>
+"sha1" or "sha512"); the <em>iterations</em> specifies the number of iterations
+to use for the key derivation, and <em>length</em> indicates the number of
+bytes to emit for the derived key.
+
+<p>
+<b>Note</b> that PBKDF2 <b>requires</b> that a salt be available, <i>e.g.</i>
+via <a href="#SQLPasswordSaltFile"><code>SQLPasswordSaltFile</code></a> or
+<a href="#SQLPasswordUserSalt"><code>SQLPasswordUserSalt</code></a>.
+
+<p>
+Per <a href="http://www.faqs.org/rfcs/rfc2898.html">RFC 2898</a>, the salt
+used should be 8 bytes or longer in length; this RFC also recommends that
+<em>iterations</em> be 1000 or greater.
+
+<p>
+Example:
+<pre>
+  # Tell mod_sql to use PBKDF2 passwords
+  SQLAuthTypes pbkdf2
+  ...
+
+  # Use the SHA1 digest algorithm, 200K iterations, and expect an output
+  # length of 20 bytes.
+  SQLPasswordPBKDF2 sha1 200000 20
+
+  SQLPasswordSaltFile /path/to/salt/file
+</pre>
+
+<p>
+Use of <em>digest</em> algorithms other than SHA1 for
+<code>SQLPasswordPBKDF2</code> requires OpenSSL-1.0.0c or later; earlier
+versions did not have the necessary APIs.
+
+<p>
+As of <code>proftpd-1.3.5</code>, the <code>SQLPasswordPBKDF2</code> directive
+can instead take a named query, for determining the digest algorithm,
+iteration count, and output length <i>on a per-user basis</i>.  For example:
+<pre>
+  SQLNamedQuery get-user-pbkdf2 SELECT "algo, iter, len FROM user_pbkdf2 WHERE user = '%{0}'
+  SQLPasswordPBKDF2 sql:/get-user-pbkdf2
+</pre>
+
+<hr>
+<h3><a name="SQLPasswordRounds">SQLPasswordRounds</a></h3>
+<strong>Syntax:</strong> SQLPasswordRounds <em>count</em><br>
+<strong>Default:</strong> <em>1</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+The <code>SQLPasswordRounds</code> directive configures the number of
+rounds through which the password (and possibly salt) data will be hashed
+and encoded.  The <em>count</em> parameter must be greater than 1.
+
+<p>
+See the <a href="#Transformations">transformations</a> section for a fuller
+description of how <code>mod_sql_passwd</code> operates on the password and
+salt data.
+
+<hr>
+<h3><a name="SQLPasswordSaltEncoding">SQLPasswordSaltEncoding</a></h3>
+<strong>Syntax:</strong> SQLPasswordSaltEncoding <em>encoding</em><br>
+<strong>Default:</strong> <em>none</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.6rc1 and later
+
+<p>
+The <code>SQLPasswordSaltEncoding</code> directive configures the encoding that
+<code>mod_sql_passwd</code> expects when handling <b><i>salt</i></b> values
+retrieved either from a SQL database, <i>or</i> from a file.
+
+<p>
+The following <em>encoding</em> values are currently supported:
+<ul>
+  <li>base64
+  <li>hex (<i>for lowercase hex values</i>)
+  <li>HEX (<i>for uppercase hex values</i>)
+  <li>none (use salt value as is)
+</ul>
+
+<p>
+If no <code>SQLPasswordSaltEncoding</code> directive is configured,
+<code>mod_sql_passwd</code> will use "none" by default.
+
+<hr>
+<h3><a name="SQLPasswordSaltFile">SQLPasswordSaltFile</a></h3>
+<strong>Syntax:</strong> SQLPasswordSaltFile <em>path|"none" ["Prepend"|"Append"]</em><br>
+<strong>Default:</strong> <em>none</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.3rc2 and later
+
+<p>
+The <code>SQLPasswordSaltFile</code> directive configures a file which contains
+salt data.  This salt will be added to the digest, along with the password
+sent by the client.  Note that the salt will be used for all users.
+
+<p>
+Since many editors will automatically add a newline when writing a file,
+the <code>mod_sql_passwd</code> file will automatically trim the last newline
+in the salt data, if there is one.  This means that if your salt <b>must</b>
+end in a newline character, then your <code>SQLPasswordSaltFile</code> must
+contain "<i>salt</i>\n\n".
+
+<p>
+When using salted passwords, some systems will <i>prepend</i> the salt as a
+prefix to the data, and others will <i>append</i> the salt as a suffix.  The
+optional second parameter to <code>SQLPasswordSaltFile</code> controls how
+this module will use the salt:
+<pre>
+  SQLPasswordSaltFile /path/to/salt Prepend
+</pre>
+tells <code>mod_sql_passwd</code> to prepend the salt as a prefix, and:
+<pre>
+  SQLPasswordSaltFile /path/to/salt Append
+</pre>
+will cause the salt to be appended as a sufix.  <b>Note</b> that the default
+behavior is to <i>append</i> the salt as a suffix.
+
+<p>
+If no <code>SQLPasswordSaltFile</code> is configured, then no salting is done.
+
+<hr>
+<h3><a name="SQLPasswordScrypt">SQLPasswordScrypt</a></h3>
+<strong>Syntax:</strong> SQLPasswordScrypt <em>length</em><br>
+<strong>Default:</strong> <em>32</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.6rc5 and later
+
+<p>
+The <code>SQLPasswordScrypt</code> directive configures the <em>length</em>
+of the calculated Scrypt output hash <em>in bytes</em>.  The default length
+is 32 bytes.
+
+<hr>
+<h3><a name="SQLPasswordUserSalt">SQLPasswordUserSalt</a></h3>
+<strong>Syntax:</strong> SQLPasswordUserSalt <em>"name"|source ["Prepend"|"Append"]</em><br>
+<strong>Default:</strong> <em>none</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_passwd<br>
+<strong>Compatibility:</strong> 1.3.3 and later
+
+<p>
+The <code>SQLPasswordUserSalt</code> directive configures a per-user
+salt that will be added to the digest, along with the password sent by the
+client.
+
+<p>
+If <em>"name"</em> is specified, then the per-user salt data will be the
+name of the user logging in.  Alternatively, you can configure a
+<code>SQLNamedQuery</code> which returns a single column of a single
+row, containing a string to use as the salt data, <i>e.g.</i>:
+<pre>
+  SQLNamedQuery get-user-salt SELECT "salt FROM user_salts WHERE user_name = '%{0}'"
+  SQLPasswordUserSalt sql:/get-user-salt
+</pre>
+
+<p>
+When using salted passwords, some systems will <i>prepend</i> the salt as a
+prefix to the data, and others will <i>append</i> the salt as a suffix.  The
+optional second parameter to <code>SQLPasswordUserSalt</code> controls how
+this module will use the salt:
+<pre>
+  SQLPasswordUserSalt name Prepend
+  SQLPasswordUserSalt sql:/get-user-salt Prepend
+</pre>
+tells <code>mod_sql_passwd</code> to prepend the salt as a prefix, and:
+<pre>
+  SQLPasswordUserSalt name Append
+  SQLPasswordUserSalt sql:/get-user-salt Append
+</pre>
+will cause the salt to be appended as a sufix.  <b>Note</b> that the default
+behavior is to <i>append</i> the salt as a suffix.
+
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_sql_passwd</code> module is distributed with ProFTPD.  Simply
+follow the normal steps for using third-party modules in proftpd.  The
+<code>mod_sql_passwd</code> module requires OpenSSL support, so you <b>must</b>
+use the <code>--enable-openssl</code> configuration option.  In addition,
+if you have the <code>libsodium</code> library installed, simply include the
+<code>libsodium</code> headers/libraries in the build command to enable
+additional algorithms.
+
+<p>
+<b>NOTE</b>: it is <b>important</b> that <code>mod_sql_passwd</code> appear
+<i>after</i> <code>mod_sql</code> in your <code>--with-modules</code> configure
+option:
+<pre>
+  $ ./configure --enable-openssl --with-modules=mod_sql:mod_sql_passwd ...
+</pre>
+To build <code>mod_sql_passwd</code> as a DSO module:
+<pre>
+  $ ./configure --enable-dso --enable-openssl --with-shared=mod_sql_passwd
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+For those with an existing ProFTPD installation, you can use the
+<code>prxs</code> tool to add <code>mod_sql_passwd</code>, as a DSO module, to
+your existing server:
+<pre>
+  $ prxs -c -i -d mod_sql_passwd.c
+</pre>
+
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+
+<p>
+The following examples demonstrate how the <code>mod_sql_passwd</code> can
+be used.
+
+<p>
+To configure <code>mod_sql_passwd</code> to handle MD5 passwords that are
+base64-encoded, use:
+<pre>
+  &lt;IfModule mod_sql_passwd.c&gt;
+    SQLPasswordEngine on
+    SQLPasswordEncoding base64
+  &lt;/IfModule&gt;
+
+  &lt;IfModule mod_sql.c&gt;
+    ...
+
+    # Now that mod_sql_passwd is used, we can configure "MD5" as an
+    # SQLAuthType that mod_sql will handle.
+    SQLAuthTypes MD5
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+To have <code>mod_sql_passwd</code> to handle hex-encoded (<i>and</i> in
+lowercase) passwords, use:
+<pre>
+  &lt;IfModule mod_sql_passwd.c&gt;
+    SQLPasswordEngine on
+    SQLPasswordEncoding hex
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+And if for some reason your database values are stored as hex values in
+uppercase, you would use:
+<pre>
+  &lt;IfModule mod_sql_passwd.c&gt;
+    SQLPasswordEngine on
+    SQLPasswordEncoding HEX
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+To use salted passwords, write the salt to use into a file, and configure
+the <code>mod_sql_passwd</code> module to use it:
+<pre>
+  &lt;IfModule mod_sql_passwd.c&gt;
+    SQLPasswordEngine on
+    SQLPasswordEncoding hex
+    SQLPasswordSaltFile /path/to/salt
+  &lt;/IfModule&gt;
+</pre>
+
+<p><a name="SQLPasswordSodium">
+<b>Argon2, Scrypt</b><br>
+When <code>mod_sql_passwd</code> is compiled/linked with the <a href="https://github.com/jedisct1/libsodium"><code>libsodium</code></a> library, then the
+Argon2 and Scrypt algorithms become available for use:
+<pre>
+  &lt;IfModule mod_sql_passwd.c&gt;
+    SQLPasswordEngine on
+    SQLPasswordEncoding hex
+    SQLPasswordSaltFile /path/to/salt
+  &lt;/IfModule&gt;
+
+  &lt;IfModule mod_sql.c&gt;
+    ...
+
+    # Now that mod_sql_passwd is used, we can configure "SCRYPT" as an
+    # SQLAuthType that mod_sql will handle.
+    SQLAuthTypes SCRYPT
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+The <code>scrypt</code> algorithm <b>requires</b> 32 bytes of salt data;
+lack of salt, or salt of the wrong amount, will result in authentication
+failure.  The <code>argon2</code> algorithm <b>requires</b> 16 bytes of salt
+data; lack of salt or the wrong amount will result in failure.
+
+<p>
+The <code>argon2</code> algorithm requires <code>libsodium-1.0.9</code> or
+later.
+
+<p>
+<b>Logging</b><br>
+The <code>mod_sql_passwd</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log
+channels:
+<ul>
+  <li>sql.passwd
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace sql.passwd:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p><a name="Transformations">
+<b>Processing of Password and Salt Data</b><br>
+The logical description of the processing that <code>mod_sql_passwd</code>
+does can be expressed as:
+<pre>
+  ENCODE(HASH(<i>data</i>))
+</pre>
+where <em>data</em> is comprised of the password, and possibly a salt.  The
+function <code>ENCODE()</code> is determined by
+<a href="#SQLPasswordEncoding"><code>SQLPasswordEncoding</code></a>, and
+the function <code>HASH()</code> by <code>SQLAuthTypes</code>.
+
+<p>
+Thus if we use a configuration like:
+<pre>
+  SQLAuthTypes MD5
+  SQLPasswordEncoding hex
+</pre>
+Then <code>mod_sql_passwd</code> performs the following processing:
+<pre>
+  hex(MD5(<i>data</i>))
+</pre>
+in order to calculate the value that it will compare against the password
+value stored for the authenticating client.
+
+<p>
+<b><i>Using Salts</i></b><br>
+By default, the <code>mod_sql_passwd</code> module uses the password, as
+sent by the client, as the <i>data</i> on which to perform its processing.
+In many cases, however, a <a href="http://en.wikipedia.org/wiki/Salt_(cryptography)"><i>salt</i></a> is needed in addition to the password.  The
+<a href="#SQLPasswordSaltFile"><code>SQLPasswordSaltFile</code></a> and
+<a href="#SQLPasswordUserSalt"><code>SQLPasswordUserSalt</code></a> directives
+are used to tell <code>mod_sql_passwd</code> that it should add a <i>salt</i>
+to the data before processing it.  These directives also specify whether the
+salt should be <i>prepended</i> to the password, <i>e.g.</i>:
+<pre>
+  <i>data</i> = <i>salt</i> + <i>password</i>
+</pre>
+or <i>appended</i> to the password, <i>e.g.</i>:
+<pre>
+  <i>data</i> = <i>password</i> + <i>salt</i>
+</pre>
+
+<p>
+Let's show a configuration which uses a prepended salt:
+<pre>
+  SQLAuthTypes MD5
+  SQLPasswordEncoding hex
+  SQLPasswordSaltFile /path/to/salt.data Prepend
+</pre>
+This means that <code>mod_sql_passwd</code> would end up checking the
+following computed value against the value in the database:
+<pre>
+  hex(MD5(<i>salt</i> + <i>password</i>))
+</pre>
+
+<p>
+Some sites will have even more complex requirements for how the <i>data</i>
+processed by <code>mod_sql_passwd</code> need to be constructed.  The salt
+data may need to be hashed before being used with the password, or may need
+to be hashed <i>and</i> encoded before use.  Or maybe the password data needs
+to be hashed before use with the salt, or hashed <i>and</i> encoded.  
+The <a href="#SQLPasswordOptions"><code>SQLPasswordOptions</code></a> directive
+supports options for supporting these use cases.
+
+<p>
+Each of the following examples assumes the following configuration:
+<pre>
+  SQLAuthTypes MD5
+  SQLPasswordEncoding hex
+  SQLPasswordSaltFile /path/to/salt.data Prepend
+</pre>
+Let's look at each of the <code>SQLPasswordOptions</code> in turn:
+<ul>
+  <li><code>HashPassword</code>
+    <p>
+    This option says that <code>mod_sql_passwd</code> should use the
+    <code>HASH()</code> function on the password data before using it,
+    regardless of whether a salt is used or not.  <i>I.e.</i>:
+<pre>
+  <i>data</i> = <i>salt</i> + HASH(<i>password</i>)
+</pre>
+    which assuming hex and MD5, means:
+<pre>
+  <i>data</i> = <i>salt</i> + MD5(<i>password</i>)
+</pre>
+  </li>
+
+  <p>
+  <li><code>HashSalt</code>
+    <p>
+    This option says that <code>mod_sql_passwd</code> should use the
+    <code>HASH()</code> function on the salt data before using it.
+    If no salt is used, this option is silently ignored.  Thus:
+<pre>
+  <i>data</i> = HASH(<i>salt</i>) + <i>password</i>
+</pre>
+    which assuming hex and MD5, means:
+<pre>
+  <i>data</i> = MD5(<i>salt</i>) + <i>password</i>
+</pre>
+  </li>
+
+  <p>
+  <li><code>HashEncodePassword</code>
+    <p>
+    This option says that <code>mod_sql_passwd</code> should use the
+    <code>HASH()</code> function and then the <code>ENCODE()</code> function
+    on the password data before using it.  This option is <i>only</i>
+    useful when salts are also used.  Thus:
+<pre>
+  <i>data</i> = <i>salt</i> + ENCODE(HASH(<i>password</i>))
+</pre>
+    which assuming hex and MD5, means:
+<pre>
+  <i>data</i> = <i>salt</i> + hex(MD5(<i>password</i>))
+</pre>
+    <b>Note</b>: If no salt is present, this option will be ignored.  Without
+    a salt, this option is equivalent to adding another round of transformation,
+    which is not an obvious side effect.
+  </li>
+
+  <p>
+  <li><code>HashEncodeSalt</code>
+    <p>
+    This option says that <code>mod_sql_passwd</code> should use the
+    <code>HASH()</code> function and then the <code>ENCODE()</code> function
+    on the salt data before using it.  If no salt is used, this option is
+    silently ignored.  Thus:
+<pre>
+  <i>data</i> = ENCODE(HASH(<i>salt</i>)) + <i>password</i>
+</pre>
+    which assuming hex and MD5, means:
+<pre>
+  <i>data</i> = hex(MD5(<i>salt</i>)) + <i>password</i>
+</pre>
+  </li>
+</ul>
+
+<p>
+Of course, these various options can be combined:
+<pre>
+  SQLPasswordOptions HashEncodePassword HashEncodeSalt
+</pre>
+which would cause the data on which <code>mod_sql_passwd</code> operates to
+be constructed like so:
+<pre>
+    <i>data</i> = ENCODE(HASH(<i>salt</i>)) + ENCODE(HASH(<i>password</i>))
+    <i>data</i> = hex(MD5(<i>salt</i>)) + hex(MD5(<i>password</i>))
+</pre>
+
+<p>
+<b><i>Rounds</i></b><br>
+For convenience, let's assume that the function <code>TRANSFORM</code>
+encompasses the entire <code>ENCODE(HASH())</code> operation:
+<pre>
+  TRANSFORM(<i>data</i>) = ENCODE(HASH(<i>data</i>))
+</pre>
+Let's also assume that passwords are stored in your database using something
+like this:
+<pre>
+  hex(MD5(hex(MD5(hex(MD5(<i>data</i>))))))
+</pre>
+That means that the <i>data</i> value has gone through multiple <i>rounds</i>
+of the <code>TRANSFORM</code> function, <i>e.g.</i>:
+<pre>
+  TRANSFORM(TRANSFORM(TRANSFORM(<i>data</i>)))
+</pre>
+In this case, there are 3 rounds of transformation:
+<pre>
+  for (<i>i</i> = 0; <i>i</i> &lt; <i>nrounds</i>; <i>i</i>++) {
+    <i>data</i> = TRANSFORM(<i>data</i>)
+  }
+</pre>
+
+<p>
+Using the above example case, you would configure <code>mod_sql_passwd</code>
+to perform multiple rounds of transformation using the
+<a href="#SQLPasswordRounds"><code>SQLPasswordRounds</code></a> directive,
+like so:
+<pre>
+  SQLAuthTypes MD5
+  SQLPasswordEncoding hex
+  SQLPasswordRounds 3
+</pre>
+The combination of <code>SQLPasswordOptions</code> and
+<code>SQLPasswordRounds</code> means that quite few combinations of password
+values can be supported by the <code>mod_sql_passwd</code> module.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2009-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

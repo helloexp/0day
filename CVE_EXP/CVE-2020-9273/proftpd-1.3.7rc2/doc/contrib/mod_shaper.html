@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_shaper</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_shaper</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_shaper</code> module is designed to split overall rates, both
+download and upload, for the <code>proftpd</code> daemon among all connected
+FTP clients, shaping each session to use only a portion of the overall rate.
+<code>mod_shaper</code> shapes both <i>transmitted</i> traffic,
+<i>e.g.</i> bits being downloaded via the <code>RETR</code> command, and
+<i>received</i> traffic, <i>e.g.</i> bits being uploaded via the
+<code>APPE</code>, <code>STOR</code>, and <code>STOU</code> commands.
+
+<p>
+This module is contained in the <code>mod_shaper.c</code> file for
+ProFTPD 1.2.<i>x</i>/1.3.<i>x</i>, and is not compiled by default.
+Installation instructions are discussed <a href="#Installation">here</a>.
+Detailed documentation on <code>mod_shaper</code> usage can be found
+<a href="#Usage">here</a>.
+
+<p>
+The most current version of <code>mod_shaper</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#ShaperAll">ShaperAll</a>
+  <li><a href="#ShaperControlsACLs">ShaperControlsACLs</a>
+  <li><a href="#ShaperEngine">ShaperEngine</a>
+  <li><a href="#ShaperLog">ShaperLog</a>
+  <li><a href="#ShaperSession">ShaperSession</a>
+  <li><a href="#ShaperTable">ShaperTable</a>
+</ul>
+
+<h2>Control Actions</h2>
+<ul>
+  <li><a href="#shaper_all"><code>shaper all</code></a>
+  <li><a href="#shaper_info"><code>shaper info</code></a>
+  <li><a href="#shaper_sess"><code>shaper sess</code></a>
+</ul>
+
+<p>
+<hr>
+<h3><a name="ShaperAll">ShaperAll</a></h3>
+<strong>Syntax:</strong> ShaperAll <em>[&quot;priority&quot; num] [&quot;rate&quot; num] [&quot;downrate&quot; num] [&quot;uprate&quot; num] [&quot;shares&quot; num] [&quot;downshares&quot; num] [&quot;upshares&quot; num]</em><br>
+<strong>Default:</strong> ShaperAll priority 10 rate -1.0 shares 5<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_shaper<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ShaperAll</code> directive is used to configure the overall
+<code>mod_shaper</code> settings: the rate for the entire daemon, the
+default shares for shaped sessions, and the default priority for shaped
+sessions.  If specified, the <em>priority</em> cannot be a negative number,
+the <em>rates</em> are in KB/s and must be greater than zero, and the
+<em>shares</em> must be greater than one.  For configuring the priority and
+shares for individual sessions, use the <code>ShaperSession</code> directive.
+
+<p>
+The <em>rate</em> parameter sets both the <em>downrate</em> (<i>i.e.</i>
+download rate <b>from</b> the server) and the <em>uprate</em> (<i>i.e.</i> the
+upload rate <b>to</b> the server) at the same time.  Use <em>downrate</em> and
+<em>uprate</em> if you wish to configure different rates for downloads and
+uploads.  Similarly, the <em>shares</em> parameter sets both
+<em>downshares</em> and <em>upshares</em>.
+
+<p>
+The default <em>rate</em> is -1.0, which means that in order for
+<code>mod_shaper</code> to function properly, a rate, either <em>rate</em>,
+<em>downrate</em> or <em>uprate</em>, <b>must</b> be specified.
+The default shares setting is 5, the default priority is 10.
+
+<p>
+Examples:
+<pre>
+  # Change the overall daemon rate to 100 KB/s
+  ShaperAll rate 100
+
+  # Give 20 shares to each session by default, and have an overall rate of 1000
+  ShaperAll rate 1000 shares 20
+
+  # Have a larger number of downshares than upshares
+  ShaperAll rate 1000 downshares 2000 upshares 20
+
+  # Configure separate download and upload rates
+  ShaperAll downrate 1000 uprate 500
+</pre>
+
+<p>
+See also: <a href="#ShaperSession"><code>ShaperSession</code></a>
+
+<p>
+<hr>
+<h3><a name="ShaperControlsACLs">ShaperControlsACLs</a></h3>
+<strong>Syntax:</strong> ShaperControlsACLs <em>actions|&quot;all&quot; &quot;allow&quot;|&quot;deny&quot; &quot;user&quot;|&quot;group&quot; list</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_shaper<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ShaperControlsACLs</code> directive configures access lists of
+<em>users</em> or <em>groups</em> who are allowed (or denied) the ability to
+use the <em>actions</em> implemented by <code>mod_shaper</code>. The default
+behavior is to deny everyone unless an ACL allowing access has been explicitly
+configured.
+
+<p>
+If &quot;allow&quot; is used, then <em>list</em>, a comma-delimited list
+of <em>users</em> or <em>groups</em>, can use the given <em>actions</em>; all
+others are denied.  If &quot;deny&quot; is used, then the <em>list</em> of
+<em>users</em> or <em>groups</em> cannot use <em>actions</em> all others are
+allowed.  Multiple <code>ShaperControlsACLs</code> directives may be used to
+configure ACLs for different control actions, and for both users and groups.
+
+<p>
+The <em>actions</em> provided by <code>mod_shaper</code> are &quot;all&quot;,
+&quot;info&quot;, and &quot;sess&quot;.
+
+<p>
+Examples:
+<pre>
+  # Allow only user root to alter the overall settings
+  ShaperControlsACLs all allow user root
+
+  # Allow the ftpadm group to shape current sessions
+  ShaperControlsACLs sess allow group ftpadm
+
+  # Allow everyone but user bob to see the current shaper stats
+  ShaperControlsACLs info deny user bob
+</pre>
+
+<p>
+<hr>
+<h3><a name="ShaperEngine">ShaperEngine</a></h3>
+<strong>Syntax:</strong> ShaperEngine <em>on|off</em><br>
+<strong>Default:</strong> off<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_shaper<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ShaperEngine</code> directive enables or disables the
+&quot;shaping&quot; of sessions by <code>mod_shaper</code>.  If it is set to
+<em>off</em> this module does no shaping of transmitted traffic. Use this
+directive to disable the module instead of commenting out all
+<code>mod_shaper</code> directives.
+
+<p>
+<hr>
+<h3><a name="ShaperLog">ShaperLog</a></h3>
+<strong>Syntax:</strong> ShaperLog <em>path|&quot;none&quot;</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_shaper<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ShaperLog</code> directive is used to specify a log file for
+<code>mod_shaper</code> reporting and debugging. The <em>path</em> parameter
+must be the full path to the file to use for logging.  Note that this path must
+<b>not</b> be to a world-writeable directory and, unless
+<code>AllowLogSymlinks</code> is explicitly set to <em>on</em>
+(generally a bad idea), the path must <b>not</b> be a symbolic link.
+
+<p>
+If <em>path</em> is &quot;none&quot;, no logging will be done at all.
+
+<p>
+<hr>
+<h3><a name="ShaperSession">ShaperSession</a></h3>
+<strong>Syntax:</strong> ShaperSession <em>[&quot;priority&quot; num] [&quot;shares&quot; +|-num] [&quot;downshares&quot; +|-num] [&quot;upshares&quot; +|-num]</em><br>
+<strong>Default:</strong> ShaperSession priority 10<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code><br>
+<strong>Module:</strong> mod_shaper<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ShaperSession</code> directive is used to set shaping data on a
+per-session basis.  It is intended to be used within <code>mod_ifsession</code>
+conditional configuration blocks.  If used, the <em>priority</em> must not
+be a negative number.  The <em>shares</em> parameters must start with '+' or
+'-'; these values <i>adjust</i> the default numbers of shares allotted to a
+session, increasing or reducing the sessions's shares.  The
+<code>ShaperAll</code> directive is used for configuring overall shaping
+data.
+
+<p>
+The <em>shares</em> parameter sets both the <em>downshares</em> (<i>i.e.</i>
+shares of the download rate) and the <em>upshares</em> (<i>i.e.</i> shares of
+the upload rate) at the same time.  Use <em>downshares</em> and
+<em>upshares</em> if you wish to configure different shares for downloads and
+uploads for the session.
+
+<p>
+Example:
+<pre>
+  # Reward my friends
+  ShaperSession shares +2
+
+  # Punish my enemies
+  ShaperSession shares -4
+
+  # Allow for finer control over downloads by allocating more download
+  # shares than upload shares for this session
+  ShaperSession downshares +3 upshares -1
+
+  # Let &lt;Directory&gt;-level TransferRate directives take priority
+  ShaperSession priority 3
+</pre>
+
+<p>
+See also: <a href="#ShaperAll"><code>ShaperAll</code></a>
+
+<p>
+<hr>
+<h3><a name="ShaperTable">ShaperTable</a></h3>
+<strong>Syntax:</strong> ShaperTable <em>path</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_shaper<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ShaperTable</code> directive configures a <em>path</em> to a file
+that <code>mod_shaper</code> uses for storing its shaping data.  The given
+<em>path</em> must be an absolute path.  <b>Note</b>: this directive is
+<b>required</b> for <code>mod_shaper</code> to function.
+
+<p>
+<hr>
+<h2>Control Actions</h2>
+
+<p>
+<hr>
+<h3><a name="shaper_all"><code>shaper all</code></a></h3>
+<strong>Syntax:</strong> ftpdctl shaper all <em>[priority num] [rate num] [downrate num] [uprate num] [shares num] [downshares num] [upshares num]</em><br>
+<strong>Purpose:</strong> Alter overall mod_shaper settings<br>
+
+<p>
+The <code>shaper all</code> action is used to change the overall
+<code>mod_shaper</code> settings on-the-fly.  If specified, the
+<em>priority</em> cannot be a negative number, the <em>rates</em> are in KB/s
+and must be greater than zero, and the <em>shares</em> must be greater than
+one.  For changing the priority and shares for individual sessions, use the
+<code>shaper sess</code> control action.
+
+<p>
+The <em>rate</em> parameter sets both the <em>downrate</em> (<i>i.e.</i>
+download rate <b>from</b> the server) and the <em>uprate</em> (<i>i.e.</i> the
+upload rate <b>to</b> the server) at the same time.  Use <em>downrate</em> and
+<em>uprate</em> if you wish to configure different rates for downloads and
+uploads.  Similarly, the <em>shares</em> parameter sets both
+<em>downshares</em> and <em>upshares</em>.
+
+<p>
+For example, to set the overall rate for the entire daemon to be 2000 KB/s:
+<pre>
+  ftpdctl shaper all rate 2000
+</pre>
+To give every session 10 shares, both downshares and upshares, by default:
+<pre>
+  ftpdctl shaper all shares 10
+</pre>
+To set the default priority for sessions:
+<pre>
+  ftpdctl shaper all priority 3
+</pre>
+Note that multiple parameters can also be used simultaneously:
+<pre>
+  ftpdctl shaper all rate 2000 shares 10 priority 3
+</pre>
+
+<p>
+See also: <a href="#shaper_sess"><code>shaper sess</code></a>
+
+<p>
+<hr>
+<h3><a name="shaper_info"><code>shaper info</code></a></h3>
+<strong>Syntax:</strong> ftpdctl shaper info<br>
+<strong>Purpose:</strong> Print information about current shaped sessions<br>
+
+<p>
+The <code>shaper info</code> control action can be used to view information
+on currently shaped sessions.  This includes the current overall rate, the
+default number of shares per session, and the total number of currently
+shaped sessions.  It also lists the following for each shaped session:
+process ID (PID), priority, downshare (&quot;D&quot;) and upshare
+(&quot;U&quot;) adjustments, and session downrate and uprate.
+
+<p>
+Example listing:
+<pre>
+  # ftpdctl shaper info
+  ftpdctl: Overall Rates: 1000.00 KB/s down, 500.00 KB/s up
+  ftpdctl: Default Shares Per Session: 10 down, 10 up
+  ftpdctl: Default Priority: 2
+  ftpdctl: Number of Shaped Sessions: 2
+  ftpdctl: PID   Priority DShares        DRate (KB/s) UShares        URate (KB/s)
+  ftpdctl: ----- -------- -------------- ------------ -------------- ------------
+  ftpdctl: 21750        2     12/24 (+2)       500.00      7/14 (-3)       250.00
+  ftpdctl: 21753        2     12/24 (+2)       500.00      7/14 (-3)       250.00
+
+</pre>
+The &quot;DShares&quot; and &quot;UShares&quot; columns are formatted as:
+<pre>
+  shares<sub>session</sub>/shares<sub>total</sub> (<i>+|-</i>shares<sub>adjust</sub>)
+</pre>
+The <code>+2</code> and <code>-3</code> in the listing above is due to a
+<code>ShaperSession</code> affecting these sessions:
+<pre>
+  ShaperSession downshares +2 upshares -3
+</pre>
+
+<p>
+<hr>
+<h3><a name="shaper_sess"><code>shaper sess</code></a></h3>
+<strong>Syntax:</strong> ftpdctl shaper sess <em>class|host|user name [priority num] [shares +|-num]</em><br>
+<strong>Purpose:</strong> Alter specific session's mod_shaper settings<br>
+
+<p>
+The <code>shaper sess</code> action is used to change session-specific shaping
+data on-the-fly.  If given, the <em>priority</em> must not be a
+negative number.  The <em>shares</em> parameters must start with '+' or '-';
+these values adjust the default numbers of shares allotted to a session,
+increasing or reducing the sessions's shares.
+
+<p>
+The <em>shares</em> parameter sets both the <em>downshares</em> (<i>i.e.</i>
+shares of the download rate) and the <em>upshares</em> (<i>i.e.</i> shares of
+the upload rate) at the same time.  Use <em>downshares</em> and
+<em>upshares</em> if you wish to configure different shares for downloads and
+uploads for the session.  
+
+<p>
+This example gives user <code>alex</code> an additional 10 shares:
+<pre>
+  ftpdctl shaper sess user alex shares +10
+</pre>
+The following sets the priority for host <code>cache.example.com</code> such
+that <code>TransferRate</code> directives in <code>&lt;Anonymous&gt;</code>
+sections, <code>&lt;Directory&gt;</code> sections and <code>.ftpacccess</code>
+files have precedence (see the <a href="#Usage">usage</a> instructions for
+more details on priority):
+<pre>
+  ftpdctl shaper sess host cache.example.com priority 2
+</pre>
+One can even change the settings on entire Classes of sessions:
+<pre>
+  ftpdctl shaper sess class proxy downshares -3 priority 1
+</pre>
+
+<p>
+See also: <a href="#shaper_all"><code>shaper all</code></a>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_shaper</code> module is distributed with ProFTPD.  Follow the
+usual steps for using third-party modules in ProFTPD, making sure to include
+the <code>--enable-ctrls</code> configure option, which
+<code>mod_shaper</code> requires:
+<pre>
+  $ ./configure --enable-ctrls --with-modules=mod_shaper
+</pre>
+To build <code>mod_shaper</code> as a DSO module:
+<pre>
+  $ ./configure --enable-ctrls --enable-dso --with-shared=mod_shaper
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make 
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your <code>proftpd</code> was compiled with DSO support, you
+can use the <code>prxs</code> tool to build <code>mod_shaper</code> as a shared
+module:
+<pre>
+  $ prxs -c -i -d mod_shaper.c
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+
+<p>
+The <code>ShaperTable</code> is used to hold overall rates, both download
+and upload, for the entire daemon, the default number of shares and the
+default priority for each session.  Then there is a list of shaping data for
+each particular session.  To determine the portion of the overall rate that a
+session gets, <code>mod_shaper</code> calculates the total number of shares,
+and divides the overall rate by the total number of shares, resulting in a
+rate-per-share value:
+<pre>
+  rate<sub>total</sub> / shares<sub>total</sub> = rate<sub>share</sub>
+</pre>
+The rate for a session is then the rate-per-share multiplied by the number
+of shares for that session:
+<pre>
+  rate<sub>share</sub> * shares<sub>session</sub> = rate<sub>session</sub>
+</pre>
+Whenever a session starts or ends, <code>mod_shaper</code> recalculates the
+total number of shares and each session's rate, thus always adjusting values
+for each session so that the total of the session transfer rates never
+exceeds the overall <code>mod_shaper</code> rate.  This means that
+<code>mod_shaper</code> divides the overall rate among <b>all</b> sessions
+(unless exempted), not just those sessions that are currently transferring
+files.  Only if all shaped sessions are transferring data simultaneously will
+the overall rates be reached.  Note that this calculation is performed
+separately for downloads and for uploads; sessions can have different shares
+of the download and upload rates.
+
+<p>
+Also, the transfer rate is calculated at the start of each transfer; the core
+<code>proftpd</code> engine does not recalculate the rate <i>during</i>
+the data transfer.  This means, for example, that if a session gets 100 KB/s
+and starts a transfer, then a second session begins and gets 50 KB/s, the first
+session's transfer will continue to get 100 KB/s, until that transfer ends.
+The next transfer started by the first session would then get 50 KB/s, just
+like the second session.
+
+<p>
+By default, <code>mod_shaper</code> allots 5 shares for every session.
+Increasing the default number of shares for a session (using the
+<code>ShaperAll</code> configuration directive or the <code>shaper all</code>
+control action) does <b>not</b> increase the rate used by every session.  If
+every session has the same number of shares, then the overall rate is divided
+evenly among the sessions; a higher default shares value results in a smaller
+rate-per-share value.
+
+<p>
+What is the benefit of increasing the default shares setting, then?  It
+allows for finer-grained tuning of shaped sessions, using the
+<code>ShaperSession</code> directive and the <code>shaper sess</code>
+control actions.  An example: given an overall rate of 100 KB/s, a default
+shares of 1, and 4 sessions, the rate-per-share will be 25 KB/s
+(100 / 4 = 25), and since each session has 1 share, the download rate for
+each session is 25 KB/s.  Now, what if you want to change these setting
+on-the-fly, allow one of the sessions a higher transfer rate, and reduce the
+transfer rate for another session?  You could add another share to the session
+for user <code>dave</code>:
+<pre>
+  ftpdctl sess user dave shares +1
+</pre>
+After this, the rate-per-share is 20 KB/s. The session belonging to user
+<code>dave</code> now has 2 shares, which means it has a download rate of
+40 KB/s; the other sessions now have download rates of 20 KB/s.  What about
+reducing the rate for one of the other sessions, one belonging to user
+ <code>anonymous</code>?  One might think that:
+<pre>
+  ftpdctl sess user ftp shares -1
+</pre>
+would work.  It will not.  You cannot reduce the number of shares for a
+given session below 1.  <code>mod_shaper</code> rules do not allow this.
+However, if the default shares setting was higher, like 5 or 10, then the
+administrator would have enough shares for reducing a session's rate.  The
+more default shares, the smaller the rate-per-share value, and thus the
+finer control, by adding or removing smaller increments, the administrator
+has over the shaped sessions.
+
+<p>
+<code>mod_shaper</code> uses the same mechanism that the standard
+<code>proftpd</code> configuration directive, <code>TransferRate</code>, uses
+for controlling a session's download rate.  Using the same mechanism, though, 
+means that <code>mod_shaper</code> may interfere with any
+<code>TransferRate</code> directives in your <code>proftpd.conf</code>.
+Which takes priority, <code>mod_shaper</code> or <code>TransferRate</code>?
+This is handled by assigning a <i>priority</i> to each each shaped
+session.  The priority for <code>TransferRate</code> directives depends on
+the configuration context in which the directive appears:
+<p>
+<b>TransferRate Priority</b><br>
+<table border=1 summary="TransferRate Priorities">
+  <tr>
+    <td align=left><i>Context</i></td>
+    <td align=left><i>Priority</i></td>
+  </tr>
+  <tr>
+    <td align=left><code>&lt;Global&gt;</code></td>
+    <td align=right>1</td>
+  </tr>
+  <tr>
+    <td align=left>server config</td>
+    <td align=right>2</td>
+  </tr>
+  <tr>
+    <td align=left><code>&lt;VirtualHost&gt;</code></td>
+    <td align=right>2</td>
+  </tr>
+  <tr>
+    <td align=left><code>&lt;Anonymous&gt;</code></td>
+    <td align=right>3</td>
+  </tr>
+  <tr>
+    <td align=left><code>&lt;Directory&gt;</code></td>
+    <td align=right>4</td>
+  </tr>
+  <tr>
+    <td align=left><code>.ftpaccess</code></td>
+    <td align=right>5</td>
+  </tr>
+</table>
+<p>
+The default priority assigned to <code>mod_shaper</code> sessions is 10.
+This means that <code>mod_shaper</code> takes precedence over
+<code>TransferRate</code>.  However, if the site administrator needs
+<code>&lt;Directory&gt;</code>-level or <code>.ftpaccess</code>-level
+<code>TransferRate</code> directives to take priority, then the
+<code>ShaperSession</code> directive and <code>shaper sess</code> control
+action can be used to assign a priority to shaped sessions that is lower
+than that for <code>&lt;Directory&gt;</code> and <code>.ftpaccess</code>.
+
+<p>
+<b>Configuring <code>mod_shaper</code></b><br>
+Now that you know how the module works, it's time to see how to construct
+a <code>proftpd.conf</code> that enforces the desired shaper policy.
+Configuration directives that affect the shaping of sessions have control
+action equivalents, <i>i.e.</i> <a href="#ShaperAll"><code>ShaperAll</code></a>
+and <a href="#shaper_all"><code>shaper all</code></a>,
+<a href="#ShaperSession"><code>ShaperSession</code></a> and
+<a href="#shaper_sess"><code>shaper sess</code></a>.
+
+<p>
+This example <code>mod_shaper</code> configuration uses the defaults and
+shapes all sessions:
+<pre>
+  &lt;IfModule mod_shaper.c&gt;
+    ShaperEngine on
+    ShaperLog /var/log/ftpd/shaper.log
+    ShaperTable /var/log/ftpd/shaper.tab
+
+    # An overall rate (in KB/s) <b>must</b> be set.  This line explicitly
+    # sets both the download and upload rates to be the same.
+    ShaperAll downrate 1500 uprate 1500
+
+    # Allow all system users to see shaper info
+    ShaperControlsACLs info allow user *
+
+    # Allow FTP admins to alter settings both overall and per-session
+    ShaperControlsACLs all,sess allow group ftpadm
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+To exclude some user from having their sessions shaped by
+<code>mod_shaper</code>, use <code>mod_ifsession</code> for a configuration
+that adds the following:
+<pre>
+  &lt;IfModule mod_shaper.c&gt;
+    &lt;IfUser lucky&gt;
+      ShaperEngine off
+    &lt;/IfUser&gt;
+  &lt;/IfModule&gt;
+</pre>
+which says &quot;If <code>mod_shaper</code> is present, and if the user logging
+in is named 'lucky', then disable <code>mod_shaper</code> for this
+session.&quot;  Note that sessions that are not shaped by
+<code>mod_shaper</code> cannot be shaped once the user has logged in.  Normal
+<code>TransferRate</code> directives will still apply to non-shaped sessions.
+
+<p>
+Similarly, you may wish to have a user that should have a greater portion
+of the overall download rate available to them:
+<pre>
+  &lt;IfModule mod_shaper.c&gt;
+    &lt;IfUser lucky&gt;
+      ShaperSession downshares +5
+    &lt;/IfUser&gt;
+  &lt;/IfModule&gt;
+</pre>
+This gives user <code>lucky</code> an additional 5 shares of the download rate,
+on top of the default number of shares for a session.  Users can likewise have
+their default number of shares reduced, if necessary:
+<pre>
+  &lt;IfModule mod_shaper.c&gt;
+    &lt;IfGroup anonftp&gt;
+      ShaperSession downshares -3
+    &lt;/IfUser&gt;
+  &lt;/IfModule&gt;
+</pre>
+The control actions supported by <code>mod_shaper</code> can also be used,
+while the daemon and sessions are running, to set the desired shaping values.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2004-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

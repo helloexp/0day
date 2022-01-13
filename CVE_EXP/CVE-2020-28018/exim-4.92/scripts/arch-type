@@ -1,0 +1,74 @@
+#! /bin/sh
+
+# Shell script to determine the architecture type.
+
+# If EXIM_ARCHTYPE is set, use it. This allows a manual override.
+
+case "$EXIM_ARCHTYPE" in ?*) arch="$EXIM_ARCHTYPE";; esac
+
+# Otherwise, try to get a value from the uname command. When uname -p gives
+# "unknown" or something containing spaces, try -m.
+
+case "$arch" in '') arch=`uname -p 2> /dev/null`;; esac
+case "$arch" in ''|unknown|*\ *) arch=`uname -m 2> /dev/null`;; esac
+
+# Otherwise, see if ARCHTYPE is set. Some versions of NetBSD set it to
+# "NetBSD", which isn't very helpful. However, we expect uname to have
+# worked under NetBSD, so this shouldn't matter.
+
+case "$arch" in '') arch="$ARCHTYPE";; esac
+
+# Otherwise, as a cheap test, try shell's HOSTTYPE, but as tcsh sometimes sets
+# it to the OS name, ignore it if running with tcsh.
+
+case "$SHELL" in ?*tcsh) HOSTTYPE="";; esac
+
+case "$arch++$HOSTTYPE" in
+++?*) arch="$HOSTTYPE"
+      # Fix up disagreements :-)
+      case "$arch" in
+      sun4*)    arch=sparc;;
+
+# Comment by Vadim Vygonets:
+# Maybe sun4/sun4c/sun4m and sun4u (or whatever else they call the
+# Ultras, sparc64?) should be different platforms.  Maybe not.
+# NetBSD and OpenBSD (the latter is not supported) think about them
+# as different platforms.  Solaris doesn't seem to.  I have no idea
+# about Linux.
+
+      sgi)      arch=mips;;
+      MIPSEL)   arch=mips;;
+      esac
+      ;;
+esac
+
+# Give up if failed.
+
+case "$arch" in
+'') echo "" 1>&2
+    echo "*** Failed to determine the machine architecture type." 1>&2
+    echo "" 1>&2
+    echo UnKnown
+    exit 1;;
+esac
+
+# Get rid of any gash characters in the string
+
+arch=`echo $arch | sed 's,[^-+_.a-zA-Z0-9],,g'`
+
+# Some further fixups needed
+
+case "$arch" in
+i[3456]86*)         arch=i386;;
+RISC)               arch=mips;;     # MIPS Ultrix
+IP22)               arch=mips;;
+9000[78][0-9][0-9]) arch=hp9000s700;;
+9000[34][0-9][0-9]) arch=hp9000s400;;
+3050R)              arch=3050;;
+esac
+
+# OK, the script seems to have worked. Pass the value back.
+
+echo "$arch"
+
+# End of arch-type

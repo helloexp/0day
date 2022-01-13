@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Virtual Users</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Virtual Users</b></h2></center>
+<hr>
+
+<p>
+The core <code>proftpd</code> daemon access all user information via
+an Auth API.  This API hides all of the details of where user information
+is stored, how to retrieve it, <i>etc</i> from the core engine and modules.
+This abstraction allows for multiple simultaneous different authentication
+layers or mechanisms to be configured.  It is also because of this
+abstraction that <code>proftpd</code> does not &quot;know&quot; the difference
+between a system user and a virtual user; all users are the same.
+
+<p>
+<b>Frequently Asked Questions</b>
+
+<p><a name="Definition"></a>
+<font color=red>Question</font>: What makes a user &quot;virtual&quot;, then?<br>
+<font color=blue>Answer</font>: A virtual user is, quite simply, a user that
+is <i>not</i> defined in the system <code>/etc/passwd</code> file.  This file
+associates a user name, given by the system administrator, to a user ID
+(commonly shortened to UID) and a group ID (GID), among other details.  The
+Unix kernel does <b>not</b> deal with users in terms of their user names; it
+only &quot;knows&quot; about UIDs and GIDs.  This means that an application
+like <code>proftpd</code> can look up the IDs to use for a given user name
+however it sees fit.  Using <code>/etc/passwd</code> is not strictly required.
+
+<p>
+Defining users outside of <code>/etc/passwd</code> means that system utilities
+like <code>ls</code> and <code>chown</code> do not work as expected.  When
+first setting up virtual users, most system administrators will experience
+this as permissions problems.  Virtual users will not be able to login, or
+they can login but not upload or download files.  Or when the administrator
+lists the files uploaded by virtual users, those files will have the wrong
+owner names.
+
+<p>
+The permissions problems are almost always caused by ID mismatch.  That is,
+the UID and/or GID of the virtual user will not match the UID and/or GID
+owner of their home directory (or whichever directory is having problems).
+The key here is to change the ownership of the virtual user's directories
+using <code>chown</code> <i>and IDs</i>, rather than names.  The
+<code>chown</code> utility can set ownership by ID just as easily as by
+name.  Most <code>chown</code> examples show setting ownership by name,
+but that means <code>chown</code> would look up the IDs for that name via
+<code>/etc/passwd</code>, which, as noted above, will not work for virtual
+users.
+
+<p>
+By default, <code>ls</code> lists the names of file owners by looking up those
+names in <code>/etc/passwd</code>.  This is why listing files of virtual
+users will often show incorrect names; <code>ls</code> has no knowledge
+of virtual user names.  When working with files created by virtual users, use
+<code>ls -n</code> so that you can see the IDs, not the names, associated with
+those files.  You will then need to manually make sure those IDs are the
+correct ones for the file.
+
+<p><a name="IDs"></a>
+<font color=red>Question</font>: Which IDs should I use for my virtual users?<br>
+<font color=blue>Answer</font>: It does not matter.  The only UID and GID
+which are special are UID 0 (zero) and GID 0 (zero).  These IDs are used
+for user <code>root</code> and group <code>root</code>; do <b>not</b> assign
+these IDs to your virtual users unless you absolutely trust those users.
+
+<p>
+Other than that, you are free to use any IDs you like.  It is generally
+a good idea to use IDs for your virtual users that are not already in use
+in <code>/etc/passwd</code>, in order to keep the privileges of your
+system users separate from the privileges of your virtual users; privileges
+are determined by IDs.  However, in some cases (such as using ProFTPD
+for FTP access to websites), you may want all of your virtual users to
+run as the web server user, <i>e.g.</i> user &quot;www&quot; or user
+&quot;apache&quot;.  Use the IDs that make the most sense for your site
+needs.
+
+<p>
+One related question often asked is &quot;Can I have my virtual users have
+the same IDs?&quot;  Yes, you can.  This means that all of those virtual
+users would have the exact same privileges.  If you use this approach,
+make sure those virtual users are all confined to separate home (or web site)
+directories by using:
+<pre>
+  DefaultRoot ~
+</pre>
+in your <code>proftpd.conf</code>.  This means that even though those
+virtual users would all have the same privileges, they would be unable to see
+and affect each others' files since they would all be separated in different
+directories.
+
+<p><a name="Location"></a>
+<font color=red>Question</font>: If virtual users are not defined in the system <code>/etc/passwd</code> file, then where <i>are</i> they defined?<br>
+<font color=blue>Answer</font>: There are several other locations where
+user information can be stored, <i>e.g.</i> <code>AuthUserFiles</code>,
+LDAP directories, SQL databases, and RADIUS servers.  Note that virtual
+users are <b>not</b> defined in the <code>proftpd.conf</code> file directly.
+
+<p>
+One of the simplest virtual user authentication mechanisms is the
+<code>AuthUserFile</code>, which is a flat text file in the same format as
+the system <code>/etc/passwd</code> file.  For more information on the
+details, see the <a href="AuthFiles.html">AuthFiles</a> howto.
+The <code>AuthUserFile</code> configuration directive is handled by the
+<code>mod_auth_file</code> module, whose documentation can be found
+<a href="../modules/mod_auth_file.html">here</a>.
+
+<p>
+Once you have created your <code>AuthUserFile</code> and
+<code>AuthGroupFile</code> with the <code>ftpasswd</code> tool, you configure
+your <code>proftpd</code> to use those files by adding the following directives
+to your <code>proftpd.conf</code>:
+<pre>
+  AuthUserFile /path/to/ftpd.passwd
+  AuthGroupFile /path/to/ftpd.group
+</pre>
+The <code>ftpasswd</code> tool is a Perl script, distributed with the
+ProFTPD source code, under the <code>contrib/</code> directory.  A copy
+can also be found <a href="https://github.com/proftpd/proftpd/blob/master/contrib/ftpasswd">on GitHub</a>.
+
+<p>
+Another very popular authentication mechanism used for virtual users is a SQL
+database such as MySQL or Postgres.  This mechanism is supported by ProFTPD's
+<code>mod_sql</code> module; more information on using <code>mod_sql</code>
+can be found in the <a href="SQL.html">SQL</a> howto, and the
+<code>mod_sql</code> <a href="../contrib/mod_sql.html">documentation</a>.
+
+<p>
+Some sites still experience permissions issues, even though everything appears
+to be configured properly.  If this happens, define an
+<a href="../contrib/mod_sql.html#SQLLogFile"><code>SQLLogFile</code></a> in your <code>proftpd.conf</code>:
+<pre>
+  SQLLogFile /path/to/mod_sql.log
+</pre>
+This log file will show which IDs the <code>mod_sql</code> module is
+assigning to users/groups looked up by <code>proftpd</code>.  If the IDs
+are <b>not</b> what you have in your SQL tables, then you need to use the
+following directives:
+<a href="../contrib/mod_sql.html#SQLMinUserUID"><code>SQLMinUserUID</code></a>, <a href="../contrib/mod_sql.html#SQLMinUserGID"><code>SQLMinUserGID</code></a>, and <a href="../contrib/mod_sql.html#SQLMinUserID"><code>SQLMinUserID</code></a>.  The <code>mod_sql</code> module contains some default limits
+on the range of IDs it returns; the above directives are used to tweak those
+default limits.
+
+<p>
+User documentation for the <code>mod_ldap</code> module (for virtual users via
+LDAP directories) and <code>mod_radius</code> module (for virtual users via
+RADIUS servers) is not yet complete.
+
+<p>
+<b>Important</b>: <code>proftpd</code> will use <b>all</b> authentication
+mechanisms <b>by default</b>.  This is why a user that does not appear
+in an <code>AuthUserFile</code>, but <b>is</b> defined in the
+system <code>/etc/passwd</code> file, can login by default.  Use the
+<code>AuthOrder</code> configuration directive to change this.  This
+directive is explained in more detail in the
+<a href="Authentication.html">Authentication</a> howto.
+
+<p><a name="UsingAnonymous"></a>
+<font color=red>Question</font>: But I've seen examples that use the <code>&lt;Anonymous&gt;</code> section for virtual users.  Why don't you mention this?<br>
+<font color=blue>Answer</font>:  The <code>&lt;Anonymous&gt;</code> context
+should <b>never</b> be used to define a virtual user.  This type of
+configuration is a crude hack, leftover from ProFTPD's early days.  Using
+an <code>AuthUserFile</code> is better supported, better documented, more
+flexible, and more in line with ProFTPD's design philosophy.
+
+<p><a name="PAM"></a>
+<font color=red>Question</font>: What about using PAM for virtual users?<br>
+<font color=blue>Answer</font>: Please read the
+<a href="Authentication.html">Authentication</a> howto.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

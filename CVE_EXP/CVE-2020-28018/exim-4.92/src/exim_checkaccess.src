@@ -1,0 +1,181 @@
+#! /bin/sh
+
+# Copyright (c) University of Cambridge, 1995 - 2007
+# See the file NOTICE for conditions of use and distribution.
+
+# Except when they appear in comments, the following placeholders in this
+# source are replaced when it is turned into a runnable script:
+#
+# CONFIGURE_FILE_USE_NODE
+# CONFIGURE_FILE
+# BIN_DIRECTORY
+# PERL_COMMAND
+
+# PROCESSED_FLAG
+
+# A shell+perl wrapper script to run an automated -bh test to check out
+# ACLs for incoming addresses.
+
+# Save the shell arguments because we are going to need the shell variables
+# while sorting out the configuration file.
+
+args="$@"
+
+# See if this installation is using the esoteric "USE_NODE" feature of Exim,
+# in which it uses the host's name as a suffix for the configuration file name.
+
+if [ "CONFIGURE_FILE_USE_NODE" = "yes" ]; then
+  hostsuffix=.`uname -n`
+fi
+
+# Now find the configuration file name. This has got complicated because
+# CONFIGURE_FILE may now be a list of files. The one that is used is the first
+# one that exists. Mimic the code in readconf.c by testing first for the
+# suffixed file in each case.
+
+set `awk -F: '{ for (i = 1; i <= NF; i++) print $i }' <<End
+CONFIGURE_FILE
+End
+`
+while [ "$config" = "" -a $# -gt 0 ] ; do
+  if [ -f "$1$hostsuffix" ] ; then
+    config="$1$hostsuffix"
+  elif [ -f "$1" ] ; then
+    config="$1"
+  fi
+  shift
+done
+
+# Search for an exim_path setting in the configure file; otherwise use the bin
+# directory. BEWARE: a tab character is needed in the command below. It has had
+# a nasty tendency to get lost in the past. Use a variable to hold a space and
+# a tab to keep the tab in one place.
+
+exim_path=`perl -ne 'chop;if (/^\s*exim_path\s*=\s*(.*)/){print "$1\n";last;}' $config`
+if test "$exim_path" = ""; then exim_path=BIN_DIRECTORY/exim; fi
+
+
+#########################################################################
+
+
+# Now run the perl script, passing in the Exim path and the arguments given
+# to the overall script.
+
+PERL_COMMAND - $exim_path $args <<'End'
+
+BEGIN { pop @INC if $INC[-1] eq '.' };
+use FileHandle;
+use File::Basename;
+use IPC::Open2;
+
+if ($ARGV[0] eq '--version') {
+    print basename($0) . ": $0\n",
+          "build: EXIM_RELEASE_VERSIONEXIM_VARIANT_VERSION\n",
+          "perl(runtime): $]\n";
+          exit 0;
+}
+
+if (scalar(@ARGV) < 3)
+  {
+  print "Usage: exim_checkaccess <IP address> <email address> [exim options]\n";
+  exit(1);
+  }
+
+$exim_path = $ARGV[0];          # Set up by the calling shell script
+$host      = $ARGV[1];          # Mandatory original first argument
+$recipient = $ARGV[2];          # Mandatory original second argument
+
+$c4 = qr/2 (?:[0-4]\d | 5[0-5]) | 1\d\d | \d{1,2}/x;  # IPv4 component
+$a4 = qr/^$c4\.$c4\.$c4\.$c4$/;                       # IPv4 address
+
+$c6 = qr/[0-9a-f]{1,4}/i;                             # IPv6 component
+
+# Split the various formats of IPv6 addresses into several cases. I don't
+# think I can graft regex that matches all of them without using alternatives.
+
+# 1. Starts with :: followed by up to 7 components
+
+$a6_0 = qr/^::(?:$c6:){0,6}$c6$/x;
+
+# 2. 8 non-empty components
+
+$a6_1 = qr/^(?:$c6:){7}$c6$/x;
+
+# 3. This is the cunning one. Up to 7 components, one (and only one) of which
+# can be empty. We use 0 to cause a failure when we've already matched
+# an empty component and may be hitting other. This has to fail, because we
+# know we've just failed to match a component. We also do a final check to
+# ensure that there has been an empty component.
+
+$a6_2 = qr/^(?: (?: $c6 | (?(1)0 | () ) ) : ){1,7}$c6 $ (?(1)|.)/x;
+
+if ($host !~ /$a4 | $a6_0 | $a6_1 | $a6_2/x)
+  {
+  print "** Invalid IP address \"$host\"\n";
+  print "Usage: exim_checkaccess <IP address> <email address> [exim options]\n";
+  exit(1);
+  }
+
+# Build any remaining original arguments into a string for passing over
+# as Exim options.
+
+$opt = "";
+for ($i = 3; $i < scalar(@ARGV); $i++) { $opt .= "$ARGV[$i] "; }
+
+# If the string contains "-f xxxx", extract that as the sender. Otherwise
+# the sender is <>.
+
+$sender    = "";
+if ($opt =~ /(?:^|\s)-f\s+(\S+|"[^"]*")/)
+  {
+  $sender = $1;
+  $opt = $` . $';
+  }
+
+# Run a -bh test in Exim, passing the test data
+
+$pid = open2(*IN, *OUT, "$exim_path -bh $host $opt 2>/dev/null");
+print OUT "HELO [$host]\r\n";
+print OUT "MAIL FROM:<$sender>\r\n";
+print OUT "RCPT TO:<$recipient>\r\n";
+print OUT "QUIT\r\n";
+close OUT;
+
+# Read the output, ignoring anything but the SMTP response to the RCPT
+# command.
+
+$count = 0;
+$reply = "";
+
+while (<IN>)
+  {
+  next if !/^\d\d\d/;
+  $reply .= $_;
+  next if /^\d\d\d\-/;
+
+  if (++$count != 4)
+    {
+    $reply = "";
+    next;
+    }
+
+  # We have the response we want. Interpret it.
+
+  if ($reply =~ /^2\d\d/)
+    {
+    print "Accepted\n";
+    }
+  else
+    {
+    print "Rejected:\n";
+    $reply =~ s/\n(.)/\n  $1/g;
+    print "  $reply";
+    }
+  last;
+  }
+
+# Reap the child process
+
+waitpid $pid, 0;
+
+End

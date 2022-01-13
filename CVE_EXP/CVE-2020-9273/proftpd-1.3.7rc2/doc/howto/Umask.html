@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Umask</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b><i>Umask</i></b></h2></center>
+<hr>
+
+<p>
+ProFTPD's <a href="../modules/mod_core.html#Umask"><code>Umask</code></a>
+configuration directive is used to set the file permission bits on newly
+created files and directories.  However, the way in which <code>Umask</code>
+is to be used is not entirely straightforward.
+
+<p>
+<code>Umask</code> is used to set the value that <code>proftpd</code> will
+use when calling <code>umask(2)</code>.  The <code>umask(2)</code> function
+works something like this:
+<pre>
+  new file mode = <i>base-mode</i> - <i>umask</i>
+</pre>
+(Technically, the operation is <code><i>base-mode &amp; ~umask</i></code>).
+Thus, with a <i>base-mode</i> of <code>0666</code>, and a <i>umask</i> of
+<code>0022</code>, the permissions on the newly created file will be
+<code>0644</code> (<i>e.g.</i> <code>rw-r--r--</code>).
+
+<p>
+A quick review of permission bits:
+<pre>
+  4 <i>is</i> read permission (<i>r</i>)
+  2 <i>is</i> write permission (<i>w</i>)
+  1 <i>is</i> execute permission (<i>x</i>)
+</pre>
+The first digit of a <i>mode</i> (<code>0750</code>, for example) is used to
+specify some special bits (<i>e.g.</i> set-user-ID, set-group-ID, and the
+&quot;sticky bit&quot;).  The second digit, the <code>7</code> in this
+example, specifies the user owner permissions, and is a sum of the above
+permission bits: <code>7 = 4 + 2 + 1</code> (<i>e.g.</i> <code>rwx</code>).
+Group owner permissions are specified by the third bit, <code>5</code>:
+<code>5 = 4 + 1</code> (<i>e.g.</i> <code>r-x</code>).  And finally, other
+or world permissions are specified using the last bit, which in the
+example is <code>0</code> (no permissions, <i>e.g.</i> <code>---</code>).
+
+<p>
+Here are some concrete examples to help illustrate things:
+<p>
+<table border=1 summary="Umask Examples">
+  <tr>
+    <td><b>Mode</b></td>
+    <td><b>Label</b></td>
+    <td><b>Description</b></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;&nbsp;<code>0777</code>&nbsp;&nbsp;</td>
+    <td>&nbsp;&nbsp;<code>rwxrwxrwx</code>&nbsp;&nbsp;</td>
+    <td>read/write/execute permissions for user owner, group owner, and other</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;&nbsp;<code>0666</code>&nbsp;&nbsp;</td>
+    <td>&nbsp;&nbsp;<code>rw-rw-rw-</code>&nbsp;&nbsp;</td>
+    <td>read/write permissions for user owner, group owner, and other</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;&nbsp;<code>0755</code>&nbsp;&nbsp;</td>
+    <td>&nbsp;&nbsp;<code>rwxr-xr-x</code>&nbsp;&nbsp;</td>
+    <td>read/write/execute permissions for user owner, read/execute permissions for group owner and other</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;&nbsp;<code>0750</code>&nbsp;&nbsp;</td>
+    <td>&nbsp;&nbsp;<code>rwxr-x---</code>&nbsp;&nbsp;</td>
+    <td>read/write/execute permissions for user owner, read permission for group owner, no permissions for other</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;&nbsp;<code>0644</code>&nbsp;&nbsp;</td>
+    <td>&nbsp;&nbsp;<code>rw-r--r--</code>&nbsp;&nbsp;</td>
+    <td>read/write permissions for user owner, read permission for group owner and other</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;&nbsp;<code>0511</code>&nbsp;&nbsp;</td>
+    <td>&nbsp;&nbsp;<code>r-x--x--x</code>&nbsp;&nbsp;</td>
+    <td>read/execute permissions for user owner, execute permission for group owner and other</td>
+  </tr>
+</table>
+
+<p>
+The <code>proftpd</code> daemon always starts with a <i>base-mode</i> of
+<code>0666</code> when creating files.  Note that <code>Umask</code> can only
+be used to &quot;take away&quot; permissions granted by the <i>base-mode</i>;
+it cannot be used to add permissions that are not there.  This means that
+files uploaded to a <code>proftpd</code> server will never have the execute
+permission enabled by default, since the <code>0666</code> <i>base-mode</i>
+does not have any execute bits enabled).  This is a conscious security design
+decision.  For directories, a different <i>base-mode</i> of <code>0777</code>
+is used.  The <i>umask</i> used for directories can be configured using the
+optional second parameter to the <code>Umask</code> directive; if this second
+parameter is not used, the <i>umask</i> used for created directories will
+default to the same <i>umask</i> as used for files.
+
+<p>
+If it is necessary to make uploaded files executable, the
+<code>SITE CHMOD</code> FTP command can be used:
+<pre>
+  SITE CHMOD <i>mode</i> <i>file</i>
+</pre>
+Use of this command can be restricted using a &quot;command&quot; of
+<code>SITE_CHMOD</code> in a <code>&lt;Limit&gt;</code> section.  For
+example, this section of a <code>proftpd.conf</code> file:
+<pre>
+  &lt;Limit SITE_CHMOD&gt;
+    AllowUser ftpadmin
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+will deny everyone except user <code>ftpadmin</code> from being able to
+use the <code>SITE CHMOD</code> command to change the permissions on files
+via FTP.  Note that this construction is recommended instead of using the
+deprecated (as of <code>proftpd-1.2.2rc2</code>) <code>AllowChmod</code>
+configuration directive.
+
+<p>
+<b>Examples of Using the <code>Umask</code> Directive</b><br>
+You have just installed <code>proftpd</code>, and now need to figure out what
+permissions file/directories created on your FTP server should have.  As
+a conscientious FTP server administrator, you want files/directories to
+have the minimum necessary permissions (rather than letting users have access
+to files/directories that they do not need).
+
+<p>
+If only the user who creates the files and directories should have full
+access, <i>e.g.</i> so they can read and write their own files, then you might
+use:
+<pre>
+  # Only the user can see their own files/directories
+  Umask 0066 0077
+</pre>
+With this configuration, a newly uploaded file would have <code>0600</code>
+(<code>rw-------</code>) permissions:
+<pre>
+  0600 = 0666 - 0066
+</pre>
+and a newly created directory would have <code>0700</code>
+(<code>rwx------</code>) permissions:
+<pre>
+  0700 = 0777 - 0077
+</pre>
+
+<p>
+Another common case is where you have many users who are uploading files
+for sharing with other users.  So you want the files to be readable by
+everyone, but only the user who uploaded the file should have permission for
+writing/changing the file.  For this, you might use:
+<pre>
+  # Only the user can change their own files
+  Umask 0022
+</pre>
+With this configuration, a newly uploaded file would have <code>0644</code>
+(<code>rw-r--r--</code>) permissions:
+<pre>
+  0644 = 0666 - 0022
+</pre>
+and a newly created directory would have <code>0755</code>
+(<code>rwxr-xr-x</code>) permissions:
+<pre>
+  0755 = 0777 - 0022
+</pre>
+
+<p><a name="FAQ"></a>
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="UmaskExecutePermission">
+<font color=red>Question</font>: How can I configure <code>proftpd</code> so
+that I can upload a file with <code>770</code> permissions?<br>
+<font color=blue>Answer</font>: Short answer: you can't.  Too many FTP servers,
+in the past, would allow users to upload executable files.  Hackers would
+use this capability, and then exploit a flaw in one of the servers on that
+machine to execute the crafted file they just uploaded.  Thus ProFTPD does
+not allow uploading of files with execute permissions.
+
+<p>
+The workaround, as mentioned above, is to allow the client to use the
+<code>SITE CHMOD</code> command to change the permissions on the file to
+have the execute permissions.
+
+<p><a name="UmaskDeletePermission">
+<font color=red>Question</font>: I have a <code>Umask</code> value of
+<code>0066</code>, so that only I have read/write permissions on my files.  But other users can delete my files!  Is this a <code>proftpd</code> bug?<br>
+<font color=blue>Answer</font>: No.  The permission for deleting a file is
+<b>not</b> governed by the write permission on the deleted file; it is
+controlled by the write permission <i>on the directory containing the file</i>.
+
+<p>
+If you think of a directory as a "table of contents", with entries for each
+of the files in that directory, then deleting a file means deleting the entry
+for that file from the "table of contents", which is a write on the directory
+(not on the deleted file).
+
+<p>
+Let's assume that your files were in a directory whose permissions were
+<code>0777</code> (<code>rwxrwxrwx</code>).  This means that everyone has
+write permissions in that directory.  It also means that everyone can
+delete files from that directory.
+
+<p>
+Now let's assume that your files instead were in a directory whose permissions
+where <code>0755</code> (<code>rwxr-xr-x</code>).  This means that only the
+user owner of the directory can delete files from that directory, and no one
+else.
+
+<p>
+For directories which contain files from different users, one of the
+little-known (and very useful) permissions to have for the directory is
+<code>1777</code> (<code>rwxrwxrwt</code>).  The leading 1 (and <code>t</code>)
+indicates the "sticky bit".  This obscure bit is little used these days,
+<i>except</i> in this useful configuration.  When the sticky bit is set on
+a directory (making it a "sticky directory"), normal users may not delete or
+rename files of other users in that directory.  Because of this property,
+"sticky directories" are quite useful as shared directories (<i>e.g.</i>
+<code>/tmp</code>).
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

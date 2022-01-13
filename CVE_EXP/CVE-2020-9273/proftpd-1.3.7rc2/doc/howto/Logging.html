@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Logging</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b><i>ProFTPD: Logging</i></b></h2></center>
+<hr>
+
+<p>
+<b>Logging</b><br>
+Logging the activity of the server is an integral part of effective server
+administration.  ProFTPD provides several different and flexing logging
+mechanisms.  When examining the different logging mechanisms, have in
+mind the intended use of the logged data, the volume of data being logged,
+any post-processing that may need to be done, <i>etc</i>.  Log files are more
+useful when they contain a complete record of server activity. It is often
+easier to simply post-process the log files to remove requests that you do not
+want to consider.  
+
+<p>
+<b>Security Warning</b><br>
+Anyone who can write to the directory where ProFTPD is writing a log file can
+almost certainly gain access to the UID that the server is started under, which
+is normally <code>root</code>. <b>Do not</b> give people write access to the
+directory where the logs are stored without being aware of the consequences:
+if the logs directory is writable (by a non-<code>root</code> user), someone
+could replace a log file with a symlink to some other system file, and then
+<code>root</code> might overwrite that file with arbitrary data. If the log
+files themselves are writable (by a non-<code>root</code> user), then someone
+may be able to overwrite the log itself with bogus data.
+
+<p>
+When opening log files, <code>proftpd</code> will by default log a warning if
+the file being opened for logging is in a directory that does not exist, or
+is world-writable.  The log file will <b>not</b> be written in world-writable
+directories; there are no exceptions.  (If you have configured log files in
+your <code>proftpd.conf</code> that are not appearing, check for the warnings
+about world-writable directories.)  The <code>proftpd</code> process will also,
+by default, log a warning if the file given is a symlink; this symlink check
+can be configured via the <a href="../modules/mod_log.html#AllowLogSymlinks"><code>AllowLogSymlinks</code></a> directive.
+
+<p>
+In addition, log files may contain information supplied directly by the client,
+without escaping. Therefore, it is possible for malicious clients to insert
+control-characters in the log files, so care must be taken in dealing with
+raw logs.
+
+<p><a name="Syslog"></a>
+<b>Unix <code>syslog</code> Logging</b><br>
+By default, <code>proftpd</code> will log via <code>syslog(3)</code>, using
+the <code>daemon</code> facility (<code>auth</code> for some logging),
+at various levels: <code>err</code>, <code>notice</code>, <code>warn</code>,
+<code>info</code>, and <code>debug</code> (debugging is done at this syslog
+level).  The location of the server's log files in this case is determined by
+your <code>/etc/syslog.conf</code> configuration.
+
+<p>
+You can fine-tune your <code>proftpd</code>'s syslog-based logging via the
+<a href="../modules/mod_core.html#SyslogFacility"><code>SyslogFacility</code></a> and <a href="../modules/mod_core.html#SyslogLevel"><code>SyslogLevel</code></a> directives.  See the <a href="LogLevels.html">log level</a> documentation for
+more details on these settings.
+
+<p><a name="LogFiles"></a>
+<b>Log Files</b><br>
+There are three main types of logs that a <code>proftpd</code> daemon can
+generate: <code>TransferLog</code>, <code>SystemLog</code>, and
+<code>ExtendedLog</code>.
+
+<p><a name="TransferLog"></a>
+<b><i><code>TransferLog</code></i></b><br>
+A <a href="../modules/mod_core.html#TransferLog"><code>TransferLog</code></a>
+is the most common log kept, recording file transfers.  It is written in the
+<code>xferlog(5)</code> format, described here, <b>and</b> in the
+<code>xferlog(5)</code> man page.
+
+<p>
+Each entry in the <code>TransferLog</code> is a single line of space-delimited
+fields:
+<table border=1 summary="TransferLog Fields">
+  <tr>
+    <td>&nbsp;<b>Field</b></td>
+    <td>&nbsp;<b>Values</b></td>
+    <td>&nbsp;<b>Description</b></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>current-time</em></td>
+    <td>&nbsp;DDD MMM dd hh:mm:ss YYYY</td>
+    <td>&nbsp;Current <b>local</b> time at the time of transfer</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>transfer-time</em></td>
+    <td>&nbsp;Seconds</td>
+    <td>&nbsp;Total time in <b>seconds</b> for the transfer</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>remote-host</em></td>
+    <td>&nbsp;String</td>
+    <td>&nbsp;Remote client DNS name (or IP address)</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>file-size</em></td>
+    <td>&nbsp;Bytes</td>
+    <td>&nbsp;Number of bytes transferred</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>filename</em></td>
+    <td>&nbsp;String</td>
+    <td>&nbsp;Name of the transferred file</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>transfer-type</em></td>
+    <td>&nbsp;Flags</td>
+    <td>&nbsp;Indicates whether the transfer was an ASCII (<code>"a"</code>) or
+        binary (<code>"b"</code>) transfer</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>special-action-flag</em></td>
+    <td>&nbsp;Flags</td>
+    <td>&nbsp;One or more single character indicating any special action taken: "C" (compressed), "U" (uncompressed), "T" (tarred), "_" (no action)</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>direction</em></td>
+    <td>&nbsp;Flags</td>
+    <td>&nbsp;Direction of the transfer: "o" (outgoing, <i>i.e.</i> download), "i" (incoming, <i>i.e.</i> upload), "d" (deleted)</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>access-mode</em></td>
+    <td>&nbsp;Flags</td>
+    <td>&nbsp;Method by which the user is logged in: "a" (anonymous), "g" (guest), "r" (real user)</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>username</em></td>
+    <td>&nbsp;String</td>
+    <td>&nbsp;Authenticated username</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>service-name</em></td>
+    <td>&nbsp;String</td>
+    <td>&nbsp;Name of the service used: "ftp", "sftp", "scp", <i>etc</i></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>authentication-method</em></td>
+    <td>&nbsp;Flags</td>
+    <td>&nbsp;Method of authentication used: "0" (none), "1" (<a href="https://www.ietf.org/rfc/rfc1413.txt">RFC 1413</a>)</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>authenticated-user-id</em></td>
+    <td>&nbsp;Flags</td>
+    <td>&nbsp;Name of user provided by RFC 1413 lookup, otherwise "*"</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<em>completion-status</em></td>
+    <td>&nbsp;Flags</td>
+    <td>&nbsp;Single character indicating the status of the transfer: "c" (complete), "i" (incomplete)</td>
+  </tr>
+</table>
+
+<p>
+<b>History of the <code>xferlog(5)</code> Format</b><br>
+This xferlog(5) format seems a bit odd, right?  To understand this, it helps
+to keep in mind the history of this format.  The xferlog(5) format
+<b>predates</b> ProFTPD.  The ProFTPD Project copied this format from
+<a href="http://wu-ftpd.therockgarden.ca/man/xferlog.html">wu-ftpd</a>, which
+was <em>the</em> popular FTP server at that time.  There were already existing
+tools/scripts which knew how to parse that format, so ProFTPD used it.  Since
+then, <code>wu-ftpd</code> has waned in maintenance and popularity; other
+FTP servers (<i>e.g.</i> <code>pure-ftpd</code>, <code>vsftpd</code>, but
+<b>not</b> the built-in <code>ftpd</code> on FreeBSD) have since then picked
+up the <code>xferlog(5)</code> format from ProFTPD.  Thus this log format has
+a 20+ year history, and keeps going.
+
+<p>
+This history helps explain certain fields in the <code>xferlog(5)</code>
+format, such as the <em>authentication-method</em> and
+<em>authenticated-user-id</em> fields.  These fields were more relevant in
+the past, when the RFC 1413 Identd protocol was more widespread in use.  Now,
+<b>very</b> few sites run <code>identd</code> servers; these fields in the
+log format are thus archaic.  Thus in almost all ProFTPD-generated
+<code>TransferLog</code> entries, <em>authentication-method</em> will be "0",
+and <em>authenticated-user-id</em> will be "*".
+
+<p>
+Likewise, the <em>special-action-flags</em> field mentions "compressed" and
+"uncompressed" files; these flags specifically refer to the
+<a href="https://en.wikipedia.org/wiki/Compress"><code>compress</code></a>
+Unix program, which used the ".Z" file extension.  This compression utility
+has been superseded with <i>e.g.</i> <code>gzip</code>, <code>bzip2</code>,
+and others these days.  Thus the <em>special-action-flags</em> field in
+ProFTPD-generated <code>TransferLog</code> entries is almost always "_".
+
+<p><a name="SystemLog"></a>
+<b><i><code>SystemLog</code></i></b><br>
+If the site administrator wants to have <code>proftpd</code> log its messages
+to a file rather than going through <code>syslogd</code>, the
+<a href="../modules/mod_log.html#SystemLog"><code>SystemLog</code></a>
+configuration directive is the one to use.  There is only one such file kept
+for the entire daemon.  See the
+<a href="../modules/mod_log.html#ServerLog"><code>ServerLog</code></a>
+directive for keeping a similar log on a per-vhost basis.  Note that the
+<a href="../modules/mod_core.html#DebugLevel"><code>DebugLevel</code></a>
+directive only applies to <code>SystemLog</code> files; it does not materially
+affect the syslog-based logging messages.
+
+<p><a name="ExtendedLog"></a>
+<b><i><code>ExtendedLog</code></i></b><br>
+The <a href="../modules/mod_log.html#ExtendedLog"><code>ExtendedLog</code></a>
+directive is used to create log files of a very flexible and configurable
+format, and to have granular control over what is logged, and when.  The format
+of an <code>ExtendedLog</code> is described using the
+<a href="../modules/mod_log.html#LogFormat">LogFormat</a> directive.
+Multiple <code>ExtendedLogs</code> can be configured, each with a different
+<code>LogFormat</code>.
+
+<!-- Add note/chunk about FTP response codes, from RFC959, for ExtendedLog? -->
+
+<p><a name="SyslogVSFileLog"></a>
+<b>Use of <code>syslog</code> versus file logging</b><br>
+Most sites will choose to have <code>proftpd</code> log via syslog (which is
+the default) or to a file (via the <code>SystemLog</code> directive).  In
+either case, there is the question of logging <i>verbosity</i>, <i>i.e.</i>
+which messages to log.  This verbosity is determined by the
+<a href="../modules/mod_core.html#SyslogLevel"><code>SyslogLevel</code></a>
+directive.  ProFTPD will log everything by default, meaning that the default
+<code>SyslogLevel</code> is effectively <code>debug</code>.  If, however, you
+have your <code>proftpd</code> configured to log via syslog, then you
+<i>should</i> also check your <code>/etc/syslog.conf</code> file, to see what
+additional filtering of log messages is being applied by syslog.  For example,
+if <code>/etc/syslog.conf</code> contained something like:
+<pre>
+  # Log anything (except mail) of level info or higher.
+  *.info;mail.none;authpriv.none;cron.none                /var/log/messages
+</pre>
+then ProFTPD's log messages below the <code>info</code> level would be filtered
+out <b>by syslog</b>.  When you are using syslog logging, the
+<code>SyslogLevel</code> configuration directive applies only to the proftpd
+logging, and does not control the additional syslog filtering.
+
+<p>
+For finer-grained control of the <code>debug</code> level log messages, ProFTPD
+internally implements different levels for its <code>debug</code> log messages.
+Currently ProFTPD has level 1 through level 10 <code>debug</code> messages.
+The <a href="../modules/mod_core.html#DebugLevel"><code>DebugLevel</code></a>
+directive is used control the verbosity/filtering of these messages.  Since
+these different debug levels are purely a ProFTPD convention, the
+<code>DebugLevel</code> directive has no effect on syslog logging.  Also, if
+your <code>SyslogLevel</code> configuration uses a level higher than
+<code>debug</code>, then the <code>DebugLevel</code> configuration will have
+no effect &mdash; your <code>debug</code> level messages are already filtered
+out by the <code>SyslogLevel</code> filtering.
+
+<p>
+The last point to mention is that the
+<a href="../modules/mod_core.html#SyslogFacility"><code>SyslogFacility</code></a> directive only applies to syslog logging; it has no effect on file logging.
+
+<p><a name="LogAnalysis"></a>
+<b>Log Analysis</b><br>
+There are a variety of log analyzers available; these are just a few:
+<ul>
+  <li>Webalizer: <a href="http://www.webalizer.org/">http://www.webalizer.org/</a>
+  <li>HTTP-analyze: <a href="http://www.netstore.de/Supply/http-analyze/">http://www.netstore.de/Supply/http-analyze/</a>
+  <li>Report Magic: <a href="http://www.reportmagic.org/">http://www.reportmagic.org/</a>
+  <li>FTPWeblog: <a href="http://www.nihongo.org/snowhare/utilities/ftpweblog/">http://www.nihongo.org/snowhare/utilities/ftpweblog/</a>
+</ul>
+
+<p><a name="LogRotation"></a>
+<b>Log Rotation</b><br>
+On even a moderately busy server, the quantity of information stored in the log
+files is very large.  It will consequently be necessary to periodically rotate
+the log files by moving or deleting the existing logs. This cannot be done
+while the server is running, because the daemon will continue writing to the
+old log file as long as it holds the file open.  Instead, the server must be
+<a href="Stopping.html">restarted</a> after the log files are moved or deleted
+so that it will open new log files.
+
+<p>
+Another way to perform log rotation is using <a href="#FIFOs">FIFOs</a> as
+discussed in the next section.
+
+<p><a name="FIFOs"></a>
+<b>FIFOs (<i>a.k.a.</i> named pipes)</b><br>
+ProFTPD is capable of writing log files to FIFOs, from which another
+process can read.  Use of this capability dramatically increases the
+flexibility of logging, without adding code to the main server.  In order to
+write logs to a pipe, simply create the FIFO at the desired path
+(<code>man mkfifo(1)</code>), and use that path in the logging configuration
+directive.
+
+<p>
+One important use of piped logs is to allow log rotation without having to
+restart the server.  One such popular flexible log rotation program is
+<a href="http://www.ford-mason.co.uk/resources/cronolog/">cronolog</a>;
+however, at present cronolog requires a small patch to enable it to read
+from a FIFO (by default, cronolog reads data from stdin).  Please contact
+the author of this article for details concerning the patch.
+
+<p>
+Here's an example of FIFO-based logging script, based on one posted by Michael
+Renner:
+<pre>
+  #!/usr/bin/perl
+
+  use strict;
+
+  use File::Basename qw(basename);
+  use Sys::Syslog qw(:DEFAULT setlogsock);
+
+  my $program = basename($0);
+
+  my $fifo = '/var/log/proftpd-log.fifo';
+  my $syslog_facility = 'daemon';
+  my $syslog_level = 'info';
+
+  open(FIFO, "&lt; $fifo") or die "$program: unable to open $fifo: $!\n";
+
+  setlogsock 'unix';
+
+  openlog($program, 'pid', $syslog_facility);
+  syslog($syslog_level, $_) while (&lt;FIFO&gt;);
+  closelog();
+
+  close(FIFO);
+  exit 0;
+</pre>
+More complex filtering can be added to such scripts.  
+
+<p>
+If using FIFOs, there are some caveats to keep in mind.  If you use in
+<code>init.d</code> script to start <code>standalone</code> daemons, you can
+add commands to start the FIFO logging programs first, before the daemon.
+For <code>inetd</code>-run servers, consider wrapping up the necessary
+commands for starting a FIFO reader and the server into a simple shell
+script, or simply run the FIFO-reading program from an <code>init.d</code>
+script, and save the overhead of starting that process, in addition to the
+<code>proftpd</code> process, for each FTP session.
+
+<p>
+FIFO-based log readers are a very powerful tool, but they should not be
+used where a simpler solution like off-line post-processing is available.
+
+<p>
+<b>Note</b>: In ProFTPD 1.3.3, the code was changed to use nonblocking
+<code>open(2)</code> system calls when opening log files.  This was done to
+prevent a <code>proftpd</code> process from blocking indefinitely
+(<i>i.e.</i> "hanging") if the log file was a FIFO, and there was no FIFO
+reader process running when the log file was opened.  However, some sites
+<i>do</i> want this blocking open behavior, as their FIFO reader processes
+may be temporarily busy.  To get the pre-1.3.3 blocking behavior, you will
+need to compile proftpd using the <code>--disable-nonblocking-log-open</code>
+configure option.
+
+<p><a name="SQLLogging"></a>
+<b>SQL Logging</b><br>
+The <code>mod_sql</code> module also enables some powerful and complex
+logging capabilities...
+
+<p><a name="TraceLogging"></a>
+<b>Trace Logging</b><br>
+ProFTPD also supports a much more verbose form of logging called "trace
+logging".  This form of logging is covered in greater detail
+<a href="Tracing.html">here</a>.
+
+<p><a name="PidFile"></a>
+<b>Pid File</b><br>
+On startup, <code>proftpd</code> saves the process ID of the parent daemon
+process to the file <code>var/proftpd/proftpd.pid</code>. This filename can be
+changed with the <a href="../modules/mod_core.html#PidFile"><code>PidFile</code></a> directive. The process ID (<i>aka</i> PID) is for use by the administrator
+in restarting and terminating the daemon by sending signals to the parent
+process.  For more information see the <a href="Stopping.html">stopping and
+starting</a> page.
+
+<p>
+<b>Scoreboard File</b><br>
+The last type of &quot;logging&quot; is done via the scoreboard file.  The
+scoreboard is binary-formatted file the server uses to store information
+about each session; it is this file that is read by <code>ftptop</code>,
+<code>ftpwho</code> and <code>ftpcount</code>.  The location for the
+scoreboard file is determined by the
+<a href="../modules/mod_core.html#ScoreboardFile"><code>ScoreboardFile</code></a> directive.
+
+<p><a name="FAQ"></a>
+<b>Frequently Asked Questions</b><br>
+
+<p>
+<font color=red>Question</font>: How can I direct the <code>TransferLog</code>
+logging to syslog?<br>
+<font color=blue>Answer</font>: It is not currently possible to configure
+proftpd to log <code>TransferLog</code> data to syslog.  <b>However</b>, you
+<i>can</i> configure an <code>ExtendedLog</code> which logs to syslog, and
+which uses a <code>LogFormat</code> to log the data you wish.  For example:
+<pre>
+  LogFormat xfer "%h %l %u %t\"%r\" %s %b"
+  ExtendedLog syslog:notice xfer
+</pre>
+tells proftpd to log that <code>LogFormat</code> via syslog at the "notice"
+syslog level.
+
+<p>
+<font color=red>Question</font>: I have <code>SystemLog</code> in my
+<code>proftpd.conf</code>, and when I use the <code>SyslogLevel</code> directive
+to try to filter the messages which <code>proftpd</code> logs to my
+<code>SystemLog</code>, it doesn't work.  Why not?<br>
+<font color=blue>Answer</font>: When ProFTPD is configured to log everything
+to a file via the <code>SystemLog</code> directive, it will do just that:
+log <i>everything</i>, without any filtering, regardless of any
+<code>SyslogLevel</code> directive.  <b>However</b>, this changed in
+ProFTPD 1.3.4rc1: in that release, the <code>SyslogLevel</code> directive was
+made to apply to file-based logging as well.
+
+<p>
+<font color=red>Question</font>: I configured my <code>ExtendedLog</code>
+directive (or <code>SystemLog</code>, or other logs) to point to a FIFO.
+The FIFO path exists.  But when I try to start <code>proftpd</code>, it
+fails to start with this error:
+<pre>
+  unable to open ExtendedLog '/path/to/extlog.fifo': No such device or address
+</pre>
+Shouldn't this work?<br>
+<font color=blue>Answer</font>: The "No such device or address" error occurs
+when you configure <code>proftpd</code> to log to a FIFO, <b>and</b> the
+FIFO reader process has not yet been started.  In times past,
+<code>proftpd</code> would wait indefinitely on startup, waiting for the FIFO
+reader process to start; now, <code>proftpd</code> tries to open the FIFO
+in a nonblocking mode, so that it can fail immediately if there is no process
+on the other end of the FIFO.
+
+<p>
+The "fix" is to make sure that any FIFO reader processes are started
+<i>before</i> starting <code>proftpd</code>.
+
+<p>
+<font color=red>Question</font>: How can I configure <code>proftpd</code> so
+that <b>nothing</b> is logged for certain clients/IP addresses?<br>
+<font color=blue>Answer</font>: Using a combination of <a href="Classes.html">classes</a> and the <a href="../contrib/mod_ifsession.html"><code>mod_ifsession</code></a> module, this can be done using a configuration like this:
+<pre>
+  &lt;Class invisible&gt;
+    From 1.2.3.4
+  &lt;/Class&gt;
+
+  &lt;IfClass invisible&gt;
+    # Disable all logging of these clients
+    SystemLog none
+    ExtendedLog /path/to/ext.log NONE
+    TransferLog none
+  &lt;/IfClass&gt;
+</pre>
+
+<p>
+<font color=red>Question</font>: How can I configure <code>proftpd</code> so
+that it does <em>no logging at all</em>?  I have a very small embedded system
+for development/testing, and so do not need or want the logging.<br>
+<font color=blue>Answer</font>: To do this, you will need to disable much
+of the builtin, default logging that <code>proftpd</code> does, <i>e.g.</i>:
+<pre>
+  # Discard the normal logging
+  SystemLog none
+
+  # Disable xferlog(5) logging
+  TransferLog none
+
+  # Disable logging to b/u/wtmp files
+  WtmpLog off
+</pre>
+In addition, you may need to go through your <code>proftpd.conf</code> file
+(as well as any <code>Include</code> config files), and remove all
+<code>ExtendedLog</code> and <code>TraceLog</code> directives.  Also remove
+any per-module <code><i>*</i>Log</code> directives like <code>BanLog</code>,
+<code>SFTPLog</code>, <code>SQLLogFile</code>, <code>TLSLog</code>, <i>etc</i>.
+
+<p>
+You might be tempted to symlink the log files configured to
+<code>/dev/null</code>, rather than changing the <code>proftpd.conf</code>.
+This approach can work, <b><i>if you also use the <code>AllowLogSymlinks</code> directive</i></b>, <i>i.e.</i>:
+<pre>
+  # Allow proftpd to write logs to symlinks; note that this is insecure,
+  # as the symlinks might be changed to point to other files such that
+  # proftpd will overwrite them.
+  AllowLogSymlinks on
+</pre>
+
+<p>
+<font color=red>Question</font>: I see:
+<pre>
+  wtmp /var/log/wtmp: No such file or directory
+</pre>
+in my logs.  What is <code>WtmpLog</code> logging?  The description in the
+documentation is quite vague.<br>
+<font color=blue>Answer</font>: The <code>wtmp</code> logging support is
+<b>not</b> specific to <code>proftpd</code>, and instead is a more general Unix
+facility; this is why the ProFTPD documentation does not cover it in great
+detail.  To learn more about <code>wtmp</code> (or any of its other
+incarnations: <code>wtmpx</code>, <code>utmp</code>, <code>utmpx</code>),
+please find their related man pages.
+
+<p>
+Now to make the "No such file or directory" log message go away, simply tell
+<code>proftpd</code> to stop trying to use <code>wtmp</code> logging by using
+the <a href="../modules/mod_auth.html#WtmpLog"><code>WtmpLog</code></a>
+directive:
+<pre>
+  WtmpLog off
+</pre>
+in your <code>proftpd.conf</code>.
+
+<p>
+<font color=red>Question</font>: I usually run in a non-English locale; my
+ProFTPD version is older than 1.3.6, <i>and</i> I use <code>fail2ban</code>.
+Unfortunately, <code>fail2ban</code> has trouble with the non-English
+localized dates in the syslog messages, <i>e.g.</i>:
+<pre>
+  juil. 28 16:42:17 server-hostname proftpd[9423] server-hostname ...
+</pre>
+in my logs.  How can I get ProFTPD to log using the English locale, for
+working with <code>fail2ban</code> properly?<br>
+<font color=blue>Answer</font>: The locale-related environment variable which
+governs how dates are formatted is the <code>LC_TIME</code> environment
+variable.  Thus you need to set that environment variable, <em>before</em>
+ProFTPD is started, to use the English locale if you want English localization,
+<i>e.g.</i>:
+<pre>
+  $ export LC_TIME=en_US.UTF-8
+  $ service proftpd start
+</pre>
+Note that the above is only really needed due to the older version of ProFTPD.
+
+<p>
+In later version of ProFTPD, the syslog logging format changed (to avoid such
+localization issues), so that it now looks like:
+<pre>
+  2017-07-28 16:42:17 server-hostname proftpd[9423] server-hostname ...
+</pre>
+This should help many such log-parsing issues.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017-2018 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

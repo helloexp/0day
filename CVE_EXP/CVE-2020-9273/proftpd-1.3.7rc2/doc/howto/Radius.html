@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: RADIUS</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: RADIUS</b></h2></center>
+<hr>
+Some sites use the <a href="http://en.wikipedia.org/wiki/RADIUS">RADIUS</a>
+protocol for authenticating users.  For these sites, there is the
+<a href="../contrib/mod_radius.html"><code>mod_radius</code></a> ProFTPD module.
+
+<p>
+<b>Common Configurations</b></br>
+First, let's start with the most basic <code>mod_radius</code> configuration,
+where we want to use the RADIUS server <b>only</b> for validating the user's
+password:
+<pre>
+  &lt;IfModule mod_radius.c&gt;
+    AuthOrder mod_radius.c mod_auth_unix.c mod_auth_file.c
+
+    RadiusEngine on
+    RadiusAuthServer localhost:1812 testing123 5
+    RadiusLog /etc/proftpd/radius.log
+  &lt;/IfModule&gt;
+</pre>
+Here, we have told <code>mod_radius</code> the IP address of the RADIUS
+server via the <a href="../contrib/mod_radius.html#RadiusAuthServer"><code>RadiusAuthServer</code></a> directive, which includes the port, shared secret,
+and default timeout value (in seconds).
+
+<p>
+Since this configuration only uses the RADIUS server for validating the
+password, we still need to get the user's UID, GID, home directory, group
+membership, <i>etc</i> from somewhere.  Thus we need the <code>AuthOrder</code>
+directive to tell <code>proftpd</code> to use the
+<a href="../modules/mod_auth_unix.html"><code>mod_auth_unix</code></a> and
+<a href="../modules/mod_auth_file.html"><code>mod_auth_file</code></a> modules
+as well.
+
+<p>
+Using the above configuration, when a client connects and sends the
+<code>USER</code> and <code>PASS</code> FTP commands, the
+<code>mod_radius</code> module will send an <code>Access-Request</code> RADIUS
+packet to the RADIUS server, which will include the following attributes:
+<pre>
+  <b>Service-Type 8</b> (<i>i.e.</i> Authenticate-Only)
+  User-Name <em>username</em>
+  User-Password <em>password</em>
+  NAS-Identifier "ftp"
+  NAS-IP-Address (<i>or</i> NAS-IPv6-Address) <em>server-ip-address</em>
+  NAS-Port <em>server-port</em>
+  NAS-Port-Type 5 (<i>i.e.</i> Virtual)
+  Calling-Station-Id <em>client-ip-address</em>
+  Acct-Session-Id <em>session-pid</em>
+  Message-Authenticator <em>mac</em>
+</pre>
+If the RADIUS server responds with an <code>Access-Accept</code> packet, then
+the login succeeds, and the FTP session is establish.  If, on the other hand,
+the RADIUS server responds with <code>Access-Reject</code>, the login fails.
+(The <code>mod_radius</code> module does not currently support the
+<code>Access-Challenge</code> packet type.)
+
+<p>
+Now, let's examine a slightly more complex configuration, which enables the
+use of RADIUS accounting:
+<pre>
+  &lt;IfModule mod_radius.c&gt;
+    AuthOrder mod_radius.c mod_auth_unix.c mod_auth_file.c
+
+    RadiusEngine on
+    RadiusAuthServer localhost:1812 testing123 5
+    RadiusAcctServer localhost:1813 testing123 5
+    RadiusLog /etc/proftpd/radius.log
+  &lt;/IfModule&gt;
+</pre>
+The additional directive here is the <a href="../contrib/mod_radius.html#RadiusAcctServer"><code>RadiusAcctSerer</code></a> directive, which is quite similar
+to the <code>RadiusAuthServer</code> directive.  The use of the
+<code>RadiusAcctServer</code> directive instructs <code>mod_radius</code> to
+use RADIUS accounting.
+
+<p>
+With this configuration, <code>mod_radius</code> will do the same as before.
+In addition, once the login has succeeded, <code>mod_radius</code> will send
+an <code>Accounting-Request</code> packet to the RADIUS accounting server
+which includes:
+<pre>
+  User-Name <em>username</em>
+  <b>Acct-Status-Type 1</b> (<i>i.e.</i> Start)
+  Acct-Session-Id <em>session-pid</em>
+  Acct-Authentic 1 (<i>i.e.</i> Local)
+  Event-Timestamp <em>timestamp</em>
+</pre>
+Then, when the client disconnects, <code>mod_radius</code> sends another
+<code>Accounting-Request</code> packet, this time with a lot of information
+about the just-ended session:
+<pre>
+  User-Name <em>username</em>
+  <b>Acct-Status-Type 2</b> (<i>i.e.</i> Stop)
+  Acct-Session-Id <em>session-pid</em>
+  Acct-Authentic 1 (<i>i.e.</i> Local)
+  Acct-Session-Time <em>session-duration</em>
+  Acct-Input-Octets <em>bytes-in</em>
+  Acct-Output-Octets <em>bytes-out</em>
+  Acct-Terminate-Cause <em>cause</em>
+  Event-Timestamp <em>timestamp</em>
+  Class <em>class</em> (if provided in <code>Access-Accept</code>)
+</pre>
+
+<p>
+The above configurations are the most common, as RADIUS is normally used
+only as way of checking whether a client should be allowed to connect, based
+on username/password.
+
+<p>
+<b>Sophisticated Configurations</b></br>
+It is possible to use RADIUS as the sole means of user authentication, rather
+than just validating passwords.  The <code>mod_radius</code> configuration
+to do so would look like:
+<pre>
+  &lt;IfModule mod_radius.c&gt;
+    AuthOrder mod_radius.c
+
+    RadiusEngine on
+    RadiusAuthServer localhost:1812 testing123 5
+    RadiusAcctServer localhost:1813 testing123 5
+    RadiusLog /etc/proftpd/radius.log
+
+    # Use RADIUS Vendor-Specific Attributes (VSAs) for user details 
+    RadiusVendor Unix 4
+    RadiusUserInfo $(10:1000) $(11:1000) $(12:/tmp) $(13:/bin/bash)
+    RadiusGroupInfo $(14:users,ftpd) $(15:500,501)
+  &lt;/IfModule&gt;
+</pre>
+The key difference here is the use of the <a href="../contrib/mod_radius.html#RadiusUserInfo"><code>RadiusUserInfo</code></a> directive.  Its appearance within
+the configuration is what instructs <code>mod_radius</code> to do more than
+just password validation.  The <code>RadiusUserInfo</code> and <a href="../contrib/mod_radius.html#RadiusGroupInfo"><code>RadiusGroupInfo</code></a> directives
+together tell <code>mod_radius</code> where to find the necessary information
+about a user, such as the UID, GID, home directory, group membership,
+<i>etc</i> in the response packets from the RADIUS server.
+
+<p>
+To let the RADIUS server know that we are expecting it do more than just
+validate the password, the <code>Access-Request</code> packet will use a
+different <code>Service-Type</code> attribute.  Now the packet will look like:
+<pre>
+  <b>Service-Type 1</b> (<i>i.e.</i> Login)
+  User-Name <em>username</em>
+  User-Password <em>password</em>
+  NAS-Identifier "ftp"
+  NAS-IP-Address (<i>or</i> NAS-IPv6-Address) <em>server-ip-address</em>
+  NAS-Port <em>server-port</em>
+  NAS-Port-Type 5 (<i>i.e.</i> Virtual)
+  Calling-Station-Id <em>client-ip-address</em>
+  Acct-Session-Id <em>session-pid</em>
+  Message-Authenticator <em>mac</em>
+</pre>
+
+<p>
+Upon receiving the <code>Access-Accept</code> packet, <code>mod_radius</code>
+will now look for specific <a href="http://en.wikipedia.org/wiki/RADIUS#Attribute_value_pairs">attributes</a>, bearing user details, within the packet.
+What attributes does it look for?  Answer: <a href="http://en.wikipedia.org/wiki/RADIUS#Vendor-specific_attributes">Vendor-Specific Attributes</a> (commonly
+called "VSAs").
+
+<p>
+Every VSA is prefixed with a vendor ID, followed by an attribute ID/value which
+are defined by that vendor.  For example, Cisco has a vendor ID of 9,
+Microsoft has a vendor ID of 311, and "Unix" has a vendor ID of 4.  (For the
+curious, these vendor IDs, per <a href="http://tools.ietf.org/search/rfc2865#section-5.26">RFC 2865, Section 5.26</a>, come from the <a href="http://www.iana.org/assignments/enterprise-numbers/enterprise-numbers">IANA Enterprise Numbers</a> registry.)
+
+<p>
+With this background, we can explain the <code>RadiusUserInfo</code> and
+<code>RadiusGroupInfo</code> directives in detail.  Notice that we tell
+<code>mod_radius</code> the vendor ID to look for, using the
+<a href="../contrib/mod_radius.html#RadiusVendor"><code>RadiusVendor</code></a>
+directive:
+<pre>
+  RadiusVendor Unix 4
+</pre>
+The above is actually not necessary; <code>mod_radius</code> will look for
+VSAs for vendor ID 4 (Unix) by default.  It is useful, though, to make it
+explicitly visible in the configuration.
+
+<p>
+Let's now see just what the <code>RadiusUserInfo</code> parameters are doing:
+<pre>
+  RadiusUserInfo $(10:1000) $(11:1000) $(12:/tmp) $(13:/bin/bash)
+</pre>
+In order for <code>proftpd</code> to log a user in, it needs to know that
+user's UID, GID, home directory, and shell.  And the <code>RadiusUserInfo</code>
+parameters say where to find those values, in that order.
+
+<p>
+For UIDs, &quot;$(10:<em>1000</em>)&quot; says to look for a vendor-specific
+attribute ID of 10.  If we find such an attribute, use the attribute value as
+the UID.  Otherwise, use <em>1000</em> as the UID for the user logging in.
+
+<p>
+For GIDs, &quot;$(11:<em>1000</em>)&quot; says to look for a vendor-specific
+attribute ID of 11.  If we find such an attribute, use the attribute value as
+the GID.  Otherwise, use <em>1000</em> as the GID for the user logging in.
+
+<p>
+For home directories, &quot;$(12:<em>/tmp</em>)&quot; says to look for a
+vendor-specific attribute ID of 12.  If we find such an attribute, use the
+attribute value as the home directory.  Otherwise, use <em>/tmp</em> as the
+home directory for the user logging in.
+
+<p>
+And for the shell, &quot;$(13:<em>/bin/bash</em>)&quot; says to look for a
+vendor-specific attribute ID of 13.  If we find such an attribute, use the
+attribute value as the shell.  Otherwise, use <em>/bin/bash</em> as the shell
+for the user logging in.
+
+<p>
+The <code>RadiusGroupInfo</code> directive is very similar: it tells
+<code>mod_radius</code> which VSAs will contain the group membership, both
+in terms of group IDs and group names, for the logging in user:
+<pre>
+  RadiusGroupInfo $(14:users,ftpd) $(15:500,501)
+</pre>
+
+<p>
+For group names, &quot;$(14:<em>users,ftpd</em>)&quot; says to look for a
+vendor-specific attribute ID of 14.  If we find such an attribute, use the
+attribute value as the comma-separated list of supplemental group names.
+Otherwise, use <em>users,ftpd</em> as the group names for the user logging in.
+
+<p>
+For group IDs, &quot;$(15:<em>500,501</em>)&quot; says to look for a
+vendor-specific attribute ID of 15.  If we find such an attribute, use the
+attribute value as the comma-separated list of supplemental group IDs.
+Otherwise, use <em>500,501</em> as the group IDs for the user logging in.
+
+<p>
+<b>FreeRADIUS Configuration</b><br>
+To help demonstrate how you would configure and use VSAs, I will show the
+<a href="http://freeradius.org/">FreeRADIUS</a> configuration that I used for
+development and testing.
+
+<p>
+Here is the FreeRADIUS <code>dictionary.unix</code> file I used (slightly
+modified from the stock <code>dictionary.unix</code> file distributed with
+FreeRADIUS); this file defines the attributes supported for the "Unix"
+vendor:
+<pre>
+  VENDOR          Unix    4
+
+  BEGIN-VENDOR Unix
+
+  ATTRIBUTE       Unix-User-UID            10      integer
+  ATTRIBUTE       Unix-User-GID            11      integer
+  ATTRIBUTE       Unix-User-Home           12      string
+  ATTRIBUTE       Unix-User-Shell          13      string
+  ATTRIBUTE       Unix-User-Group-Names    14      string
+  ATTRIBUTE       Unix-User-Group-Ids      15      string
+
+  END-VENDOR Unix
+</pre>
+You can see how:
+<pre>
+  VENDOR          Unix    4
+</pre>
+here corresponds to the <code>mod_radius</code> configuration line:
+<pre>
+  RadiusVendor Unix 4
+</pre>
+
+<p>
+The following attribute IDs are what we use in our <code>mod_radius</code>
+directives:
+<pre>
+  ATTRIBUTE       Unix-User-UID            <b><i>10</i></b>      integer
+  ATTRIBUTE       Unix-User-GID            <b><i>11</i></b>      integer
+  ATTRIBUTE       Unix-User-Home           <b><i>12</i></b>      string
+  ATTRIBUTE       Unix-User-Shell          <b><i>13</i></b>      string
+</pre>
+which match up with our <code>RadiusUserInfo</code> parameters:
+<pre>
+  RadiusUserInfo $(<b><i>10</i></b>:1000) $(<b><i>11</i></b>:1000) $(<b><i>12</i></b>:/tmp) $(<b><i>13</i></b>:/bin/bash)
+</pre>
+
+<p>
+Similarly for the group membership attributes, <code>dictionary.unix</code>
+has:
+<pre>
+  ATTRIBUTE       Unix-User-Group-Names    <b><i>14</i></b>      string
+  ATTRIBUTE       Unix-User-Group-Ids      <b><i>15</i></b>      string
+</pre>
+and our <code>RadiusGroupInfo</code> parameters are:
+<pre>
+  RadiusGroupInfo $(<b><i>14</i></b>:users,ftpd) $(<b><i>15</i></b>:500,501)
+</pre>
+
+<p>
+Note that only the IDs (numbers) for attributes are used in the RADIUS packets
+sent between clients/servers.  The attribute names are to make the configuration
+and logging more human-readable.
+
+<p>
+Now, in order to tell FreeRADIUS that we want it to <i>include</i> those
+VSAs in its <code>Access-Accept</code> packet back to <code>mod_radius</code>,
+we have to modify the FreeRADIUS <code>users</code> file, like so:
+<pre>
+  DEFAULT Auth-Type := System
+          Unix-User-UID := 500,
+          Unix-User-GID := 500,
+          Unix-User-Home := "/home/tj",
+          Unix-User-Shell := "/bin/bash",
+          Unix-User-Group-Names := "radius,ftpd",
+          Unix-User-Group-Ids := "200,501",
+          Fall-Through = 1
+</pre>
+See the FreeRADIUS documentation for the <code>users</code> file format in
+order to learn how to configure different UID/GID/home/group values for each
+user in that file.
+
+<p>
+<b>Obtaining Quota Information via RADIUS</b><br>
+If you use the <a href="../contrib/mod_quotatab.html"><code>mod_quotatab</code></a> module for quota support in <code>proftpd</code>, <b>and</b> you use the
+<code>mod_radius</code> module for authentication, then you might also be
+interesting in getting your quota information from your RADIUS server, much
+like you can get user details from the RADIUS server.
+
+<p>
+The mechanism is identical that used for user details, <i>i.e.</i>
+vendor-specific attributes (VSAs).  Assuming that you are using FreeRADIUS,
+you would add the following to your FreeRADIUS <code>dictionary.unix</code>
+file:
+<pre>
+  ATTRIBUTE       Unix-FTP-Quota-Per-Session      <b><i>106</i></b>      string
+  ATTRIBUTE       Unix-FTP-Quota-Limit-Type       <b><i>107</i></b>      string
+  ATTRIBUTE       Unix-FTP-Quota-Bytes-Upload     <b><i>108</i></b>      string
+  ATTRIBUTE       Unix-FTP-Quota-Bytes-Download   <b><i>109</i></b>      string
+  ATTRIBUTE       Unix-FTP-Quota-Bytes-Transfer   <b><i>110</i></b>      string
+  ATTRIBUTE       Unix-FTP-Quota-Files-Upload     <b><i>111</i></b>      string
+  ATTRIBUTE       Unix-FTP-Quota-Files-Download   <b><i>112</i></b>      string
+  ATTRIBUTE       Unix-FTP-Quota-Files-Transfer   <b><i>113</i></b>      string
+</pre>
+and in the FreeRADIUS <code>users</code> file (assuming the above user-related
+attributes as well):
+<pre>
+  DEFAULT Auth-Type := System
+          Unix-User-UID := 500,
+          Unix-User-GID := 500,
+          Unix-User-Home := "/home/tj",
+          Unix-User-Shell := "/bin/bash",
+          Unix-User-Group-Names := "radius,ftpd",
+          Unix-User-Group-Ids := "200,501",
+          Unix-FTP-Quota-Per-Session := "false",
+          Unix-FTP-Quota-Limit-Type := "soft",
+          Unix-FTP-Quota-Bytes-Upload := "1.1",
+          Unix-FTP-Quota-Bytes-Download := "2.2",
+          Unix-FTP-Quota-Bytes-Transfer := "3.3",
+          Unix-FTP-Quota-Files-Upload := "4",
+          Unix-FTP-Quota-Files-Download := "5",
+          Unix-FTP-Quota-Files-Transfer := "6",
+          Fall-Through = 1
+</pre>
+and then, to tell <code>mod_radius</code> that it should look for quota-related
+VSAs in the <code>Access-Accept</code> RADIUS packet, there is the aptly-named
+<a href="../contrib/mod_radius.html#RadiusQuotaInfo"><code>RadiusQuotaInfo</code></a> directive:
+<pre>
+  RadiusQuotaInfo $(<b><i>106</i></b>:false) $(<b><i>107</i></b>:hard) $(<b><i>108</i></b>:40.0) $(<b><i>109</i></b>:0.0) $(<b><i>110</i></b>:0.0) $(<b><i>111</i></b>:0) $(<b><i>112</i></b>:0) $(<b><i>113</i></b>:0)
+</pre>
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+<font color=red>Question</font>: Do I have to configure my RADIUS server to
+return VSAs in order to use <code>mod_radius</code>?<br>
+<font color=blue>Answer</font>: No.  As shown above, <code>mod_radius</code>
+is usually used just for validating user credentials.
+
+<p>
+It is also possible to use only <code>mod_radius</code> for user authentication,
+without needing VSAs.  For example, using a configuration like this will
+do what you need:
+<pre>
+  &lt;IfModule mod_radius.c&gt;
+    AuthOrder mod_radius.c
+
+    RadiusEngine on
+    RadiusAuthServer localhost:1812 testing123 5
+    RadiusAcctServer localhost:1813 testing123 5
+    RadiusLog /etc/proftpd/radius.log
+
+    RadiusUserInfo 1000 1000 /tmp /bin/bash
+    RadiusGroupInfo ftpd 1000
+  &lt;/IfModule&gt;
+</pre>
+Notice how the <code>RadiusUserInfo</code> and <code>RadiusGroupInfo</code>
+directives do not use the "$(<i>N</i>:<i>M</i>)" syntax?  That means that
+we are not telling <code>mod_radius</code> what vendor ID and attribute IDs
+to look for.  Instead, we are telling <code>mod_radius</code> to <b>always</b>
+use the configured UID, GID, home directory, shell, group membership values.
+
+<p>
+<b>Note</b> that this means that all of your logged-in users will have the
+exact same UID, GID, and home directory.  For some sites, this is ideal.  Other
+sites need to have different UID/GID/homes for each users, and thus they will
+use the VSA support.
+
+<p><a name="RadiusAndSSH">
+<font color=red>Question</font>: Can I use <code>mod_radius</code> for SFTP
+connections?<br>
+<font color=blue>Answer</font>: Yes.  However, there are some caveats.  The
+main issue that clients which want to use SSH publickey authentication
+<b>cannot</b> use RADIUS, since the RADIUS protocol does not define any means
+of conveying the public key information from the connecting client to the
+RADIUS server.  So only password-based SSH authentication can be supported
+using <code>mod_radius</code>.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

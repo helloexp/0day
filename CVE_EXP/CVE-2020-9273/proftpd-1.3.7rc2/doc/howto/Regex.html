@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Regular Expressions Tutorial</title>
+</head>
+
+<body bgcolor=white>
+
+<table width=100% border=0 summary="">
+  <tr>
+    <td align="center">
+      <h4>Found at: http://publish.ez.no/article/articleprint/11/</h4>
+    </td>
+  </tr>
+</table>
+
+<table width=100% border=0 summary="">
+  <tr>
+    <td>
+      <h1>Regular Expressions Explained</h1>
+    </td>
+  </tr>
+</table>
+
+<hr noshade="noshade" size=4>
+
+<br>
+<table width=100% border=0 summary="">
+  <tr>
+    <td>
+      <p class="byline">Author: Jan Borsodi</p>
+    </td>
+    <td align="right">
+      <p class="byline">Publishing date: 30.10.2000 18:02</p>
+    </td>
+  </tr>
+</table>
+
+<p>
+This article will give you an introduction to the world of <i>regular
+expressions</i>. I'll start off with explaining what regular expressions are
+and introduce their syntax, then some examples with varying complexity.
+
+<p>
+<h2>Concept</h2>
+A <i>regular expression</i> is a text pattern consisting of a combination of
+alphanumeric characters and special characters known as metacharacters. A
+close relative is in fact the <i>wildcard expression</i> which are often used
+in file management. The pattern is used to match against text strings. The
+result of a match is either successful or not, however when a match is
+successful not all of the pattern must match, this is explained later in the
+article.
+
+<p>
+You'll find that <i>regular expressions</i> are used in three different ways:
+Regular text match, search and replace and splitting. The latter is basically
+the same as the reverse match <i>i.e.</i> everything the <i>regular
+expression</i> did not match.
+
+<p>
+<i>Regular expressions</i> are often simply called regexps or RE, but for
+consistency I'll be referring to it with its full name.
+
+<p>
+Due to the versatility of the <i>regular expression</i> it is widely used in
+text processing and parsing. UNIX users are probably familiar with them through
+the use of the programs, <i>grep</i>, <i>sed</i>, <i>awk</i> and <i>ed</i>.
+Text editors such as <i>(X)Emacs</i> and <i>vi</i> also use them heavily.
+Probably the most known use of <i>regular expressions</i> are in the
+programming language Perl; you'll find that Perl sports the most advanced
+<i>regular expression</i> implementation to this day.
+
+<p> 
+<h2>Usage</h2>
+Now you're probably wondering why you should bother to learn <i>regular
+expressions</i>. Well if you're a normal computer user your benefits from
+using them are somewhat small, however if you're either a developer or a system
+administrator you'll find that knowing <i>regular expressions</i> will make
+your (professional) life so much better.
+
+<p>
+Developers can use them to parse text files, fix up code and other wonders.
+System administrators can use them to search through logs, automate boring
+tasks and sniff the network traffic for unauthorized activity.
+
+<p>
+Actually I would go so far as to say it's a crime for a System Administrator
+not to have <b>any</b> knowledge of <i>regular expressions</i>.
+
+<p> 
+<h2>Quantifiers</h2>
+The contents of an expression are, as explained earlier, a combination of
+alphanumeric characters and metacharacters. An alphanumeric character is either
+a letter from the alphabet:
+<p>
+<table width=100% border=0 summary="Alphabetic Quantifiers">
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>abc</code>
+    </td>
+  </tr>
+</table>
+<p>
+or a number:
+<p>
+<table width=100% border=0 summary="Numeric Quantifiers">
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>123</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+Actually in the world of regular expressions any character which is not a
+metacharacter will match itself (often called literal characters), however a
+lot of the time you're mostly concerned with the alphanumeric characters. A
+very special character is the backslash <b>\</b>, as this turns any
+metacharacters into literal characters, and alphanumeric characters into a
+sort of metacharacter or sequence. The metacharacters are:
+<p>
+<table width=100% border=0 summary="Metacharacters">
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>\ | ( ) [  {  ^ $ * + ? . < ></code>
+    </td>
+  </tr>
+</table>
+
+<p>
+With that said normal characters don't sound too interesting so let's jump to
+our very first metacharacters.
+
+<p>
+The punctuation mark, or dot, <b>.</b> needs explaining first since it often
+leads to confusion. This character will not, as many might think, match the
+punctuation in a line. It is instead a special metacharacter which matches any
+character. Using this where you wanted to find the end of the line, or the
+decimal in a floating number, will lead to strange results. As explained above,
+you need to backslashify it to get the literal meaning. For instance take this
+expression:
+<p>
+<table width=100% border=0 summary="Punctuation Marks">
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>1.23</code>
+    </td>
+  </tr>
+</table>
+<p>
+will match the number 1.23 in a text as you might have guessed, but it will
+<b>also</b> match these next lines:
+<p>
+<table width=100% border=0 summary="Punction Marks">
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>1x23</code><br>
+      <code>1 23</code><br>
+      <code>1-23</code>
+    </td>
+  </tr>
+</table>
+<p>
+to make the expression <b>only</b> match the floating number we change it to:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>1\.23</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+Remember this, it's very important. Now with that said we can get the show
+going.
+
+<p>
+Two heavily recurring metacharacters are:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>*</code> and <code>+</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+They are called quantifiers and tell the engine to look for several occurrences
+of a character; the quantifier always precedes the character at hand. The
+<code><b>*</b></code> character matches <b>zero or more</b> occurrences of the
+character in a row, the <code><b>+</b></code> character is similar but matches
+<b><i>one</i> or more</b>.
+
+<p>
+So if you decided to find words which had the character <code><b>c</b></code>
+in it you might be tempted to write:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>c*</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+What might come as a surprise to you is that you will find an enormous amount
+of matches, even words with no <code><b>c</b></code> in them will match.
+&quot;How is this so?&quot; you ask. Well, the answer is simple. Recall that the
+<code><b>*</b></code> character matches <b>zero</b> or more characters, and
+that's exactly what you matched, zero characters.
+
+<p>
+You see, in <i>regular expressions</i> you have the possibility to match what
+is called the <b>empty string</b>, which is simply a string with zero size.
+This empty string can actually be found in all texts. For instance the word:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>go</code>
+    </td>
+  </tr>
+</table>
+<p>
+contains three empty strings. They are contained at the position right before
+the <code><b>g</b></code>, in between the <code><b>g</b></code> and the
+<code><b>o</b></code> and after the <code><b>o</b></code>. And an empty string
+contains exactly <b>one</b> empty string. At first this might seem like a
+really silly thing to do, but you'll learn later on how this is used in more
+complex expressions.
+
+<p>
+So with this knowledge we might want to change our expression to:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>c+</code>
+    </td>
+  </tr>
+</table>
+<p>
+and voila we get only words with <code><b>c</b></code> in them.
+
+<p>
+The next metacharacter you'll learn is:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>?</code>
+    </td>
+  </tr>
+</table>
+<p>
+This simply tells the engine to either match the character or not (zero or
+one). For instance the expression:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>cows?</code>
+    </td>
+  </tr>
+</table>
+<p>
+will match any of these lines:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>cow</code><br>
+      <code>cows</code>
+    </td>
+  </tr>
+</table>
+<p>
+These three metacharacters are simply a specialized scenario for the more
+generalized quantifier:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>{n,m}</code>
+    </td>
+  </tr>
+</table>
+<p>
+the <code><b>n</b></code> and <code><b>m</b></code> are respectively the
+minimum and maximum size for the quantifier. For instance:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>{1,5}</code>
+    </td>
+  </tr>
+</table>
+<p>
+means match one or up to five characters. You can also skip
+<code><b>m</b></code> to allow for infinite match:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>{1,}</code>
+    </td>
+  </tr>
+</table>
+<p>
+which matches one or more characters. This is exactly what the
+<code><b>+</b></code> character does. So now you see the connection,
+<code><b>*</b></code> is equal to <code><b>{0,}</b></code>,
+<code><b>+</b></code> is equal to <code><b>{1,}</b></code> and
+<code><b>?</b></code> is equal to <code><b>{0,1}</b></code>.
+
+<p>
+The last thing you can do with the quantifier is to also skip the comma:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>{5}</code>
+    </td>
+  </tr>
+</table>
+<p>
+which means to match 5 characters, no more, no less.
+
+<p> 
+<h2>Assertions</h2>
+The next type of metacharacters is assertions. These will match if a given
+assertion is true. The first pair of assertions are:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>^</code> and <code>$</code>
+    </td>
+  </tr>
+</table>
+<p>
+which match the beginning of the line, and the end of the line, respectively.
+Note that some <i>regular expression</i> implementations allows you to change
+their behavior so that they will instead match the beginning of the text and
+the end of the text. These assertions always match a zero length string, or in
+other words, they match a position. For instance, if you wrote this expression:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>^The</code>
+    </td>
+  </tr>
+</table>
+<p>
+it would match any line which began with the word <code><b>The</b></code>.
+
+<p>
+The next assertion characters match at the beginning and end of a word; they
+are:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>&lt;</code> and <code>&gt;</code>
+    </td>
+  </tr>
+</table>
+<p>
+they come in handy when you want to match a word precisely. For instance:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>cow</code>
+    </td>
+  </tr>
+</table>
+<p>
+would match any of the following words:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>cow</code><br>
+      <code>coward</code><br>
+      <code>cowage</code><br>
+      <code>cowboy</code><br>
+      <code>cowl</code>
+    </td>
+  </tr>
+</table>
+<p>
+A small change to the expression:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>&lt;cow&gt;</code>
+    </td>
+  </tr>
+</table>
+<p>
+and you'll only match the word <code><b>cow</b></code> in the text.
+
+<p>
+One last thing to be said is that all literal characters are in fact assertions
+themselves. The difference between them and the ones above is that literal
+characters have a size. So for cleanliness sake we only use the word
+&quot;assertions&quot; for those that are zero-width.
+
+<p> 
+<h2>Groups and Alternation</h2>
+One thing you might have noticed when we explained quantifiers is that they
+only worked on the character to the left. Since this pretty much limits our
+expressions I'll explain other uses for quantifiers. Quantifiers can also be
+used on metacharacters; using them on assertions is silly since assertions are
+zero-width and matching one, two, three or more of them doesn't do any good.
+However the grouping and sequence metacharacters are perfect for being
+quantified. Let's first start with grouping.
+
+<p>
+You can form groups, or subexpressions as they are frequently called, by using
+the begin and end parenthesis characters:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>(</code> and <code>)</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+The <code><b>(</b></code> starts the subexpression and the <code><b>)</b></code>
+ends it. It is also possible to have one or more subexpressions inside a
+subexpressions. The subexpression will match if the contents match. So mixing
+this with quantifiers and assertions you can do:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>( ?ho)+</code>
+    </td>
+  </tr>
+</table>
+<p>
+which matches all of the following lines:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>ho</code><br>
+      <code>ho ho</code><br>
+      <code>ho ho ho</code><br>
+      <code>hohoho</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+Another use for subexpressions are to extract a portion of the match if it
+matches. This is often used in conjunction with sequences, which are discussed
+later.
+
+<p>
+You can also use the result of a subexpression for what is called a back
+reference. A back reference is given by using a backslashified digit, a single
+non-zero digit. This leaves you with nine back references (0 through 9).  The
+back reference matches whatever the corresponding subexpression actually
+matched (except that <code>{<i>article_contents_1</i>}</code> matches a null
+character). To find the number of the subexpression, count the open parentheses
+from the left.
+
+<p>
+The uses for back references are somewhat limited, especially since you only
+have nine of them, but on some rare occasion you might need it. Note some
+<i>regular expression</i> implementations can use multi-digit numbers as long
+as they don't start with a 0.
+
+<p>
+Next are alternations, which allow you to match on any of many words. The
+alternation character is:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>|</code>
+    </td>
+  </tr>
+</table>
+<p>
+A sample usage is:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>Bill|Linus|Steve|Larry</code>
+    </td>
+  </tr>
+</table>
+<p>
+would match either Bill, Linus, Steve or Larry.  Mixing this with subexpressions
+and quantifiers we can do:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>cow(ard|age|boy|l)?</code>
+    </td>
+  </tr>
+</table>
+<p>
+which matches any of the following words but no others:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>cow</code><br>
+      <code>coward</code><br>
+      <code>cowage</code><br>
+      <code>cowboy</code><br>
+      <code>cowl</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+I mentioned earlier in the article that not all of the expression must match
+for the match to be successful. This can happen when you're using
+subexpressions together with alternations. For example:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>((Donald|Dolly) Duck)|(Scrooge McDuck)</code>
+    </td>
+  </tr>
+</table>
+<p>
+As you see only the left or right top subexpression will match, not both. This
+is sometimes handy when you want to run a complex pattern in one subexpression
+and if it fails try another one.
+
+<p> 
+<h2>Sequences</h2>
+Last we have sequences, which define sequences of characters which can match.
+Sometimes you don't want to match a word directly but rather something that
+resembles one. The sequence characters are:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>[</code> and <code>]</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+Any characters put inside the sequence brackets are treated as literal
+characters, even metacharacters. The only special characters are
+<code><b>-</b></code> which denotes character ranges, and <code><b>^</b></code>
+which is used to negate a sequence. The sequence is somewhat similar to
+alternation; the similarity is that only one of the items listed will match.
+For instance:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>[a-z]</code>
+    </td>
+  </tr>
+</table>
+<p>
+will match any lowercase characters which are in the English alphabet (a to z).
+Another common sequence is:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>[a-zA-Z0-9]</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+Which matches any lowercase or capital characters in the English alphabet as
+well as numbers. Sequences are also mixed with quantifiers and assertions to
+produce more elaborate searches.  Example:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>&lt;[a-zA-Z]+&gt;</code>
+    </td>
+  </tr>
+</table>
+<p>
+matches all whole words. This will match:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>cow</code><br>
+      <code>Linus</code><br>
+      <code>regular</code><br>
+      <code>expression</code>
+    </td>
+  </tr>
+</table>
+<p>
+but will not match:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>200</code><br>
+      <code>x-files</code><br>
+      <code>C++</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+Now if you wanted to find anything <i>but</i> words, the expression:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>[^a-zA-Z0-9]+</code>
+    </td>
+  </tr>
+</table>
+<p>
+would find any sequences of characters which do not contain the English
+alphabet or any numbers.
+
+<p>
+Some implementations of <i>regular expressions</i> allow you to use shorthand
+versions for commonly used sequences, they are:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>\d</code>, a digit (<code>[0-9]</code>)<br>
+      <code>\D</code>, a non-digit (<code>[^0-9]</code>)<br>
+      <code>\w</code>, a word (alphanumeric) (<code>[a-zA-Z0-9]</code>)<br>
+      <code>\W</code>, a non-word (<code>[^a-zA-Z0-9]</code>)<br>
+      <code>\s</code>, a whitespace (<code>[ \t\n\r\f]</code>)<br>
+      <code>\S</code>, a non-whitespace (<code>[^ \t\n\r\f]</code>)
+    </td>
+  </tr>
+</table>
+
+<p>
+<b>Wildcards</b><br>
+For people who have some knowledge with wildcards (also known as
+<i>file globs</i> or <i>file globbing</i>), I'll give a brief explanation on how
+to convert them to <i>regular expressions</i>. After reading this article, you
+probably have seen the similarities with wildcards.  For instance:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>*.jpg</code>
+    </td>
+  </tr>
+</table>
+<p>
+matches any text which end with <code><b>.jpg</b></code>. You can also specify
+brackets with characters, as in:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>*.[ch]pp</code>
+    </td>
+  </tr>
+</table>
+<p>
+matches any text which ends in <code><b>.cpp</b></code> or
+<code><b>.hpp</b></code>. Altogether very similar to regular expressions.
+
+<p>
+The <code><b>*</b></code> means match zero or more of anything in wildcards. As
+we learned, we do this is regular expression with the punctuation mark and the
+<code><b>*</b></code> quantifier. This gives:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>.*</code>
+    </td>
+  </tr>
+</table>
+<p>
+Also remember to convert any punctuation marks from wildcards to be
+backslashified.
+
+<p>
+The <code><b>?</b></code> means match any character but do match
+<b>something</b>. This is exactly what the punctuation mark does.
+
+<p>
+Square brackets can be used untouched since they have the same meaning going
+from wildcards to regular expressions.
+
+<p>
+These leaves us with:
+<ul>
+  <li>Replace any <code><b>*</b></code> characters with <code><b>.*</b></code>
+  <li>Replace any <code><b>?</b></code> characters with <code><b>.</b></code>
+  <li>Leave square brackets as they are.
+  <li>Replace any characters which are metacharacters with a backslashified
+      version.
+</ul>
+
+<p>
+<b>Examples</b><br>
+<p>
+<table width=100% border="0">
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>*.jpg</code>
+    </td>
+  </tr>
+</table>
+<p>
+would be converted to:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>.*\.jpg</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>ez*.[ch]pp</code>
+    </td>
+  </tr>
+</table>
+<p>
+would convert to:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>ez.*\.[ch]pp</code>
+    </td>
+  </tr>
+</table>
+<p>
+or alternatively:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>ez.*\.(cpp|hpp)</code>
+    </td>
+  </tr>
+</table>
+
+<p> 
+<h3>Example Regular Expressions</h3>
+To really get to know <i>regular expressions</i> I've left some commonly used
+expressions on this page. Study them, experiment and try to understand exactly
+what they are doing.
+
+<p>
+Email validity: will only match email addresses which are valid, such as
+&quot;user@host.com&quot;:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>[a-z0-9_-]+(\.[a-z0-9_-]+)*@[a-z0-9_-]+(\.[a-z0-9_-]+)+</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+Email validity #2: matches email addresses with a name in front, like &quot;John
+Doe &lt;user@host.com&gt;&quot;:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>("?[a-zA-Z]+"?[ \t]*)+\&lt;[a-z0-9_-]+(\.[a-z0-9_-]+)*@[a-z0-9_-]+(\.[a-z0-9_-]+)+\&gt;</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+Protocol validity: matches web based protocols such as &quot;htpp://&quot;,
+&quot;ftp://&quot; or &quot;https://&quot;:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>[a-z]+://</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+C/C++ includes: matches valid include statements in C/C++ files:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>^#include[ \t]+[<"][^>"]+[">]</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+C++ end of line comments:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>//.+$</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+C/C++ span line comments (it has one flaw, can you spot it?):
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>/\*[^*]*\*/</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+Floating point numbers: matches simple floating point numbers of the kind 1.2
+and 0.5:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>-?[0-9]+\.[0-9]+</code>
+    </td>
+  </tr>
+</table>
+
+<p>
+Hexadecimal numbers: matches C/C++ style hex numbers, <i>e.g.</i>
+<code>0xcafebabe</code>:
+<p>
+<table width=100% border=0>
+  <tr>
+    <td bgcolor="#f0f0f0">
+      <code>0x[0-9a-fA-F]+</code>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

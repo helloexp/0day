@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_log</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_log</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+This module is contained in the <code>mod_log.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is compiled by default.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#AllowLogSymlinks">AllowLogSymlinks</a>
+  <li><a href="#ExtendedLog">ExtendedLog</a>
+  <li><a href="#LogFormat">LogFormat</a>
+  <li><a href="#ServerLog">ServerLog</a>
+  <li><a href="#SystemLog">SystemLog</a>
+</ul>
+
+<hr>
+<h3><a name="AllowLogSymlinks">AllowLogSymlinks</a></h3>
+<strong>Syntax:</strong> AllowLogSymlinks <em>on|off</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_log<br>
+<strong>Compatibility:</strong> 1.2.2rc2 and later
+
+<p>
+By default, the server will the path of any configured
+<a href="#SystemLog"><code>SystemLog</code></a>, any configured
+<a href="mod_core.html#TransferLog"><code>TransferLog</code></a>s, and any
+configured <a href="#ExtendedLog"><code>ExtendedLog</code></a>s to see if they
+are symbolic links. If the paths <i>are</i> symbolic links, <code>proftpd</code>
+will refuse to log to that link unless explicitly configured to do so via
+this <code>AllowLogSymlinks</code> directive.
+
+<p>
+<b>Security Note</b>: This behaviour should not be allowed unless for a very
+good reason.  By allowing the server to open symbolic links with its root
+privileges, you are allowing a potential symlink attack where the server could
+be tricked into overwriting arbitrary system files. <i>You have been
+warned.</i>
+
+<p>
+<hr>
+<h3><a name="ExtendedLog">ExtendedLog</a></h3>
+<strong>Syntax:</strong> ExtendedLog <em>path [cmd-classes [format-name]]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code><br>
+<strong>Module:</strong> mod_log<br>
+<strong>Compatibility:</strong> 1.1.6p11 and later
+
+<p>
+The <code>ExtendedLog</code> directive allows customizable logfiles to be
+generated, either globally or per <code>&lt;VirtualHost&gt;</code>.  The
+<em>path</em> argument should contain an absolute pathname to a logfile which
+will be appended to when <code>proftpd</code> starts; the pathname should
+<b>not</b> be to a file in a nonexistent directory, to a world-writable
+directory, or be a symbolic link (unless
+<a href="#AllowLogSymlinks"><code>AllowLogSymlinks</code></a> is set to
+<em>on</em>). Multiple logfiles, potentially with different command classes and
+formats) can be created. Optionally, the <em>cmd-classes</em> parameter can be
+used to control which types of commands are logged.  If no command classes are
+specified, <code>proftpd</code> logs all commands by default.
+<b>Note</b> that passwords are hidden.  If used, the <em>cmd-classes</em>
+parameter is a comma-delimited (with <b>no whitespace</b>) list of which
+commands to log.
+
+<p>
+In <code>proftpd-1.2.8rc1</code> and later, the <em>path</em> argument can
+be of the form &quot;syslog:<i>level</i>&quot;.  The &quot;syslog:&quot; prefix
+configures <code>mod_log</code> to write the <code>ExtendedLog</code> data
+to syslog rather than to a file.  The <i>level</i> configures the syslog
+level at which to log the data.  For example:
+<pre>
+  ExtendedLog syslog:info ALL default
+</pre>
+
+<p>
+This table shows the supported command classes:
+<p>
+<table border=1 summary="Command Classes">
+  <tr>
+    <td><b>Command Class</b></td>
+    <td><b>FTP Commands</b></td>
+  </tr>
+
+  <tr>
+    <td><code>ALL</code></td>
+    <td>All commands <i>except</i> the <code>EXIT</code> pseudo-command (<i>default</i>)</td>
+  </tr>
+
+  <tr>
+    <td><code>NONE</code></td>
+    <td>No commands</td>
+  </tr>
+
+  <tr>
+    <td><code>AUTH</code></td>
+    <td>Authentication commands: <code>ACCT</code>, <code>PASS</code>,
+      <code>REIN</code>, <code>USER</code></td>
+  </tr>
+
+  <tr>
+    <td><code>INFO</code></td>
+    <td>Informational commands: <code>FEAT</code>, <code>HELP</code>,
+      <code>MDTM</code>, <code>QUIT</code>, <code>PWD</code>, <code>STAT</code>,
+      <code>SIZE</code>, <code>SYST</code>, <code>XPWD</code></td>
+  </tr>
+
+  <tr>
+    <td><code>DIRS</code></td>
+    <td>Directory commands: <code>CDUP</code>, <code>CWD</code>,
+      <code>LIST</code>, <code>MKD</code>, <code>MLSD</code>, <code>MLST</code>,
+      <code>NLST</code>, <code>RMD</code>, <code>XCWD</code>, <code>XCUP</code>,
+      <code>XMKD</code>, <code>XRMD</code></td>
+  </tr>
+
+  <tr>
+    <td><code>READ</code></td>
+    <td>File reading: <code>RETR</code></td>
+  </tr>
+
+  <tr>
+    <td><code>WRITE</code></td>
+    <td>File/directory writing or creation: <code>APPE</code>, <code>MFF</code>,
+      <code>MFMT</code>, <code>MKD</code>, <code>RMD</code>, <code>RNFR</code>,
+      <code>RNTO</code>, <code>STOR</code>, <code>STOU</code>,
+      <code>XMKD</code>, <code>XRMD</code></td>
+  </tr>
+
+  <tr>
+    <td><code>MISC</code></td>
+    <td>Miscellaneous commands: <code>ABOR</code>, <code>ALLO</code>,
+      <code>EPRT</code>, <code>EPSV</code>, <code>MODE</code>,
+      <code>NOOP</code>, <code>OPTS</code>, <code>PASV</code>,
+      <code>PORT</code>, <code>REST</code>, <code>RNFR</code>,
+      <code>RNTO</code>, <code>SITE</code>, <code>SMNT</code>,
+      <code>STRU</code>, <code>TYPE</code></td>
+  </tr>
+
+  <tr>
+    <td><code>SEC</code></td>
+    <td>RFC2228-related security FTP commands: <code>AUTH</code>,
+      <code>CCC</code>, <code>PBSZ</code>, <code>PROT</code></td>
+  </tr>
+
+  <tr>
+    <td><code>EXIT</code></td>
+    <td>Logs the configured <code>LogFormat</code> at session exit.<br>
+        <b>NOTE</b>: <code>EXIT</code> is <b>not</b> part of the
+        <code>ALL</code> command class, in order to preserve
+        backward-compatible <code>ALL</code> behavior.</td>
+  </tr>
+</table>
+
+<p>
+If a <em>format-name</em> parameter is used, <code>ExtendedLog</code> will
+use the named <a href="#LogFormat"><code>LogFormat</code></a>. Otherwise, the
+default format of "%h %l %u %t \"%r\" %s %b" is used.
+
+<p>
+For example, to log all read and write operations to
+<code>/var/log/ftp.log</code> using the default format, use:
+<pre>
+  ExtendedLog /var/log/ftp.log READ,WRITE
+</pre>
+and to log all read and write operations to <code>/var/log/ftp.log</code>
+using your own <code>LogFormat</code> named "custom", use:
+<pre>
+  LogFormat custom ...
+  ExtendedLog /var/log/ftp.log READ,WRITE custom
+</pre>
+
+<p>
+See also: <a href="#AllowLogSymlinks"><code>AllowLogSymlinks</code></a>,
+<a href="#LogFormat"><code>LogFormat</code></a>,
+<a href="mod_core.html#TransferLog"><code>TransferLog</code></a>
+
+<p>
+<hr>
+<h3><a name="LogFormat">LogFormat</a></h3>
+<strong>Syntax:</strong> LogFormat <em>format-name format-string</em><br>
+<strong>Default:</strong> LogFormat default "%h %l %u %t \"%r\" %s %b"<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_log<br>
+<strong>Compatibility:</strong> 1.1.6p11 and later
+
+<p>
+The <code>LogFormat</code> directive can be used to create a custom logging
+format for use with the <a href="#ExtendedLog"><code>ExtendedLog</code></a>
+directive.  Once created, the format can be referenced by the specified
+<em>format-name</em>. The <em>format-string</em> parameter can consist of
+any combination of letters, numbers and symbols. The special character '%' is
+used to start a meta sequence/variable (see below). To insert a literal '%'
+character, use "%%".
+
+<p>
+The default <code>LogFormat</code> is:
+<pre>
+  "%h %l %u %t \"%r\" %s %b"
+</pre>
+which produces log entries in the <a href="http://www.w3.org/Daemon/User/Config/Logging.html#common-logfile-format">Common Log Format</a>.
+
+<p>
+The following meta sequences/variables are available and are replaced as
+indicated when logging.
+
+<p>
+<table border=1 summary="LogFormat Variables">
+  <tr>
+    <td><b>Variable</b></td>
+    <td><b>Value</b></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%a</code>&nbsp;</td>
+    <td>Remote client IP address</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%A</code>&nbsp;</td>
+    <td>Anonymous login password, or "UNKNOWN" for regular logins</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{basename}</code>&nbsp;</td>
+    <td>Last component of path, <i>i.e.</i> just the file or directory name.</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%b</code>&nbsp;</td>
+    <td>Number of bytes sent for this command</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%c</code>&nbsp;</td>
+    <td>Client connection class, or "-" if undefined</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%d</code>&nbsp;</td>
+    <td>Directory name (<i>not</i> full path) for: <code>CDUP</code>,
+      <code>CWD</code>, <code>LIST</code>, <code>MLSD</code>, <code>MKD</code>,
+      <code>NLST</code>, <code>RMD</code>, <code>XCWD</code>, <code>XCUP</code>,
+      <code>XMKD</code>, <code>XRMD</code></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%D</code>&nbsp;</td>
+    <td>Directory path (full path) for: <code>CDUP</code>,
+      <code>CWD</code>, <code>LIST</code>, <code>MLSD</code>, <code>MKD</code>,
+      <code>NLST</code>, <code>RMD</code>, <code>XCWD</code>, <code>XCUP</code>,
+      <code>XMKD</code>, <code>XRMD</code></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%E</code>&nbsp;</td>
+    <td>End-of-session reason</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{epoch}</code>&nbsp;</td>
+    <td>Unix epoch; seconds since January 1, 1970</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{<em>NAME</em>}e</code>&nbsp;</td>
+    <td>Contents of environment variable <em>NAME</em></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%f</code>&nbsp;</td>
+    <td>Absolute path of the filename stored or retrieved (not chrooted)</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%F</code>&nbsp;</td>
+    <td>Filename stored or retrieved, as the client sees it</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{file-modified}</code>&nbsp;</td>
+    <td>Indicates whether a file is modified (<i>i.e.</i> already exists): "true" or "false"</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{file-size}</code>&nbsp;</td>
+    <td>Indicates the file size <b>after</b> data transfer, or "-" if not applicable</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{gid}</code>&nbsp;</td>
+    <td>GID of authenticated user</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%g</code>&nbsp;</td>
+    <td>Primary group of authenticated user</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%h</code>&nbsp;</td>
+    <td>Remote client DNS name</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%H</code>&nbsp;</td>
+    <td>Local IP address of vhost/server hosting/handling the session</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%I</code>&nbsp;</td>
+    <td>Total number of "raw" bytes read in from network</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{iso8601}</code>&nbsp;</td>
+    <td>shorthand form of <code>%{%Y-%m-%d %H:%M:%S}t,%{millisecs}</code>, <i>e.g.</i> "2013-01-30 20:14:05,670"</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%J</code>&nbsp;</td>
+    <td>Command arguments received from client, <i>e.g.</i> "file.txt"</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%l</code>&nbsp;</td>
+    <td>Remote username (from <code>identd</code>), or "UNKNOWN" if IdentLookup
+      failed</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%L</code>&nbsp;</td>
+    <td>Local IP address contacted by client</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%m</code>&nbsp;</td>
+    <td>Command (method) name received from client, <i>e.g.</i> <code>RETR</code></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{microsecs}</code>&nbsp;</td>
+    <td>6 digit value of the microseconds of the current time</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{millisecs}</code>&nbsp;</td>
+    <td>3 digit value of the milliseconds of the current time</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%O</code>&nbsp;</td>
+    <td>Total number of "raw" bytes written out to network</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%p</code>&nbsp;</td>
+    <td>Local port</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%P</code>&nbsp;</td>
+    <td>Local server process ID (pid)</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{protocol}</code>&nbsp;</td>
+    <td>Current protocol: "ftp", "ftps", "ssh2", "sftp", "scp"</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%r</code>&nbsp;</td>
+    <td>Full command received from client</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%R</code>&nbsp;</td>
+    <td>Response time, in milliseconds</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{remote-port}</code>&nbsp;</td>
+    <td>Remote client port</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%s</code>&nbsp;</td>
+    <td>Numeric FTP response code (status); see <a href="http://www.faqs.org/rfcs/rfc959.html">RFC 959</a> Section 4.2.1</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%S</code>&nbsp;</td>
+    <td>Response message sent to client (available since 1.3.1rc1)</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%t</code>&nbsp;</td>
+    <td>Current local time</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{<em>format</em>}t</code>&nbsp;</td>
+    <td>Current local time using <code>strftime(3)</code> <em>format</em></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%T</code>&nbsp;</td>
+    <td>Time taken to transfer file, in seconds</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{transfer-failure}</code>&nbsp;</td>
+    <td>Reason for data transfer failure (if applicable), or "-"</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{transfer-millisecs}</code>&nbsp;</td>
+    <td>Time taken to transfer file, in milliseconds</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{transfer-status}</code>&nbsp;</td>
+    <td>Status of data transfer: "success", "failed", "cancelled", "timeout", or "-"</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{transfer-type}</code>&nbsp;</td>
+    <td>Data transfer type: "binary" or "ASCII" (if applicable), or "-"</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%u</code>&nbsp;</td>
+    <td>Authenticated local username</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%U</code>&nbsp;</td>
+    <td><code>USER</code> name originally sent by client</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{uid}</code>&nbsp;</td>
+    <td>UID of authenticated user</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%v</code>&nbsp;</td>
+    <td>Local server <code>ServerName</code></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%V</code>&nbsp;</td>
+    <td>Local server DNS name</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{version}</code>&nbsp;</td>
+    <td>ProFTPD version</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%w</code>&nbsp;</td>
+    <td>Absolute path for the <code>RNFR</code> path ("whence" a rename comes)</td>
+  </tr>
+</table>
+
+<p>
+See also: <a href="#ExtendedLog"><code>ExtendedLog</code></a>,
+<a href="mod_core.html#TransferLog"><code>TransferLog</code></a>
+
+<p>
+<hr>
+<h3><a name="ServerLog">ServerLog</a></h3>
+<strong>Syntax:</strong> ServerLog <em>path</em>|"none"<br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_log<br>
+<strong>Compatibility:</strong> 1.2.8rc1 and later
+
+<p>
+The <code>ServerLog</code> directive is used to configure a
+<code>&lt;VirtualHost&gt;</code>-specific logfile at the given <em>path</em>,
+rather than a single <a href="#SystemLog"><code>SystemLog</code></a> for the
+entire configuration.
+
+<p>
+A <em>path</em> value of "none" will disable file logging for that vhost;
+this can be used to override a global <code>ServerLog</code> setting.
+
+<p>
+<hr>
+<h3><a name="SystemLog">SystemLog</a></h3>
+<strong>Syntax:</strong> SystemLog <em>path</em>|"none"<br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_log<br>
+<strong>Compatibility:</strong> 1.1.6p11 and later
+
+<p>
+The <code>SystemLog</code> directive disables <code>proftpd</code>'s use of the
+<code>syslog</code> mechanism and instead redirects all logging output to the
+specified <em>path</em>.  The <em>path</em> should contain an absolute path,
+and should not be to a file in a nonexistent directory, in a world-writable
+directory, or be a symbolic link (unless
+<a href="#AllowLogSymlinks"><code>AllowLogSymlinks</code></a> is set to
+<em>on</em>).
+
+<p>
+Use of this directive overrides any facility set by the
+<a href="mod_core.html#SyslogFacility"><code>SyslogFacility</code></a>
+directive.
+
+<p>
+A <em>path</em> value of "none" will disable logging for the entire daemon.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_log</code> module is compiled by default.
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+<p>
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p>
+<font color=red>Question</font>: Why are successful logins no longer being
+logged, after upgrading to ProFTPD 1.3.6, even though I am using the
+<code>SystemLog</code> directive?<br>
+<font color=blue>Answer</font>: The default log level was changed from
+<code>DEBUG</code> to <code>NOTICE</code> in ProFTPD 1.3.6; see
+<a href="http://bugs.proftpd.org/show_bug.cgi?id=3983">Bug#3983</a>.  And
+the "Login successful" log message is logged at the <code>INFO</code> level,
+which means that it will <em>not</em> be logged by default.
+
+<p>
+Why not?  The <code>INFO</code> log level is for "normal operating conditions"
+(see the <a href="../howto/LogLevels.html">log levels</a> howto), and successful
+logins are considered normal, and thus are not noteworthy or needed for logging.
+<em>Failed</em> logins, however, <em>are</em> logged at the <code>NOTICE</code>
+log level.
+
+<p>
+For having successful logins logged once more, use the following in your
+<code>proftpd.conf</code>:
+<pre>
+  SyslogLevel INFO
+</pre>
+
+<p>
+<font color=red>Question</font>: I have configured ProFTPD to use DNS names
+in my <code>proftpd.conf</code> using:
+<pre>
+  UseReverseDNS on
+</pre>
+But in my <code>ExtendedLog</code>, I still see IP addresses rather than the
+DNS names I expect to see.  How can that happen?<br>
+<font color=blue>Answer</font>: The
+<a href="#LogFormat"><code>LogFormat</code></a> <code>%h</code> is what is used
+to log DNS names.  The logged value might be an IP address if ProFTPD cannot
+properly verify that the client IP address resolves to a DNS name.
+
+<p>
+"Properly verifying" an IP address, in this case, means resolving the DNS name
+for an IP address <em>and then resolving that DNS name back to its IP
+addresses</em>:
+<pre>
+  $ host 10.1.2.3
+  3.2.1.10.in-addr.arpa domain name pointer host.domain.example.com.
+  $ host host.domain.example.com
+  host.domain.example.com has address 10.4.5.6
+</pre>
+In this example, the IP address 10.1.2.3 does not resolve back to itself via
+DNS, but rather to a <i>different</i> IP address.
+
+<p>
+If the DNS name does not resolve back to the original IP address, then that
+DNS name is <b>not used</b>, as that DNS name is considered "unreliable"; only
+<em>reliable</em> information is logged (and used elsewhere).  Thus ProFTPD
+resorts to logging just the client IP address for the <code>%h</code> variable,
+rather than the DNS name, in these situations.
+
+<p>
+<font color=red>Question</font>: How can I get the reason a client was
+disconnected, for whatever reason, logged to my <code>ExtendedLog</code>?<br>
+<font color=blue>Answer</font>: You can use the <code>%E</code>
+<a href="#LogFormat"><code>LogFormat</code></a> variable for this, <b>in
+conjunction with</b> the <code>EXIT</code> log class.
+
+<p>
+For example, assume you have configured the following:
+<pre>
+  MaxConnectionsPerUser 2
+</pre>
+and you would like your <code>ExtendedLog</code> to record when this limit
+is reached.  To do this, you would use something like the following:
+<pre>
+  LogFormat eos "%a: user=%U disconnect_reason=\"%E\""
+  ExtendedLog /var/log/proftpd/ext.log EXIT eos
+</pre>
+Of course, you can include other logging classes than just <code>EXIT</code>;
+the above is just an example.
+
+<p>
+With the above, when the <code>MaxConnectionsPerUser</code> is reached,
+your log would have a line like:
+<pre>
+  127.0.0.1: user=tj disconnect_reason="Denied by MaxConnectionsPerUser"
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2002-2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+
+<hr>
+</body>
+</html>

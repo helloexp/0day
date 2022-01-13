@@ -1,0 +1,586 @@
+mod_ldap v2.9.2
+===============
+
+mod_ldap is a ProFTPD module that performs user authentication and
+name/UID/quota lookups against an LDAP directory.
+
+**Please note:** Read the Changes section below for mod_ldap v2.9 changes;
+some significant changes have been made. Do *NOT* upgrade to mod_ldap v2.9
+or later before reading the Changes section.
+
+Sections:
+1. Author
+2. How do I set up mod_ldap?
+3. Changes
+4. Thanks
+
+
+=========
+1. Author
+=========
+
+John Morrissey, <jwm@horde.net>, http://horde.net/~jwm/software/mod_ldap/.
+Feedback is much appreciated. If you're using mod_ldap successfully, are
+having problems getting mod_ldap up and running at your site, or have some
+code improvements or ideas for development, please let me know!
+
+
+============================
+2. How do I set up mod_ldap?
+============================
+
+* tar xvzf proftpd-version.tar.gz
+* If you wish to use a newer version of mod_ldap that is not yet included
+  with a release version of ProFTPD, download the file mod_ldap.c and say:
+
+    cp -f mod_ldap.c proftpd-version/contrib
+
+* cd proftpd-version
+* ./configure --with-modules=mod_ldap
+* make
+* make install
+* The 'user-ldif' file contains a sample user ldif. Modify it to your liking
+  and say ldapadd -D your-root-dn -w your-root-dn-password < ldif
+* You are *strongly* encouraged to read up on the LDAP config-file
+  directives in proftpd-version/doc/Configuration.html. At bare minimum,
+  you'll need LDAPServer, LDAPBindDN, and LDAPUsers configuration directives
+  in your proftpd.conf.
+
+  A set of basic mod_ldap configuration directives would look like:
+
+    LDAPServer localhost
+    LDAPBindDN cn=your-dn,dc=example,dc=com dnpass
+    LDAPUsers "dc=users,dc=example,dc=com"
+
+  Of course, you will need to update these configuration directives with
+  the proper values for your environment.
+
+
+==========
+3. Changes
+==========
+v2.9.2:
+- Prevent segmentation fault when no user filters (second and third
+  arguments to LDAPUsers) are specified.
+
+v2.9.1:
+- Handle potential NULL return value from crypt(). (Bug #3551)
+- Update README to mention the LDAPDNInfo -> LDAPBindDN change in v2.9.0.
+
+v2.9.0:
+- Overhaul configuration directives, hopefully yielding a more
+  straightforward, easier way to configure mod_ldap. 
+
+  The LDAPDoAuth and LDAPDoUIDLookups directives have been combined into the
+  new LDAPUsers directive. The third argument to LDAPDoUIDLookups (the UID
+  filter template) is now the third argument to LDAPUsers.
+
+  LDAPDoGIDLookups is now LDAPGroups.
+
+  LDAPDoQuotaLookups is now obsolete. The default quota can be specified
+  with the new LDAPDefaultQuota directive.
+
+  Also, the on/off booleans on these directives have been removed. Now, if
+  the directive is present, the corresponding functionality will be enabled.
+
+  For example, the previous configuration:
+
+    LDAPDNInfo cn=your-dn,dc=example,dc=com dnpass
+    LDAPDoAuth on ou=people,dc=horde,dc=net (uid=%u)
+    LDAPDoUIDLookups on ou=people,dc=horde,dc=net (uidNumber=%u)
+    LDAPDoGIDLookups on ou=groups,dc=horde,dc=net
+    LDAPDoQuotaLookups on ou=people,dc=horde,dc=net (uid=%u) false,hard,10485760,0,0,0,0,0
+
+  becomes:
+
+    LDAPBindDN cn=your-dn,dc=example,dc=com dnpass
+    LDAPUsers ou=people,dc=horde,dc=net (uid=%u) (uidNumber=%u)
+    LDAPGroups ou=groups,dc=horde,dc=net
+    LDAPDefaultQuota false,hard,10485760,0,0,0,0,0
+
+- Remove OpenSSL local verification of password hashes; 'LDAPAuthBinds on'
+  should do exactly the same thing in a more secure and standard way.
+- Remove deprecated LDAPNegativeCache and LDAPUseSSL directives.
+- Add group members to debug output.
+- Various internal improvements to comments, log/debug messages, style, and
+  logic.
+
+v2.8.23:
+* Add support needed by mod_sftp_ldap for fetching user public keys.
+* Bad LDAP lookup can cause mod_ldap segfault under some conditions.
+  (Bug #3424)
+
+v2.8.22:
+* Disable the LDAPUseSSL directive, instead logging a warning so existing
+  configurations do not cause ProFTPD startup failure. Previous versions
+  enabled TLS when this directive was enabled. This behavior was incorrect,
+  since the intended behavior was to enable LDAPS/LDAP over SSL. To use
+  LDAPS, specify the ldaps:// protocol in the LDAPServerURL URL(s).
+
+  If you wish to continue using TLS, you must modify your configuration to
+  specify the ldap:// scheme in the LDAPServerURL URL and add the directive
+  'LDAPUseTLS on' to your configuration.
+* Add support for quota profiles. If a user entry doesn't have an ftpQuota
+  attribute, search for the DN contained in the user's ftpQuotaProfileDN
+  attribute (if present) and use the ftpQuota attribute present on that DN.
+  (Bug #2617)
+* Fix segfaults in debug logging on platforms whose printf() does not
+  gracefully handle NULL string pointers. (Bug #3346)
+* Escape LDAP filter metacharacters in inserted values when interpolating
+  filter templates.
+* Emit a debug warning when an LDAP URL is specified without an explicit
+  search scope.
+* Bug 2922 locks authentication for an account to the same module that
+  fetched the original account information. Remove the kludge wherein
+  "*" is passed to pr_auth_check() if we're doing auth binds to prevent
+  other modules from processing authentication. This has the convenient
+  side effect of making the UserPassword directive work with LDAP-sourced
+  accounts. Bump the required ProFTPD version to 1.3.1rc3. 
+* Emit correct LDAP timeout in debug message, accounting for the default if
+  none was specified. Reported by Nikos Voutsinas <nvoutsin@noc.uoa.gr>.
+
+v2.8.21:
+* Implement an internal failover mechanism instead of relying on the LDAP
+  SDK's built-in failover (if any). Fixes failover regression introduced
+  in v2.8.19 when ldap_initialize() was first used.
+* Multiple LDAP URL arguments may now be passed to LDAPServer:
+
+  LDAPServer ldap://127.0.0.1/??sub ldap://172.16.0.1/??sub
+* When setting whether to dereference LDAP aliases after connecting to
+  the LDAP server, treat failure as a hard failure and refuse to continue
+  with that LDAP server. Previously, failure when specifying whether to
+  dereference aliases would be logged but the connection to that server
+  would continue.
+
+v2.8.20:
+* Prevent the use of LDAPSearchScope or LDAPUseSSL when LDAPServer specifies
+  a URL. Instead, the desired search scope and SSL setting should be
+  specified by the URL.
+* When using OpenSSL for local password verification (as opposed to
+  'LDAPAuthBinds on'), make the Base64 encoding buffer larger to ensure
+  we account for expansion resulting from the encoding.
+* Retrieve all LDAP attributes when calling pr_ldap_user_lookup() since
+  it will need various attributes (to perform home directory generation,
+  for one). Thanks to Nikos Voutsinas <nvoutsin@noc.uoa.gr>.
+  http://forums.proftpd.org/smf/index.php/topic,3562.0.html
+* Portability fix: don't use ldap_initialize() and ldap_unbind_ext_s()
+  unless we're building against the corresponding versions of the OpenLDAP
+  SDK.
+
+v2.8.19:
+* Fix compilation with old LDAP SDKs (LDAP_API_VERSION < 2000). Thanks to
+  Saju Paul <saju.paul@messageway.com>.
+* Define LDAP_SCOPE_DEFAULT if not defined by the SDK, fixing compilation
+  with (recent?) Sun LDAP headers.
+* Use the configured ldap_port in "connected..." debug message, not
+  LDAP_PORT.
+* Fix segfaults on client connect when an LDAP URL is used as an argument
+  to the LDAPServer directive. (Bug #3097)
+* Automatically enable LDAP TLS support based on a best guess as to whether
+  the installed LDAP SDK supports it.
+* Fixed missing ldap_init() -> ldap_initialize() when updating for latest
+  LDAP C API. Fixes segfaults on (some?) 64-bit systems. (Bug #3046)
+
+v2.8.18:
+* Remove all local caching code in favor of the recently added caching in
+  the ProFTPD Auth layer.
+* Silence some compiler warnings.
+* To verify non-crypt() password hashes locally with OpenSSL, it is no
+  longer necessary to edit mod_ldap.c to enable HAVE_OPENSSL. Instead,
+  build ProFTPD with the --enable-openssl argument to configure.
+
+v2.8.17:
+* Use non-deprecated LDAP API functions if the LDAP SDK is new enough to
+  comply with draft-ietf-ldapext-ldap-c-api-04.
+
+v2.8.16:
+* Add 'LDAPAliasDereference never|search|find|always' directive, which
+  defaults to never. This default is compatible with previous versions,
+  which did not support alias dereferencing.
+* Fix LDAPAttr support when more than one LDAPAttr directive is used.
+* Sync with ProFTPD API: set session.auth_mech to indicate that we've
+  successfully authenticated the user.
+* Eliminate segfaults when group information for an LDAP user is available
+  from other sources (such as mod_auth_unix). Thanks to Erick Briere
+  <Erick.Briere@afp.com>.
+* Make sure to count %u escapes as well as %v escapes when determining
+  filter length.
+* Fix parenthesizing in connection code.
+
+v2.8.15:
+* Erroneous release; contained 2.8.14 by mistake.
+
+v2.8.14:
+* Fix authentication when LDAPAuthBinds is enabled, which broke in 2.8.13.
+* Fix a typo in the group-by-name filter.
+
+v2.8.13:
+* This release REQUIRES ProFTPD 1.2.11rc1 or later.
+* mod_ldap now uses ProFTPD's CreateHome to create home directories. Some
+  LDAPHomedirOnDemand directives have been removed in favor of CreateHome.
+  The directives that apply to home directory path name generation still
+  exist, but have been renamed to LDAPGenerateHomedir.
+* The LDAP protocol version now defaults to LDAPv3. If you need to use
+  LDAPv2, say 'LDAPProtocolVersion 2' in your proftpd.conf. (Bug #2443)
+* LDAP attribute names are now configurable via proftpd.conf. For example,
+  if you want to change the uid attribute name, say 'LDAPAttr uid myUidAttr'
+  in your proftpd.conf.
+* The define to enable TLS support has been renamed to USE_LDAP_TLS.
+* The '%u' escape is now supported in all cases where '%v' is.
+* ProFTPD's UserPassword directive now works with LDAPAuthBinds enabled.
+  (Bug #2482)
+* Changed ldap_quota_lookup CMD to a HOOK.
+* Fixed a few compiler type warnings.
+
+v2.8.12:
+* Group code memory manipulation fixes (Phil Oester (phil at theoesters dot
+  com))
+* Default quota support
+* LDAP connections created for authenticated binds now honor the LDAPUseTLS
+  directive.
+
+v2.8.11:
+* mod_quotatab limit support
+* Allow ATTR_* compiler defines to be overridden on the build command line,
+  e.g.: CFLAGS="-DUID_ATTR=foo" ./configure
+* The canonical username from the LDAP directory is now used in directory
+  creation.
+* LDAPForceHomedirOnDemand to force the use of the generated home directory
+  instead of the directory provided by the LDAP directory.
+* Support for permissions on LDAPHomedirOnDemand suffixes. You can say:
+
+  LDAPHomedirOnDemandSuffix foo:755 bar:700
+
+  in your proftpd.conf.
+* Support for %v escapes in LDAPDoAuth directive to allow fetching the
+  user's entry directly, without performing a search first. For example,
+
+  LDAPDoAuth on uid=%v,dc=example,dc=com
+
+  will fetch the entry uid=[username],dc=example,dc=com directly when a user
+  logs in, saving some effort on the part of the LDAP directory.
+* Leading directories are now checked for and creation is no longer
+  attempted if they already exist.
+* Miscellaneous pedanticism & cleanup in error messages and the code itself.
+
+v2.8.10:
+* Ditch ldap_build_filter() (non-portable and/or deprecated) in favor of
+  our own translation function. This should make mod_ldap build against
+  OpenLDAP 2.1.x and Novell eDirectory, among others.
+
+v2.8.9:
+* Added explicit OpenSSL link exception to the license.
+
+v2.8.8:
+* ProFTPD Bug 1659 - LDAP config handlers should use c->pool instead of
+  permanent_pool
+
+v2.8.7:
+* Properly drop root privs in the LDAPHomedirOnDemand code if we're
+  returning prematurely due to an error condition.
+* Small cleanup of the LDAPHomedirOnDemand directory creation code.
+
+v2.8.6:
+* Fix to the user-caching code that now prevents the cache from
+  returning an empty password struct in certain situations.
+
+v2.8.5:
+* Small fix in the group handlers - group lookups would sometimes be
+  attempted even if they were disabled.
+
+v2.8.4:
+* Fix for segfaults when optional arguments are omitted from
+  LDAPDoGIDLookups directive
+
+v2.8.3:
+* Secondary group support (thanks to Andreas Strodl for providing patches)
+* LDAPHomedirOnDemand modes are now absolute; they are no longer subject
+  to ProFTPD's umask.
+* LDAPDefault[UG]ID directives should now support the full range of
+  32-bit UIDs.
+* Sanity checking is now done on LDAPDefault[UG]ID arguments to ensure
+  they're numeric.
+* LDAPDoGIDLookups now takes an extra argument. Its arguments are now:
+
+  LDAPDoGIDLookups on|off group-base-dn by-name-filter by-uid-filter
+
+  by-name-filter defaults to (&(cn=%v)(objectclass=posixGroup)) and
+  by-uid-filter defaults to (&(gidNumber=%v)(objectclass=posixGroup)).
+
+v2.8.2:
+* Fixed a privilege escalation bug. If LDAPHomedirOnDemand is enabled and
+  creation of the user's home directory fails, the server does not
+  relinquish root privileges. There shouldn't be exploitable, but all
+  users with LDAPHomedirOnDemand enabled are encouraged to upgrade.
+
+v2.8.1:
+* Fixed a bug that prevented proper permissions being applied to home
+  directories created on demand.
+* Fixed an issue that would prevent per-VirtualHost configuration directives
+  from being properly recognized.
+
+v2.8:
+* The username escape sequence in search filter templates has changed.
+  You must now use %v instead of %u as the escape for the username. For
+  example, if you had:
+
+    LDAPDoAuth on dc=example,dc=com (uid=%u)
+
+  in your proftpd.conf with a previous version of mod_ldap, you will need
+  to change this to:
+
+    LDAPDoAuth on dc=example,dc=com (uid=%v)
+
+* LDAPAuthBinds is now enabled by default. I'm sick of hearing "Your
+  mod_ldap is broken; it won't talk to my LDAP server and I've ignored the
+  convenient error message about userPassword that mod_ldap logs."
+
+* The full path to user home directories is now created. Directories leading
+  up to the user's home directory are created root-owned and mode 755 (i.e.,
+  they are not subject to the mode argument to LDAPHomedirOnDemand). Home
+  directory creation now works for all users, not just users with the same
+  UID/GID as the main ProFTPD server. Lastly, the mode argument to
+  LDAPHomedirOnDemand is no longer subject to ProFTPD's Umask.
+
+* TLS support (You'll need to edit mod_ldap.c to define USE_LDAPV3_TLS and
+  recompile proftpd, then say 'LDAPUseTLS on' in your proftpd.conf). This
+  may or may not work with non-OpenLDAP SDKs; I'd love to hear if anyone has
+  it working with the Mozilla LDAP SDK or any others.
+
+* The LDAP search sizelimit is now set to prevent LDAP server thrashing with
+  wildcarded usernames.
+
+* Basic caching support has been added. This should cut down on the number
+  of queries made to the directory server. In addition, negative caching
+  is now enabled by default.
+
+* LDAPHomedirOnDemandSuffix can now take multiple arguments (multiple
+  directories to create) and can be activated independently of
+  LDAPHomedirOnDemand.
+
+* With the addition of LDAPHomedirOnDemandPrefix, home directories can now
+  be completely autogenerated, removing the need for a homeDirectory
+  attribute in each user's LDAP entry. Say:
+
+    LDAPHomedirOnDemandPrefix /home
+
+  in your proftpd.conf to give users a home directory with the format
+  /home/username. In this example, the user joe would be given the home
+  directory /home/joe.
+
+* Attribute names are now #defines at the top of mod_ldap.c. You can now
+  change attribute names by editing mod_ldap.c and recompiling.
+
+* The LDAPDefaultUID and LDAPDefaultGID directives can now be forced;
+  enabling LDAPForceDefaultUID or LDAPForceDefaultGID will apply the
+  default UID or GID (respectively) even if a user has a different UID/GID
+  in his uidNumber or gidNumber attribute.
+
+* Fairly extensive code cleanup and comment syncing.
+
+v2.7.6:
+* Fixing the OpenLDAP 2 fixes.
+
+v2.7.5:
+* Fixes for OpenLDAP 2 support.
+* Fix LDAP authentication filter use; previously, the user-specified search
+  filter would not be used in the second stage of authenticating a user.
+
+v2.7.4:
+* The LDAPDefaultAuthScheme directive should function properly now.
+
+v2.7.3:
+* Removed some old, useless code.
+
+v2.7.2:
+* LDAPQueryTimeout fix. In mod_ldap v2.7.1, in some situations, the query
+  timeout could be set to -1, which would cause all LDAP lookups to fail.
+
+v2.7.1:
+* Ported MacGyver's portable UID/GID code to mod_ldap
+* The value passed to LDAPQueryTimeout is now honored (the timeout isn't
+  simply set to 1 second)
+
+v2.7:
+* Added a fix for picky LDAP servers like Sun Directory Services; using
+  AuthBinds with those LDAP servers would break in previous mod_ldap
+  versions.  See the comments in the code for more details (search for "Sun
+  Directory Services").
+* You can now pass a file mode to LDAPHomedirOnDemand to create home
+  directories with that mode.
+* Improved group support; mod_ldap now supports multiple memberUid
+  attributes for a group object.
+* Miscellaneous neatening/tightening of high-level auth/lookup handler
+  functions.
+* You can now specify custom LDAP search filters at runtime. See the
+  configuration guide (doc/Configuration.html) entries for LDAPDo* for more
+  details.
+* Objectclass is now enforced. You *must* have an objectclass attribute for
+  each of your LDAP objects. This attribute must have a value of
+  'posixAccount' ("objectclass: posixAccount"). For groups, this attribute
+  must have the value 'posixGroup' ("objectclass: posixGroup"). If you wish
+  to disable this objectclass enforcement, use the the LDAP filter
+  "(uid=%u)" for Auth and UID lookups (see doc/Configuration.html for how to
+  specify a custom LDAP search filter).
+* Removed allowedServices code. The functionality that allowedServices
+  provided can now be duplicated with a modified LDAP search filter.
+
+  For example, to replicate basic allowedServices checking, pass this LDAP
+  search filter to LDAPDoAuth:
+  (&(uid=%u)(|(allowedServices=*FTP*)(!(allowedService=*))))
+
+  To emulate deniedServices checking, use this search filter:
+  (&(uid=%u)(!(deniedServices=*FTP*)))
+
+  To emulate *both* allowedServices and deniedServices checking, use this
+  filter (beware line wrap):
+  (&(uid=%u)(|(allowedServices=*FTP*)(!(allowedService=*)))(!(deniedServices=*FTP*)))
+
+v2.6.1:
+* Fixed a bug that would prevent proper search scope selection.
+
+v2.6:
+* HomedirOnDemandSuffix - create an additional subdirectory in a user's home
+  directory (/home/user/anotherdirectory) on demand
+* Minor group fixes/cleanups - supplementary groups now work properly
+* Password {scheme}s are now treated in a case-insensitive manner.
+* Password-hash support for any crypto method OpenSSL supports
+  To enable extended OpenSSL password hash support, edit mod_ldap.c and
+  uncomment #define HAVE_OPENSSL. You'll also need to edit Make.rules to
+  link against OpenSSL. Further details are provided in mod_ldap.c.
+* Runtime search scope selection; one-level or subtree searches can be
+  selected from proftpd.conf.
+
+v2.5.2:
+* Fixed a bug that would allow unauthorized users to log in when mod_ldap
+  is used with other authentication modules and LDAPAuthBinds is set to on.
+
+v2.5.1:
+* Fixed a one-line bug that broke password authentication when AuthBinds
+  weren't being used.
+
+v2.5:
+* Authenticated bind support added. mod_ldap now fetches all user information
+  except for userPassword as the DN specified in LDAPDNInfo and then re-binds
+  to the LDAP server as the connecting user with the user-supplied password.
+  If the bind succeeds, the user is allowed to log in. This also has the
+  added advantage of allowing mod_ldap to support any password encryption
+  scheme that your LDAP server supports. Also, a privileged DN is no longer
+  needed to read the userPassword attribute from the LDAP server.
+* Realized I wasn't checking the return value of find_config() for NULL
+  values, this would cause ProFTPD to segfault if certain config file
+  entries were not present.
+* Removed debugging code that might contain NULL values; passing a NULL
+  value to printf() and friends under Solaris causes a segfault.
+* Miscellaneous cleanups, code neatening.
+
+v2.0:
+* Config file syntax revamped:
+   LDAPServer            localhost
+   LDAPDNInfo            cn=your-dn,dc=horde,dc=net dnpass
+   LDAPQueryTimeout      5
+   LDAPDoAuth            on "dc=users,dc=horde,dc=net"
+   LDAPDoUIDLookups      on "dc=users,dc=horde,dc=net"
+   LDAPDoGIDLookups      on "dc=groups,dc=horde,dc=net"
+   LDAPDefaultUID        35000
+   LDAPDefaultGID        1000
+   LDAPNegativeCache     on
+   LDAPHomedirOnDemand   on
+   LDAPDefaultAuthScheme clear
+* Configurable LDAP query timeout [Peter Deacon <peterd@iea-software.com>]
+* Cleartext password "encryption" scheme ("{clear}mypass")
+* UID-to-name and GID-to-name lookups in directory listings
+* Separate prefixes for user and group lookups
+* Can turn on/off UID-to-name and GID-to-name lookups independently
+* Default [UG]IDs. Say you want to have a web-toaster type of deal, with
+  all users having the same [UG]IDs. Just don't put [ug]idNumber attrs in
+  your LDAP database for those users, and set these configuration
+  directives. Any user that doesn't have a [UG]ID in the LDAP database will
+  have that info filled in with the default [UG]ID.
+* mod_ldap is now able to function in a pure virtual-user environment;
+  please note, however, that the loginShell LDAP attr still must be a
+  valid shell. You can turn this check off by saying RequireValidShell off
+  in your proftpd.conf
+* allowedServices attr: (I broke with objectclass here, couldn't find
+  something that seemed to fit this.) This attribute contains a
+  comma-deliminated list of services to allow this particular user.  The
+  string "FTP" corresponds to FTP service. If no allowedServices attr is
+  present, all services will be allowed.
+* You can have alternate LDAP servers; just specify LDAPServer "host1
+  host2"; [Peter Deacon <peterd@iea-software.com>]
+* LDAPHomedirOnDemand to automatically create home directories in a
+  virtual-user environment. [patch: Bert Vermeulen <bert@be.easynet.net>]
+* LDAPDefaultAuthScheme to select the authentication scheme to use when
+  no {prefix} is present in a user's userPassword LDAP attr.
+  [patch: Bert Vermeulen <bert@be.easynet.net>]
+* Virtual hosting support may or may not work okay; theoretically, I think
+  adding LDAP configuration directives to a <VirtualHost> block will work,
+  but this hasn't been tested.
+
+New Tested Platforms:
+
+* Solaris 2.6 with Netscape Directory Server and the Mozilla LDAP C SDK,
+  available at http://www.mozilla.org/directory/csdk.html.
+  Peter Fabian <fabian@staff.matavnet.hu>
+* Solaris 7 with gcc 2.95.1 and OpenLDAP 1.2.7
+  Ralf Kruedewagen <Ralf.Kruedewagen@meocom.de>
+
+v1.2:
+* made the variables for the config entries static
+* moved the meat of the ldap querying code to a separate function, this
+  gets the individual getpw*() handlers down to about 15-20 lines each.
+  also paves the way for easy LDAP group lookups too.
+* explicitly set ld = NULL in p_endpwent(), looks like ldap_unbind()
+  doesn't always set it to NULL, and bad things happen later.
+* fixed a showstopper: if there's a user/group directive in proftpd.conf,
+  mod_ldap:getpwnam() will be called to look up the user. since the
+  LDAP config variables aren't initialized yet, the LDAP libraries crash
+  and burn upon encountering a NULL ldap_prefix. put some checks in
+  p_setpwent() to check for this and disable LDAP lookups before the
+  parent forks and the config is initialized. thanks to Sean Murphy
+  <smurphy@berbee.com> for sending me on this path.
+* modified pw_auth() so that it will assume crypt() if there's no leading
+  {scheme} in the password returned by the LDAP query.
+* pw_auth() turned off logging of unidentifiable password encryption
+  schemes; this would syslog the encrypted password returned by the ldap
+  server. many people have their logs tightened, but not all.
+* a few miscellaneous changes & cleanups
+
+v1.1:
+* Added $Libraries$ directive to mod_ldap so the module is now entirely
+  self-contained.
+* Changed one reference to sprintf() to snprintf() and changed uidstr
+  in p_getpwuid() to have a length of BUFSIZ.
+* Added config option (LDAPNegativeCache) to turn LDAP negative caching
+  on and off. The default is off (don't do LDAP negative caching).
+* Added entries to doc/Configuration.html for all the LDAP configuration
+  directives.
+* MacGyver added mod_ldap to the ProFTPD CVS tree; proftpd-ldap-1.1
+  is now in sync with ProFTPD CVS.
+
+v1.0:
+* Initial release of proftpd-ldap
+
+
+=========
+4. Thanks
+=========
+
+* Everyone listed in mod_ldap.c for contributing code.
+
+* James (james at wwnet dot net) for a copy of his LDAP module that he never
+  released
+* Krzysztof Dabrowski (brush at pol dot pl) for some big virtual-user ideas
+* Peter Deacon (peterd at iea-software dot com) for ideas 
+* Peter Fabian (fabian at staff dot matavnet dot hu) for ideas and a tested
+  platform
+* Justin Hahn (jeh at profitlogic dot com) for good ideas and debate
+* Ralf Kruedewagen (Ralf dot Kruedewagen at meocom dot de) for a tested
+  platform
+* Steve Luzynski (steve at uniteone dot net) for extra help/testing/feedback
+* Scott Murphy (smurphy at berbee dot com) for a trouble report 
+* Marcin Obara for lots of testing
+* Miguel Barreiro Paz (mbpaz at edu dot aytolacoruna dot es) for a supported
+  platform and new supported LDAP server
+* Everyone else who has sent feedback, bug reports, feature requests,
+  and ideas.

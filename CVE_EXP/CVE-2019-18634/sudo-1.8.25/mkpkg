@@ -1,0 +1,407 @@
+#!/bin/sh
+#
+# Copyright (c) 2010-2018 Todd C. Miller <Todd.Miller@sudo.ws>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+# Build a binary package using polypkg
+# Usage: mkpkg [--debug] [--flavor flavor] [--platform platform] [--osversion ver]
+#
+
+# Make sure IFS is set to space, tab, newline in that order.
+space=' '
+tab='	'
+nl='
+'
+IFS=" 	$nl"
+
+# Parse arguments
+usage="usage: mkpkg [--debug] [--flavor flavor] [--platform platform] [--osversion ver]"
+debug=0
+flavor=vanilla
+crossbuild=false
+while test $# -gt 0; do
+    case "$1" in
+	--debug)
+	    set -x
+	    debug=1
+	    PPFLAGS="--debug${PPFLAGS+$space}${PPFLAGS}"
+	    ;;
+	--flavor=?*)
+	    flavor=`echo "$1" | sed -n 's/^--flavor=\(.*\)/\1/p'`
+	    PPVARS="${PPVARS}${PPVARS+$space}flavor=$flavor"
+	    ;;
+	--flavor)
+	    if [ $# -lt 2 ]; then
+		echo "$usage" 1>&2
+		exit 1
+	    fi
+	    flavor="$2"
+	    PPVARS="${PPVARS}${PPVARS+$space}flavor=$flavor"
+	    shift
+	    ;;
+	--platform=?*)
+	    arg=`echo "$1" | sed -n 's/^--platform=\(.*\)/\1/p'`
+	    PPFLAGS="${PPFLAGS}${PPFLAGS+$space}--platform $arg"
+	    ;;
+	--platform)
+	    if [ $# -lt 2 ]; then
+		echo "$usage" 1>&2
+		exit 1
+	    fi
+	    PPFLAGS="${PPFLAGS}${PPFLAGS+$space}--platform $2"
+	    shift
+	    ;;
+	--osversion=?*)
+	    arg=`echo "$1" | sed -n 's/^--osversion=\(.*\)/\1/p'`
+	    osversion="$arg"
+	    ;;
+	--osversion)
+	    if [ $# -lt 2 ]; then
+		echo "$usage" 1>&2
+		exit 1
+	    fi
+	    osversion="$2"
+	    shift
+	    ;;
+	--build|--host)
+	    crossbuild=true
+	    configure_opts="${configure_opts}${configure_opts+$tab}$1"
+	    ;;
+	*)
+	    # Pass unknown options to configure
+	    configure_opts="${configure_opts}${configure_opts+$tab}$1"
+	    ;;
+    esac
+    shift
+done
+
+top_srcdir=`dirname $0`
+
+: ${osversion="`$top_srcdir/pp --probe`"}
+test -n "$osversion" || exit 1
+osrelease=`echo "$osversion" | sed -e 's/^[^0-9]*//' -e 's/-.*$//'`
+: ${MAKE=make}
+
+# If using GNU make, set number of jobs
+if ${MAKE} --version 2>&1 | grep GNU >/dev/null; then
+    NJOBS=0
+    case "`uname`" in
+	Darwin)
+	    # macOS
+	    NJOBS=`sysctl -n hw.ncpu`
+	    ;;
+	Linux)
+	    if [ -r /proc/cpuinfo ]; then
+		for c in `sed -n 's/^cpu cores[	 ]*: *//p' /proc/cpuinfo`; do
+		    NJOBS=`expr $NJOBS + $c`
+		done
+	    fi
+	    ;;
+	SunOS)
+	    # Solaris
+	    if [ -x /usr/sbin/psrinfo ]; then
+		NJOBS=`/usr/sbin/psrinfo | wc -l`
+	    fi
+	    ;;
+	HP-UX)
+	    NJOBS=`sar -Mu 1 1 | awk 'END {print NR-5}'`
+	    ;;
+	AIX)
+	    NJOBS=`bindprocessor -q | awk '{print NF-4}'`
+	    ;;
+    esac
+    if [ $NJOBS -gt 1 ]; then
+	make_opts="-j$NJOBS"
+    fi
+fi
+
+# Choose compiler options by osversion if not cross-compiling.
+if [ "$crossbuild" = "false" ]; then
+    case "$osversion" in
+	macos*)
+	    # Use clang on macOS if present
+	    if [ -z "$CC" -a -x /usr/bin/clang ]; then
+		CC=/usr/bin/clang; export CC
+	    fi
+	    ;;
+	sol[0-9]*)
+	    # Use the Sun Studio C compiler on Solaris if possible
+	    if [ -z "$CC" -a -x /usr/bin/cc ]; then
+		CC=/usr/bin/cc; export CC
+		if [ -z "$CFLAGS" ]; then
+		    CFLAGS=-O; export CFLAGS
+		fi
+	    fi
+	    ;;
+    esac
+fi
+
+# Give configure a hint that we are building a package.
+# Some libc functions are only available on certain OS revisions.
+configure_opts="${configure_opts}${configure_opts+$tab}--enable-package-build"
+
+# Choose configure options by osversion.
+# We use the same configure options as vendor packages when possible.
+case "$osversion" in
+    centos*|rhel*|f[0-9]*)
+	case "$osversion" in
+	    centos*|rhel*)
+		if [ $osrelease -ge 40 ]; then
+		    # RHEL 4 and up support SELinux
+		    with_selinux=true
+		    if [ $osrelease -ge 50 ]; then
+			# RHEL 5 and up has audit support and uses a
+			# separate PAM config file for "sudo -i".
+			with_linux_audit=true
+			with_pam_login=true
+			if [ $osrelease -ge 60 ]; then
+			    # RHEL 6 and above builds sudo with SSSD support
+			    with_sssd=true
+			    # RHEL 6 and above use /etc/sudo-ldap.conf
+			    with_sudo_ldap_conf=true
+			fi
+		    fi
+		fi
+		;;
+	    f[0-9]*)
+		# XXX - investigate which features were in which fedora version
+		with_selinux=true
+		with_linux_audit=true
+		with_pam_login=true
+		with_sssd=true
+		;;
+	esac
+
+	if [ X"$with_selinux" = X"true" ]; then
+	    configure_opts="${configure_opts}${configure_opts+$tab}--with-selinux"
+	fi
+	if [ X"$with_linux_audit" = X"true" ]; then
+	    configure_opts="${configure_opts}${configure_opts+$tab}--with-linux-audit"
+	    PPVARS="${PPVARS}${PPVARS+$space}linux_audit=1.4.0"
+	fi
+	if [ X"$with_pam_login" = X"true" ]; then
+	    configure_opts="${configure_opts}${configure_opts+$tab}--with-pam-login"
+	fi
+	if [ X"$with_sssd" = X"true" ]; then
+	    configure_opts="${configure_opts}${configure_opts+$tab}--with-sssd"
+	    if test "`getconf LONG_BIT`" = "64"; then
+		# SSSD backend needs to know where to find the sssd lib
+		configure_opts="${configure_opts}${configure_opts+$tab}--with-sssd-lib=/usr/lib64"
+	    fi
+	fi
+	if [ X"$with_sudo_ldap_conf" = X"true" ]; then
+	    configure_opts="${configure_opts}${configure_opts+$tab}--with-ldap-conf-file=/etc/sudo-ldap.conf"
+	fi
+	# Note, must indent with tabs, not spaces due to IFS trickery
+	configure_opts="--prefix=/usr
+		--with-logging=syslog
+		--with-logfac=authpriv
+		--with-pam
+		--enable-zlib=system
+		--with-editor=/bin/vi
+		--with-env-editor
+		--with-ignore-dot
+		--with-tty-tickets
+		--with-ldap
+		--with-passprompt=[sudo] password for %p: 
+		--with-sendmail=/usr/sbin/sendmail
+		$configure_opts"
+	;;
+    sles*)
+	if [ $osrelease -ge 10 ]; then
+	    # SLES 11 and higher has SELinux
+	    if [ $osrelease -ge 11 ]; then
+		configure_opts="${configure_opts}${configure_opts+$tab}--with-selinux"
+	    fi
+	fi
+	# SuSE doesn't have /usr/libexec
+	libexec=lib
+	case "$osversion" in
+	    *64*)	gcc -v 2>&1 | grep "with-cpu=[^ ]*32" >/dev/null || libexec=lib64
+			;;
+	esac
+	# Note, must indent with tabs, not spaces due to IFS trickery
+	# XXX - SuSE uses secure path but only for env_reset
+	configure_opts="--prefix=/usr
+		--libexecdir=/usr/$libexec
+		--with-logging=syslog
+		--with-logfac=auth
+		--with-all-insults
+		--with-ignore-dot
+		--with-tty-tickets
+		--enable-shell-sets-home
+		--with-sudoers-mode=0440
+		--with-pam
+		--enable-zlib=system
+		--with-ldap
+		--with-env-editor
+		--with-passprompt=%p\'s password: 
+		--with-sendmail=/usr/sbin/sendmail
+		$configure_opts"
+
+	make_opts="${make_opts}${make_opts+ }"'docdir=$(datarootdir)/doc/packages/$(PACKAGE_TARNAME)'
+	;;
+    deb*|ubu*)
+	# Man pages should be compressed in .deb files
+	export MANCOMPRESS='gzip -9'
+	export MANCOMPRESSEXT='.gz'
+	# If Ubuntu, add --enable-admin-flag
+	case "$osversion" in
+	    ubu*)
+		configure_opts="${configure_opts}${configure_opts+$tab}--enable-admin-flag${tab}--without-lecture"
+		;;
+	esac
+	# Newer Debian uses arch-specific lib dirs
+	MULTIARCH=`dpkg-architecture -qDEB_HOST_MULTIARCH 2>/dev/null`
+	# Note, must indent with tabs, not spaces due to IFS trickery
+	if test "$flavor" = "ldap"; then
+	    configure_opts="${configure_opts}${configure_opts+$tab}--with-ldap
+		--with-ldap-conf-file=/etc/sudo-ldap.conf"
+	else
+	    configure_opts="${configure_opts}${configure_opts+$tab}--with-sssd"
+	    if test -n "$MULTIARCH"; then
+		# SSSD backend needs to know where to find the sssd lib
+		configure_opts="${configure_opts}${configure_opts+$tab}--with-sssd-lib=/usr/lib/$MULTIARCH"
+	    fi
+	fi
+	configure_opts="--prefix=/usr
+		--with-all-insults
+		--with-pam
+		--enable-zlib=system
+		--with-fqdn
+		--with-logging=syslog
+		--with-logfac=authpriv
+		--with-env-editor
+		--with-editor=/usr/bin/editor
+		--with-timeout=15
+		--with-password-timeout=0
+		--with-passprompt=[sudo] password for %p: 
+		--disable-root-mailer
+		--with-sendmail=/usr/sbin/sendmail
+		--mandir=/usr/share/man
+		--libexecdir=/usr/lib
+		--with-selinux
+		--with-linux-audit
+		$configure_opts"
+	# Use correct libaudit dependency
+	for f in /lib/${MULTIARCH}${MULTIARCH:+/}libaudit.so.[0-9]* /lib/libaudit.so.[0-9]*; do
+	    if test -f "$f"; then
+		linux_audit=`dpkg-query -S "$f" 2>/dev/null | sed -n 's/:.*//p'`
+		test -n "$linux_audit" && break;
+	    fi
+	done
+	if [ -z "linux_audit" ]; then
+	    echo "unable to determine package for libaudit" 1>&2
+	    exit 1
+	fi
+	PPVARS="${PPVARS}${PPVARS+$space}linux_audit=$linux_audit"
+	;;
+    macos*)
+	case "$osversion" in
+	    macos10[0-6]-i386|macos10[0-6]-x86_64)
+		# Build intel universal binaries for 10.6 and below
+		ARCH_FLAGS="-arch i386 -arch x86_64"
+		;;
+	esac
+	if test "${osversion}" != "`$top_srcdir/pp --probe`"; then
+	    sdkvers=`echo "${osversion}" | sed 's/^macos\([0-9][0-9]\)\([0-9]*\)-.*$/\1.\2/'`
+	    # Newer Xcode puts /Developer under the app Contents dir.
+	    SDK_DIR="/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs"
+	    if test -d "${SDK_DIR}/MacOSX${sdkvers}.sdk"; then
+		SDK_DIR="${SDK_DIR}/MacOSX${sdkvers}.sdk"
+	    elif test -d "/Developer/SDKs/MacOSX${sdkvers}.sdk"; then
+		SDK_DIR="/Developer/SDKs/MacOSX${sdkvers}.sdk"
+	    fi
+	    SDK_FLAGS="-isysroot ${SDK_DIR} -mmacosx-version-min=${sdkvers}"
+	fi
+	export CFLAGS="-O2 -g $ARCH_FLAGS $SDK_FLAGS"
+	export LDFLAGS="$ARCH_FLAGS $SDK_FLAGS"
+	# Note, must indent with tabs, not spaces due to IFS trickery
+	configure_opts="--with-pam
+		--with-bsm-audit
+		--without-tty-tickets
+		--enable-zlib=system
+		--with-ldap
+		--with-insults=disabled
+		--with-logging=syslog
+		--with-logfac=authpriv
+		--with-editor=/usr/bin/vim
+		--with-env-editor
+		$configure_opts"
+	;;
+    aix*)
+	# Use -gxcoff with gcc instead of -g for dbx-style debugging symbols.
+	if test -z "$CC" && gcc -v >/dev/null 2>&1; then
+	    CFLAGS=-gxcoff; export CFLAGS
+	fi
+	# Note, must indent with tabs, not spaces due to IFS trickery
+	# Note: we include our own zlib instead of relying on the
+	#       AIX freeware version being installed.
+	configure_opts="
+		--prefix=/opt/freeware
+		--mandir=/opt/freeware/man
+		--with-insults=disabled
+		--with-logging=syslog
+		--with-logfac=auth
+		--with-editor=/usr/bin/vi
+		--with-env-editor
+		--enable-zlib=builtin
+		--disable-nls
+		--with-sendmail=/usr/sbin/sendmail
+		$configure_opts"
+	PPVARS="${PPVARS}${PPVARS+$space}aix_freeware=true"
+	;;
+    *)
+	# For Solaris, add project support and use let configure choose zlib.
+	# For all others, use the builtin zlib and disable NLS support.
+	case "$osversion" in
+	    sol*)
+		configure_opts="${configure_opts}${configure_opts+$tab}--with-project"
+
+		if [ $osrelease -ge 11 ]; then
+		    configure_opts="${configure_opts}${configure_opts+$tab}--with-bsm-audit"
+		fi
+		;;
+	    *)
+		configure_opts="${configure_opts}${configure_opts+$tab}--enable-zlib=builtin${tab}--disable-nls"
+		;;
+	esac
+	if test "$flavor" = "ldap"; then
+	    configure_opts="${configure_opts}${configure_opts+$tab}--with-ldap"
+	fi
+	# Note, must indent with tabs, not spaces due to IFS trickery
+	configure_opts="
+		--with-insults=disabled
+		--with-logging=syslog
+		--with-logfac=auth
+		--with-editor=/usr/bin/vim:/usr/bin/vi:/bin/vi
+		--with-env-editor
+		$configure_opts"
+	;;
+esac
+
+# The postinstall script will create tmpfiles.d/sudo.conf for us
+configure_opts="${configure_opts}${configure_opts+$tab}--disable-tmpfiles.d"
+
+# Remove spaces from IFS when setting $@ so that passprompt may include them
+OIFS="$IFS"
+IFS="	$nl"
+set -- $configure_opts $extra_opts
+IFS="$OIFS"
+if [ -r Makefile ]; then
+    ${MAKE} $make_opts distclean
+fi
+$top_srcdir/configure "$@" || exit 1
+${MAKE} $make_opts && ${MAKE} $make_opts PPFLAGS="$PPFLAGS" PPVARS="$PPVARS" package
+test $debug -eq 0 && rm -rf destdir

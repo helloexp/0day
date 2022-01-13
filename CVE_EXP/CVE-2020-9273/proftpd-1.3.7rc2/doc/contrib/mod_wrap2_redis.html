@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_wrap2_redis</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_wrap2_redis</code></b></h2>
+</center>
+<hr>
+
+<p>
+This submodule provides the Redis server &quot;driver&quot; for storing
+IP/DNS-based access control information in Redis lists/sets.
+
+<p>
+This <code>mod_wrap2</code> submodule is contained in the
+<code>mod_wrap2_redis.c</code> file, and is not compiled by default.  See the
+<code>mod_wrap2</code> <a href="mod_wrap2.html#Installation">installation</a>
+instructions.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<p>
+<hr><h2><a name="RedisListsSets">Redis Access Lists/Sets</a></h2>
+The <code>mod_wrap2_redis</code> module supports the &quot;redis&quot; string
+for the <em>source-type</em> parameter of the
+<a href="mod_wrap2.html#WrapUserTables"><code>WrapUserTables</code></a>,
+<a href="mod_wrap2.html#WrapGroupTables"><code>WrapGroupTables</code></a>,
+and
+<a href="mod_wrap2.html#WrapTables"><code>WrapTables</code></a>,
+configuration directives. If the &quot;redis&quot; <em>source-type</em> is used,
+then the <em>source-info</em> parameter must be as described below.  Note
+that support for Redis-based lists/sets <b>requires</b> the use of
+<code>mod_redis</code> (<i>e.g.</i> via the <code>--enable-redis</code>
+configure option).
+
+<p>
+<code>mod_wrap2_redis</code> requires only that the
+<a href="../modules/mod_redis.html"><code>mod_redis</code></a> module be
+enabled and configured to access a Redis server.
+
+<p>
+One Redis list (or set) is needed to retrieving access information from the
+<em>allow</em> "table", and another list/set for access information from the
+<em>deny</em> "table".  These lists/sets should contain a list of words,
+where each word is a host name, host address, pattern, or wildcard (see
+<a href="mod_wrap2.html#AccessRules">here</a> for how these things are
+defined).
+
+<p>
+Optionally, other Redis lists/sets can be defined to look up access
+<a href="mod_wrap2.html#AccessOptions">options</a> from the <em>allow</em> and
+<em>deny</em> tables.
+
+<p>
+For Redis lists, the format for the <code>WrapUserTables</code>,
+<code>WrapGroupTables</code>, and <code>WrapTables</code> directives is:
+<pre>
+  WrapTables redis:/<i><b>list:</b><code>allow-list-key</code></i>[/<i><b>list:</b><code>allow-list-options-key</code></i>] \
+    redis:<i><b>list:</b><code>deny-list-key</code></i>[/<i><b>list:</b><code>deny-list-options-key</code></i>]
+</pre>
+where the <i>allow-list-options-key</i> and <i>deny-list-options-key</i>
+portions of the string are optional.
+
+<p>
+For Redis <em>sets</em>, the format is similar to the above, only you specify
+a key prefix of "set:" rather than "list", <i>e.g.</i>:
+<pre>
+  WrapTables redis:/<i><b>set:</b><code>allow-set-key</code></i>[/<i><b>set:</b><code>allow-set-options-key</code></i>] \
+    redis:<i><b>set:</b><code>deny-set-key</code></i>[/<i><b>set:</b><code>deny-set-options-key</code></i>]
+</pre>
+
+<p>
+<b>Redis Access Lists/Sets Example</b><br>
+Here are example directives to help demonstrate how the <code>mod_redis</code>
+hooks are used by <code>mod_wrap2_redis</code>.
+These example directives assume the existence of two lists: a
+<code>wrapallow</code> list that defines allowed clients, and a
+<code>wrapdeny</code> list that defines the denied clients.
+
+<p>
+<pre>
+  # Using Redis lists
+  WrapTables redis:/list:wrapallow redis:/list:wrapdeny
+
+  # Using Redis sets
+  WrapTables redis:/set:wrapallow redis:/set:wrapdeny
+</pre>
+
+<p>
+For per-user/per-group lists/sets, the key name can use the <code>%{name}</code>
+variable, like so:
+<pre>
+  WrapUserTables * redis:/list:wrapallow.%{name} redis:/list:wrapdeny.%{name}
+  WrapGroupTables * redis:/list:wrapallow.%{name} redis:/list:wrapdeny.%{name}
+</pre>
+In the case of <code>WrapUserTables</code>, the <code>%{name}</code> variable
+will be resolved to the user name (from the <code>USER</code> command) of the
+logging-in user; for <code>WrapGroupTables</code>, <code>%{name}</code> will be
+resolved to the name of the user's primary group.
+
+<p>
+If the administrator wants to make use of access options, then URIs for those
+options would need to be similarly defined:
+<pre>
+  # Access tables for users (with options)
+  WrapUserTables user1,user2 \
+    redis:/list:allowed.%{name}/list:allowed-options.%{name} \
+    redis:/list:denied.%{name}/list:denied-options.%{name}
+
+  # Access tables for groups (with options)
+  WrapGroupTables group1,group2 \
+    redis:/list:allowed.%{name}/list:allowed-options.%{name} \
+    redis:/list:denied.%{name}/list:denied-options.%{name}
+
+  # Access tables for everyone else (without options)
+  WrapTables redis:/list:allowed redis:/list:denied
+</pre>
+
+<p>
+When constructing the client and options lists to return to
+<code>mod_wrap2</code>'s access control engine, <code>mod_wrap2_redis</code>
+will parse each returned item separately, handling both comma- and space-limited
+names in an item, into client list items.  This means that the administrator can
+store multiple client and option tokens in multiple items, as in the above
+schema, or the administrator can choose to store all of the clients and/or
+options in a single item, in an appropriately formatted string.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,27 @@
+/* Exim: OS-specific C header file for AIX */
+/* Written by Nick Waterman <nick@cimio.co.uk> */
+/* Modified by Philip Hazel with data from
+   Niels Provos <provos@wserver.physnet.uni-hamburg.de>
+   Juozas Simkevicius <juozas@omnitel.net> for load averages
+*/
+
+#define HAVE_DEV_KMEM
+#define LOAD_AVG_SYMBOL "avenrun"
+#define KERNEL_PATH     "/unix"
+#define LOAD_AVG_TYPE   int
+#define FSCALE          65536.0
+
+#define HAVE_SYS_VFS_H
+#define HAVE_SYS_STATFS_H
+
+/* Now tell AIX to emulate BSD as badly as it can. */
+
+#define _BSD 44
+
+typedef struct flock flock_t;
+
+/* default is non-const */
+#define ICONV_ARG2_TYPE const char **
+
+
+/* End */

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Quotas</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Quotas</b></h2></center>
+<hr>
+
+<p>
+A busy FTP server handles hundreds to thousands of files belonging to hundreds
+to thousands of users.  There is not an infinite capacity on the disks of
+the server, however, and eventually those files will take up too much space.
+Thus many sites have a pressing need to set limits on just how much can
+be stored on the server by their users.
+
+<p>
+Most Unix systems have support for OS- or fileystem-level quotas.  These
+have the advantage of being transparent to applications like
+<code>proftpd</code>, which means that the applications need not worry
+about maintaining and enforcing quotas.  The kernel/filesystem will handle
+that.  One disadvantage these OS-level quotas have, though, is that they
+are strictly tied to OS and/or filesystem, and not all Unix kernels and
+filesystems are the same.  They also rely on each user having their own
+separate user ID.  In the case of
+<a href="VirtualUsers.html">virtual users</a> for <code>proftpd</code>, it is
+possible for many users to have the same user ID, which causes problems for
+these traditional Unix quotas.
+
+<p>
+For these reasons, the <a href="../contrib/mod_quotatab.html"><code>mod_quotatab</code></a> module was developed for ProFTPD.  This module, being part of the
+application, applies to all the Unix kernels and filesystems which support
+ProFTPD, and easily handles virtual users.  The <code>mod_quotatab</code>
+documentation covers how to configure <code>proftpd</code> for quotas.
+
+<p>
+<b>Note</b>: This howto is a work-in-progress.  Please contact me with
+suggestions, questions, requests, <i>etc</i> for what you would like to see
+covered here.  Thanks!
+
+<p><a name="Config" title="#Config"></a>
+<b>Example Configuration</b><br>
+Here is an example <code>mod_quotatab</code> configuration for supporting
+quotas via file tables and SQL tables.  <b>This is an example only</b>.
+<pre>
+  &lt;IfModule mod_quotatab.c&gt;
+    QuotaEngine on
+    QuotaLog /var/log/ftpd/quota.log
+
+    # For more information on using files for storing the limit and tally
+    # table quota data, please see the <a href="../contrib/mod_quotatab_file.html">mod_quotatab_file</a> documentation.
+    &lt;IfModule mod_quotatab_file.c&gt;
+      QuotaLimitTable file:/etc/ftpd/ftpquota.limittab
+      QuotaTallyTable file:/etc/ftpd/ftpquota.tallytab
+    &lt;/IfModule&gt;
+
+    # For more information on using a SQL database for storing the limit and
+    # tally table quota data, please see the <a href="../contrib/mod_quotatab_sql.html">mod_quotatab_sql</a> documentation
+    &lt;IfModule mod_quotatab_sql.c&gt;
+      SQLNamedQuery get-quota-limit SELECT "* FROM quotalimits WHERE name = '%{0}' AND quota_type = '%{1}'"
+      SQLNamedQuery get-quota-tally SELECT "* FROM quotatallies WHERE name = '%{0}' AND quota_type = '%{1}'"
+      SQLNamedQuery update-quota-tally UPDATE "bytes_in_used = bytes_in_used + %{0}, bytes_out_used = bytes_out_used + %{1}, bytes_xfer_used = bytes_xfer_used + %{2}, files_in_used = files_in_used + %{3}, files_out_used = files_out_used + %{4}, files_xfer_used = files_xfer_used + %{5} WHERE name = '%{6}' AND quota_type = '%{7}'" quotatallies
+      SQLNamedQuery insert-quota-tally INSERT "%{0}, %{1}, %{2}, %{3}, %{4}, %{5}, %{6}, %{7}" quotatallies
+
+      QuotaLock /var/lock/ftpd.quotatab.lock
+      QuotaLimitTable sql:/get-quota-limit
+      QuotaTallyTable sql:/get-quota-tally/update-quota-tally/insert-quota-tally
+    &lt;/IfModule&gt;
+  &lt;/IfModule&gt;
+</pre>
+
+<p><a name="FAQ" title="#FAQ"></a>
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="QuotasDiskSpace" title="#QuotasDiskSpace"></a>
+<font color=red>Question</font>: How do I set the disk space limit for a user?<br>
+<font color=blue>Answer</font>: The short answer is to use the &quot;upload bytes limit&quot; setting.
+
+<p>
+It's true that the various limits maintained by <code>mod_quotatab</code>,
+for either bytes or files (or both), are confusing.  When designing
+the module, I anticipated administrators wanting to limit download as well
+as upload transfers; in reality, most administrators wish to limit the
+disk space for their users.  The bytes uploaded limit doubles as the
+disk space limit, for there is no effective difference between them; any
+bytes uploaded via FTP are automatically stored on disk.
+
+<p><a name="QuotasExternalChanges" title="#QuotasExternalChanges"></a>
+<font color=red>Question</font>: <code>mod_quotatab</code> only tracks changes
+made using <code>proftpd</code>, and my users can add/remove files other ways.
+What am I supposed to do?<br>
+<font color=blue>Answer</font>: As the <code>mod_quotatab</code> documentation
+states, the module was designed only to track changes done via FTP; it
+made implementation of quotas simpler.
+
+<p>
+This question is also often posed as "Why can't mod_quotatab just calculate
+the amount of space used by a user?"  The module <i>could</i> do this,
+but there are some considerations with this kind of approach.
+
+<p>
+The primary consideration is the time cost of having to recurse a directory.
+If the directory is relatively small, the time needed is small.  For very
+large/deep directories, however, the time needed to do the scan could be
+long, possibly long enough for users to notice and complain.  Another
+complication is the disk space used by a given user is not confined to
+their home directory.  Many sites have home directories for users, and
+have a shared directory that all users can use.  Somehow
+<code>mod_quotatab</code> would need to know to scan these shared directories.
+
+<p>
+As of <code>proftpd-1.3.1rc1</code>, the <code>mod_quotatab</code> supports
+this feature via the <code>ScanOnLogin</code> parameter of the
+<code>QuotaOptions</code> directive.
+
+<p><a name="QuotasExcludeFiles"></a>
+<font color=red>Question</font>: If I use this <code>ScanOnLogin</code> option, how do I tell it to ignore certain files?</br>
+<font color=blue>Answer</font>: Use the new
+<a href="../contrib/mod_quotatab.html#QuotaExcludeFilter"><code>QuotaExcludeFilter</code></a> directive.  For example, if you wanted to exclude all files
+that ended in ".log" from the automatic quota calculation, you might use:
+<pre>
+  &lt;IfModule mod_quotatab.c&gt;
+     ...
+
+     # Automatically calculate the used quota on login
+     QuotaOptions ScanOnLogin
+
+     # Do not include files ending in ".log" in the automatically
+     # calculated quota
+     QuotaExludeFilter \.log$
+  &lt;/IfModule&gt;
+</pre>
+
+<p><a name="QuotasInitialization" title="#QuotasInitialization"></a>
+<font color=red>Question</font>: If <code>mod_quotatab</code> does not
+automatically scan for disk space usage, how will it know about my existing
+users?<br>
+<font color=blue>Answer</font>: By default, <code>mod_quotatab</code>
+indeed knows nothing about what disk space is already occupied by your
+users; the tally table starts out blank.
+
+<p>
+To help address this, there is a <code>diskuse.pl</code> Perl script:
+<pre>
+  <a href="http://www.castaglia.org/proftpd/contrib/diskuse">http://www.castaglia.org/proftpd/contrib/diskuse</a>
+</pre>
+which will display the number of bytes owned by a given user (or group) within
+a list of directories.  The parameters needed for running
+<code>diskuse.pl</code> are documented
+<a href="http://www.castaglia.org/proftpd/contrib/diskuse.html">here</a>.
+
+<p>
+Once you've run <code>diskuse.pl</code> to find out the current usage for
+your users, you can enter those numbers into your tally table.  Unfortunately
+<code>diskuse.pl</code> cannot read your <code>proftpd.conf</code> file
+to know whether you are using a file- or SQL-based tally table, so it cannot
+automatically update your tally table.
+
+<p><a name="QuotasDefaults" title="#QuotasDefaults"></a>
+<font color=red>Question</font>: How can I set a default quota for all of my users?<br>
+<font color=blue>Answer</font>: For this, you can use the <a href="../contrib/mod_quotatab.html#QuotaDefault"><code>QuotaDefault</code></a> directive, which
+first appeared in ProFTPD 1.3.5rc1.
+
+<p><a name="QuotasTallyTable" title="#QuotasTallyTable"></a>
+<font color=red>Question</font>: What is a &quot;tally table&quot;?<br>
+<font color=blue>Answer</font>: Tally tables, and limit tables, are
+covered in the <code>mod_quotatab</code> <a href="../contrib/mod_quotatab.html#QuotaTables">documentation</a>.
+
+<p><a name="QuotasCreatingFileTables" title="#QuotasCreatingFileTables"></a>
+<font color=red>Question</font>: How do I construct the limit and tally files for file-based quotas?<br>
+<font color=blue>Answer</font>: There is a Perl script called <a href="http://www.proftpd.org/docs/contrib/ftpquota.html"><code>ftpquota</code></a> which
+can create the necessary files.  This script can also be found under the
+<code>contrib/</code> directory of the <code>proftpd</code> source
+distribution.
+
+<p><a name="QuotasCreatingSQLTables" title="#QuotasCreatingSQLTables"></a>
+<font color=red>Question</font>: Is there a SQL script for the SQL quota tables used by <code>mod_quotatab_sql</code>?<br>
+<font color=blue>Answer</font>: No.  However, the <code>mod_quotatab_sql</code>
+<a href="../contrib/mod_quotatab_sql.html">documentation</a> contains example schema for the necessary tables.
+
+<p><a name="QuotasDirectorySize" title="#QuotasDirectorySize"></a>
+<font color=red>Question</font>: How do I set a limit on the size of a
+directory?<br>
+<font color=blue>Answer</font>: Currently, you cannot.
+
+<p>
+Traditional Unix quotas are implemented in terms of <i>ownership</i>: the
+thing that counts is not where a file is located on the filesystem, but
+which user and/or group owns the file.  Asking about directory quotas
+assumes a different basis for quotas, based on <i>location</i> rather than
+ownership (such quotas are often called <i>tree-based quotas</i>).  The
+<code>mod_quotatab</code> module followed the example of traditional Unix
+quotas, but I have started designing how location-based quotas might be
+implemented.
+
+<p><a name="QuotasNotUpdating" title="#QuotasNotUpdating"></a>
+<font color=red>Question</font>: Why isn't <code>mod_quotatab</code> updating my tally table?<br>
+<font color=blue>Answer</font>: It depends.
+
+<p>
+One possibility is that the <em>per session</em> flag in the limit in
+effect is set to <code>true</code>, which means that the limits will only
+be applied to this session.  When this happens, <code>mod_quotatab</code>
+will not update the tally table.
+
+<p>
+Another possibility is that your configured limits are "unlimited" (<i>i.e.</i>
+zero).  As it states in the <a href="../contrib/mod_quotatab.html#Usage"><code>mod_quotatab</code></a> documentation:
+<pre>
+  For any quota limit that is set as "unlimited", mod_quotatab will not keep the tally.
+  Many site administrators might want this ability, for accounting purposes. However,
+  that ability is outside of the intended design of this module; other logging modules
+  are much better suited for accounting purposes (<i>e.g</i>. mod_sql's <code>SQLLog</code> directive).
+</pre>
+
+<p>
+If the above cases are not applicable, then consider looking in the
+<a href="../contrib/mod_quotatab.html#QuotaLog"><code>QuotaLog</code></a> file for more information.
+
+<p><a name="QuotasPerMonth" title="#QuotasPerMonth"></a>
+<font color=red>Question</font>: Can I use <code>mod_quotatab</code> to set
+monthly quotas?<br>
+<font color=blue>Answer</font>: Sort of.  <code>mod_quotatab</code> itself
+has no concept of time, so this sort of capability is not built-in.  However,
+it can be approximated by having some other process, such as a cron job,
+periodically (such as once a month) clear the tally table, yielding the
+effect of monthly quotas.
+
+<p><a name="QuotasDisplay" title="#QuotasDisplay"></a>
+<font color=red>Question</font>: How can users see their current quota?<br>
+<font color=blue>Answer</font>: There are two ways to show the current quota
+to users.  There is the <a href="../contrib//mod_quotatab.html#SITE_QUOTA"><code>SITE QUOTA</code></a> command.  And there are
+certain <a href="../contrib/mod_quotatab.html#QuotaDisplay"><code>Display</code></a> variables that are supported by the
+<code>mod_quotatab</code> module.
+
+<p><a name="QuotasPerFile" title="#QuotasPerFile"></a>
+<font color=red>Question</font>: What if I want to set limits on the size of
+individual files being transferred?<br>
+<font color=blue>Answer</font>: For this, you do not need the
+<code>mod_quotatab</code> module.  ProFTPD has the
+<a href="../modules/mod_xfer.html#MaxRetrieveFileSize"><code>MaxRetrieveFileSize</code></a> and
+<a href="../modules/mod_xfer.html#MaxStoreFileSize"><code>MaxStoreFileSize</code></a> directives.
+
+<p><a name="QuotasUnsupportedType" title="#QuotasUnsupportedType"></a>
+<font color=red>Question</font>: Why do I see the following error?
+<pre>
+  QuotaLimitTable: unsupported table source type: 'sql'
+</pre>
+<font color=blue>Answer</font>: The <code>mod_quotatab</code> module acts
+as a general quota managing front-end; it relies on other backend modules
+to handle the specifics of storage formats.  Every backend module
+(<i>e.g.</i>
+<a href="../contrib/mod_quotatab_file.html"><code>mod_quotatab_file</code></a>, <a href="../contrib/mod_quotatab_sql.html"><code>mod_quotatab_sql</code></a>, <a href="../contrib/mod_quotatab_ldap.html"><code>mod_quotatab_ldap</code></a>) registers a supported <em>table type</em> with the main
+<code>mod_quotatab</code> module.  The error above indicates that the
+<code>mod_quotatab_sql</code> module has not been compiled/loaded into
+<code>proftpd</code>.
+
+<p><a name="QuotasGroupQuotas" title="#QuotasGroupQuotas"></a>
+<font color=red>Question</font>: How do group quotas work?  If a user is in multiple groups, what happens?<br>
+<font color=blue>Answer</font>: The <code>mod_quotatab</code> module
+<a href="../contrib/mod_quotatab.html#QuotaLookup">searches</a> for applicable
+quotas, by type, in the following order:
+<ul>
+  <li>user quotas
+  <li>group quotas
+  <li>class quotas
+  <li>the "all" quota
+</ul>
+Thus if there is a user-specific quota, it will be used; the search stops there.
+The <code>mod_quotatab</code> module does <b>not</b> combine multiple different
+quotas.
+
+<p>
+What happens, then, if a user belongs to multiple different groups, and there
+are different quotas set for those different groups?  First, the <i>primary</i>
+group of the user is checked; this is the group that is included, for example,
+in the entry for the user in the <code>/etc/passwd</code> file.  If no quota
+for the primary group is found, the module then checks against each of
+the user's <i>supplemental</i> groups.  The order in which these groups
+are checked is dependent up on the order in which the groups are returned
+from the auth module providing them, <i>e.g.</i> <code>mod_sql</code>,
+<code>mod_ldap</code>, or perhaps <code>mod_auth_unix</code>.
+
+<p><a name="QuotasOverwrites" title="#QuotasOverwrites"></a>
+<font color=red>Question</font>: Does <code>mod_quotatab</code> handle the case where a client might append to/overwrite an existing file, in terms of tracking bytes?<br>
+<font color=blue>Answer</font>: Yes.  The <code>mod_quotatab</code> module
+checks the size of the file before the upload/append starts, and then checks
+the size of the file again after the upload/append completes.  The difference
+in file sizes is used for tracking the byte-related tallies.
+
+<p><a name="QuotasDeleteTransferBytes" title="#QuotasDeleteTransferBytes">
+<font color=red>Question</font>: I configured limits for my users such that
+only the transfer bytes limit is set.  On uploads, my transfer bytes tally
+is incremented properly.  But when I delete a file, the transfer bytes tally
+is not <i>decremented</i>.  Is this a bug?<br>
+<font color=blue>Answer</font>: No, it's not a bug.
+
+<p>
+Deleting a file does not count as transferred bytes (<i>i.e.</i> it does not
+pertain to the <code>bytes_xfer</code> limit); it counts as uploaded bytes
+(<i>i.e.</i> the <code>bytes_in</code> limit).  And since there is only a limit,
+in this case, on the transferred bytes, the <code>mod_quotatab</code> module
+ends up not changing any tally value for a delete.  More details on this
+can be found in
+<a href="http://bugs.proftpd.org/show_bug.cgi?id=2897">Bug#2897</a>.
+
+<p><a name="QuotasZeroLimits" title="#QuotasZeroLimits"></a>
+<font color=red>Question</font>: Why does the <code>ftpquota</code> tool
+treat limit values of zero as "unlimited"?
+<pre>
+  $ ftpquota --create-table --type=limit
+  $ ftpquota --add-record --type=limit --name=tj --quota-type=user <b>--files-download=0</b>
+  $ ftpquota --show-records --type=limit
+  -------------------------------------------
+    Name: tj
+    Quota Type: User
+    Per Session: False
+    Limit Type: Hard
+      Uploaded bytes: unlimited
+      Downloaded bytes: unlimited
+      Transferred bytes:  unlimited
+      Uploaded files: unlimited
+      <b>Downloaded files: unlimited</b>
+      Transferred files:  unlimited
+</pre>
+I want to use this to prevent a user from uploading/download files.<br>
+<p>
+<font color=blue>Answer</font>:  If you wish to prevent users from uploading
+or downloading, then you should use
+<a href="Limit.html"><code>&lt;Limit&gt;</code></a> sections in your
+ProFTPD configuration; that is what they are designed to do.  The
+<code>ftpquota</code> tool was <em>explicitly designed</em> to not allow
+being used to prevent uploads/downloads; it is for managing <em>quotas</em>.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

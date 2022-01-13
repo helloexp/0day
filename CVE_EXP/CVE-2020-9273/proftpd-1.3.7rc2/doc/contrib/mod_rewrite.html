@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_rewrite</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_rewrite</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+This module is contained in the <code>mod_rewrite.c</code> file for ProFTPD
+1.3.<i>x</i>, and is not compiled by default.  Installation instructions are
+discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_rewrite</code> is distributed with the
+ProFTPD source code.
+
+<p>
+A discussion of the <a href="#Usage">usage</a> of this module follows.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#RewriteCondition">RewriteCondition</a>
+  <li><a href="#RewriteEngine">RewriteEngine</a>
+  <li><a href="#RewriteLock">RewriteLock</a>
+  <li><a href="#RewriteLog">RewriteLog</a>
+  <li><a href="#RewriteMap">RewriteMap</a>
+  <li><a href="#RewriteMaxReplace">RewriteMaxReplace</a>
+  <li><a href="#RewriteRule">RewriteRule</a>
+</ul>
+
+<hr>
+<h3><a name="RewriteCondition">RewriteCondition</a></h3>
+<strong>Syntax:</strong> RewriteCondition <em>condition pattern [flags]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code>, <code>&lt;Directory&gt;</code><br>
+<strong>Module:</strong> mod_rewrite<br>
+<strong>Compatibility:</strong> 1.2.6rc1 and later
+
+<p>
+The <code>RewriteCondition</code> directive defines a rule condition. Precede a
+<a href="#RewriteRule"><code>RewriteRule</code></a> directive with one or more
+<code>RewriteCondition</code> directives. The following rewriting rule is only
+used if its pattern matches the current state of the FTP command <em>and</em>
+if these additional conditions apply too.
+
+<p>
+<em>Condition</em> is a string which can contain the following expanded
+constructs in addition to plain text:
+<ul>
+  <li><b><code>RewriteRule</code> backreferences</b><br>
+    These are backreferences of the form:
+<pre>
+    <b><code>$N</code></b>
+</pre>
+    (0 &lt;= <em>N</em> &lt;= 9) which provide access to the grouped parts
+    (parentheses!) of the pattern from the corresponding
+    <code>RewriteRule</code> directive (the one following the current bunch of
+    <code>RewriteCondition</code> directives).  Note that <em>$0</em> will
+    refer back to the entire original string being matched.
+
+    <p>
+    Use an extra <code>$</code> character to escape a sequence which
+    <i>looks</i> like a <code>RewriteRule</code> backreference, <i>e.g.</i>
+    <em>$$N</em>.
+  </li>
+
+  <p>
+  <li><b><code>RewriteCondition</code> backreferences</b><br>
+    These are backreferences of the form:
+<pre>
+    <b><code>%N</code></b>
+</pre>
+    (0 &lt;= <em>N</em> &lt;= 9) which provide access to the grouped parts
+    (parentheses!) of the pattern from the previous
+    <code>RewriteCondition</code> attached to this <code>RewriteRule</code>.
+
+    <p>
+    Use an extra <code>%</code> character to escape a sequence which
+    <i>looks</i> like a <code>RewriteCondition</code> backreference, <i>e.g.</i>
+    <em>%%N</em>.
+  </li>
+
+  <p>
+  <li><b><code>RewriteMap</code> expansions:</b><br>
+     These are expansions of the form:
+<pre>
+   <b><code>${map-name:lookup-key|default-value}</code></b>
+</pre>
+     See the documentation for <a href="#RewriteMap"><code>RewriteMap</code></a>
+     for more details. 
+  </li>
+
+  <p>
+  <li><b>Variable substitutions:</b><br>
+    These are substitutions of the form:
+<p>
+<table border=0 summary="Rewrite Variables">
+  <tr>
+    <td><b>%a</b></td>
+    <td>Client IP address</td> 
+  </tr>
+
+  <tr>
+    <td><b>%c</b></td>
+    <td>Name of Class for current session</td>
+  </tr>
+
+  <tr>
+    <td><b>%f</b></td>
+    <td>Filename</td>
+  </tr>
+
+  <tr>
+    <td><b>%F</b></td>
+    <td>Transfer path, as seen by the client (only useful for upload/download commands)</td>
+  </tr>
+
+  <tr>
+    <td><b>%g</b></td>
+    <td>Primary group of authenticated user</td>
+  </tr>
+
+  <tr>
+    <td><b>%G</b></td>
+    <td>Supplemental groups of authenticated user</td>
+  </tr>
+
+  <tr>
+    <td><b>%h</b></td>
+    <td>Client DNS name</td>
+  </tr>
+
+  <tr>
+    <td><b>%m</b></td>
+    <td>FTP command</td>
+  </tr>
+
+  <tr>
+    <td><b>%p</b></td>
+    <td>Port of server handling the session</td>
+  </tr>
+
+  <tr>
+    <td><b>%u</b></td>
+    <td>Name of authenticated user</td>
+  </tr>
+
+  <tr>
+    <td><b>%U</b></td>
+    <td>Name of user sent by client via <code>USER</code></td>
+  </tr>
+
+  <tr>
+    <td><b>%v</b></td>
+    <td><code>ServerName</code> of server handling the session</td>
+  </tr>
+
+  <tr>
+    <td><b>%{TIME_YEAR}</b></td>
+    <td>Current local year in <em>YYYY</em> format</td>
+  </tr>
+
+  <tr>
+    <td><b>%{TIME_MON}</b></td>
+    <td>Current local month in <em>MM</em> format</td>
+  </tr>
+
+  <tr>
+    <td><b>%{TIME_DAY}</b></td>
+    <td>Current local day in <em>DD</em> format</td>
+  </tr>
+
+  <tr>
+    <td><b>%{TIME_WDAY}</b></td>
+    <td>Current local day of week (Sunday is 0)</td>
+  </tr>
+
+  <tr>
+    <td><b>%{TIME_HOUR}</b></td>
+    <td>Current local hour in <em>HH</em> format</td>
+  </tr>
+
+  <tr>
+    <td><b>%{TIME_MIN}</b></td>
+    <td>Current local minute in <em>mm</em> format</td>
+  </tr>
+
+  <tr>
+    <td><b>%{TIME_SEC}</b></td>
+    <td>Current local second in <em>ss</em> format</td>
+  </tr>
+
+  <tr>
+    <td><b>%{TIME}</b></td>
+    <td>Current local time in <em>YYYYMMDDHHmmss</em> format</td>
+  </tr>
+</table>
+  </li>
+
+  <p>
+  <li><b>Environment Variable substitutions:</b><br>
+    These are substitutions of the form:
+<pre>
+  <b><code>%{ENV:<i>variable-name</i>}</code></b>
+</pre>
+    If the <em>variable-name</em> environment variable is not present,
+    it will be substituted with the empty string.
+  </li>
+</ul>
+
+<p>
+<em>Pattern</em> is the condition pattern, <i>i.e.</i>, a regular expression
+which is applied to the current instance of the <em>condition</em>,
+<i>i.e.</i>, <em>condition</em> is evaluated and then matched against
+<em>pattern</em>.  You can prefix the <em>pattern</em> string with a '!'
+character (exclamation mark) to specify a non-matching pattern.
+
+<p>
+The <em>pattern</em> can also be one of these special variants:
+<ul>
+  <li><code>&lt;</code><em>pattern</em> (is lexically lower)<br>
+      Treats the <em>pattern</em> as a plain string and compares it lexically
+      to <em>condition</em>. True if <em>condition</em> is lexically lower
+      than <em>pattern</em>
+  </li>
+
+  <p>
+  <li><code>&gt;</code><em>pattern</em> (is lexically greater)<br>
+      Treats the <em>pattern</em> as a plain string and compares it lexically
+      to <em>condition</em>. True if <em>condition</em> is lexically greater
+      than <em>pattern</em>
+  </li>
+
+  <p>
+  <li><code>=</code><em>pattern</em> (is lexically equal)<br>
+      Treats the <em>pattern</em> as a plain string and compares it lexically
+      to <em>condition</em>. True if <em>condition</em> is lexically equal to
+      <em>pattern</em>, <i>i.e.</i> the two strings are exactly equal
+      (character by character). If <em>pattern</em> is just &quot;&quot; (two
+      quotation marks) this compares <em>condition</em> to the empty string
+  </li>
+
+  <p>
+  <li><code>-d</code> (is directory)<br>
+      Treats the <em>condition</em> as a pathname and tests if it exists and
+      is a directory
+  </li>
+
+  <p>
+  <li><code>-f</code> (is regular file)<br>
+      Treats the <em>condition</em> as a pathname and tests if it exists and
+      is a regular file
+  </li>
+
+  <p>
+  <li><code>-s</code> (is regular file with size)<br>
+      Treats the <em>condition</em> as a pathname and tests if it exists and
+      is a regular file with size greater than zero
+  </li>
+
+  <p>
+  <li><code>-l</code> (is symbolic link)<br>
+      Treats the <em>condition</em> as a pathname and tests if it exists and
+      is a symbolic link
+  </li>
+</ul>
+Notice: All of these variants can also be prefixed by an exclamation mark
+('!') to negate their meaning.
+
+<p>
+<em>Flags</em>, if present, modify how this <code>RewriteCondition</code> is
+evaluated.  Supported flags are:
+<ul>
+  <li><b>nocase|NC</b> (<b>n</b>o <b>c</b>ase)<br>
+      This makes the <em>pattern</em> case-insensitive, <i>i.e.</i> there is
+      no difference between 'A-Z' and 'a-z' when <em>pattern</em> is matched
+      against the <em>condition</em>
+  </li>
+
+  <p>
+  <li><b>ornext|OR</b> (<b>or</b> next condition)<br>
+      Use this to combine rule conditions with a logical <code>OR</code>
+      instead of the implicit <code>AND</code>. Typical example:
+<pre>
+    RewriteCondition %h  ^host1.*  [OR]
+    RewriteCondition %h  ^host2.*  [OR]
+    RewriteCondition %h  ^host3.*
+    RewriteRule <i>...some special stuff for any of these hosts...</i>
+</pre>
+     Without this flag you would have to write the condition/rule combination
+     three times.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h3><a name="RewriteEngine">RewriteEngine</a></h3>
+<strong>Syntax:</strong> RewriteEngine <em>on|off</em><br>
+<strong>Default:</strong> off<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_rewrite<br>
+<strong>Compatibility:</strong> 1.2.6rc1 and later
+
+<p>
+The <code>RewriteEngine</code> directive enables or disables the module's
+runtime rewriting engine.  If it is set to <em>off</em> this module does no
+parsing or rewriting at all. Use this directive to disable the module instead
+of commenting out all <code>mod_rewrite</code> directives.
+
+<p>
+<hr>
+<h3><a name="RewriteLock">RewriteLock</a></h3>
+<strong>Syntax:</strong> RewriteLock <em>file</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_rewrite<br>
+<strong>Compatibility:</strong> 1.2.6rc1 and later
+
+<p>
+The <code>RewriteLock</code> directive sets the filename for a synchronization
+lockfile which <code>mod_rewrite</code> needs to communicate with
+<code>RewriteMap</code>s of type <i>fifo</i>. Set <em>file</em> to a local
+absolute path (not on a NFS-mounted device) when you want to use a rewriting
+FIFO. It is not required for other types of rewriting maps.
+
+<p>
+<hr>
+<h3><a name="RewriteLog">RewriteLog</a></h3>
+<strong>Syntax:</strong> RewriteLog <em>file|&quot;none&quot;</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_rewrite<br>
+<strong>Compatibility:</strong> 1.2.6rc1 and later
+
+<p>
+The <code>RewriteLog</code> directive is used to specify a log file for
+<code>mod_rewrite</code> reporting and debugging, and can be done a per-server
+basis.  The <em>file</em> parameter must be the full path to the file to use for
+logging.  Note that this path must <b>not</b> be to a world-writeable
+directory and, unless <code>AllowLogSymlinks</code> is explicitly set to
+<em>on</em> (generally a bad idea), the path must <b>not</b> be a symbolic
+link.  In general, this directive should <i>only be used</i> for debugging
+your <code>mod_rewrite</code> configuration, and should be removed once
+debugging is completed; <b>do not use this directive in a production
+configuration</b>.
+
+<p>
+If <em>file</em> is &quot;none&quot;, no logging will be done at all; this
+setting can be used to override a <code>RewriteLog</code> setting inherited from
+a <code>&lt;Global&gt;</code> context.
+
+<p>
+<hr>
+<h3><a name="RewriteMap">RewriteMap</a></h3>
+<strong>Syntax:</strong> RewriteMap <em>map-name map-type:map-source</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_rewrite<br>
+<strong>Compatibility:</strong> 1.2.6rc1 and later
+
+<p>
+The <code>RewriteMap</code> directive defines a <em>rewriting map</em> which
+can be used inside rule substitution strings by the mapping-functions to
+insert/substitute fields through a key lookup. The source of this lookup can
+be of various types.
+
+<p>
+The <em>map-name</em> is the name of the map and will be used to specify a
+mapping-function for the substitution strings of a rewriting rule via one of
+the following constructs:
+
+<blockquote><strong>
+  <code>${</code> <em>map-name</em> <code>:</code>
+    <em>lookup-key</em> <code>}</code><br>
+  <code>${</code> <em>map-name</em> <code>:</code>
+    <em>lookup-key</em> <code>|</code> <em>default-value</em><code>}</code>
+</strong></blockquote>
+
+When such a construct occurs the map <em>map-name</em> is consulted and the
+key <em>lookup-key</em> is resolved. If the key is found, the map-function
+construct is substituted by <em>subst-value</em>. If the key is not found
+then it is substituted by <em>default-value</em> or by the empty string if no
+<em>default-value</em> was specified. 
+
+<p>
+The following combinations for <em>map-type</em> and <em>map-src</em> can be
+used:
+
+<ul>
+  <li><strong>Standard Plain Text</strong><br>
+    <em>map-type</em>: <code>txt</code>, <em>map-src</em>: Unix filesystem
+    path to valid regular file.
+
+    <p>
+    This is the standard rewriting map feature where the <em>map-src</em> is
+    a plain ASCII file containing either blank lines, comment lines (starting
+    with a '#' character) or pairs like the following - one per line.
+
+    <blockquote>
+      <strong><em>matching-key</em> <em>subst-value</em></strong>
+    </blockquote>
+
+    <p>
+    Example:
+    <pre>
+    # --------------------------------------------
+    # usermap.txt -- map for rewriting user names
+    # --------------------------------------------
+
+    Dave.Admin      dave       # The Uber-admin
+    root            anonymous  # no one should be logging in as root anyway
+    </pre>
+    And, to configure this map to be used:
+    <pre>
+    RewriteMap real-to-user txt:/path/to/file/usermap.txt
+    </pre>
+  </li>
+
+  <li><strong>FIFO/Named Pipe</strong><br>
+    <em>map-type</em>: <code>fifo</code>, <em>map-src</em>: Unix filesystem
+    path to valid FIFO.
+
+    <p>
+    For this rewriting map, <em>map-src</em> is a FIFO (<i>a.k.a.</i> named
+    pipe). To create it, you can use the <code>mkfifo(1)</code> command.
+
+    An external program that opens the FIFO for reading and writing <b>must</b>
+    be started <i>before</i> <code>proftpd</code> is started.  This program
+    can communicate with the rewriting engine via the FIFO. For each mapping
+    lookup, it can read the key to lookup as a newline-terminated string from
+    the FIFO. It then has to write back to the FIFO the looked-up value as a
+    newline-terminated string, or just simply newline character (denoting an
+    empty string) if there is no corresponding value for the given key).
+
+    <p>
+    An example program which will implement a 1:1 mapping (<i>i.e.</i>,
+    key == value) could be:
+<pre>
+    #!/usr/bin/perl
+    use strict;
+
+    use File::Basename qw(basename);
+    use Getopt::Long;
+    use IO::Handle;
+    use IO::Select;
+
+    my $default_delay = 0.5;
+    my $program = basename($0);
+    my %opts = ();
+
+    GetOptions(\%opts, 'delay=f', 'fifo=s', 'help', 'verbose');
+
+    usage() if $opts{'help'};
+
+    my $delay = $opts{'delay'} ? $opts{'delay'} : $default_delay;
+
+    die &quot;$program: missing required --fifo parameter\n&quot; unless $opts{'fifo'};
+    my $fifo = $opts{'fifo'};
+
+    my $verbose = $opts{'verbose'} ? 1 : 0;
+
+    open(my $fifo_fh, &quot;+&gt; $fifo&quot;) or die &quot;$program: unable to open $fifo: $!\n&quot;;
+
+    # Instantiate a Select object for knowing when to read from and write to
+    # the FIFO.
+    my $sel = IO::Select-&gt;new();
+
+    while (1) {
+
+      # Blocking select() for reading.
+      $sel-&gt;add($fifo_fh);
+
+      print STDERR &quot;$program: selecting for reading\n&quot; if $verbose;
+      my ($rfh) = $sel->can_read();
+
+      my $key = &lt;$rfh&gt;;
+      print STDERR &quot;$program: read '$key'\n&quot; if $verbose;
+
+      # Lookup a value for the given key.
+      my $value = lookup_value($key);
+
+      # Clear the Select object's filehandles.
+      $sel-&gt;remove();
+
+      print $fifo_fh &quot;$value\n&quot; if $verbose;
+      $fifo_fh-&gt;flush();
+
+      print STDERR &quot;$program: wrote '$value'\n&quot; if $verbose;
+
+      # Wait for the buffer's byte to be cleared before reading again.
+      wait_fifo($fifo_fh);
+    }
+
+    close($fifo_fh);
+    print STDOUT &quot;$program: done\n&quot; if $verbose;
+
+    exit 0;
+
+    # --------------------------------------------------------------------------
+    sub lookup_value {
+      my ($key) = @_;
+
+      # NOTE: do something to obtain a value for the given key here.
+      chomp(my $value = $key);
+
+      return $value;
+    }
+
+    # --------------------------------------------------------------------------
+    sub usage {
+      print STDOUT &lt;&lt;END_OF_USAGE;
+
+    usage: $program [options]
+
+      --delay         Configure the buffer check delay.
+                      The default is $default_delay seconds.
+
+      --fifo          Configure the path to the FIFO.  Required.
+
+      --help          Displays this message.
+
+      --verbose       Enables verbose output while $program runs.
+
+    END_OF_USAGE
+
+      exit 0;
+    }
+
+    # --------------------------------------------------------------------------
+    sub wait_fifo {
+      my ($fh) = @_;
+
+      # Now we get tricky.  Use ioctl(2) to poll the number of bytes to
+      # be read from the FIFO filehandle.  When the number drops to zero,
+      # it means that the data we just wrote has been read from the buffer
+      # by some other process, so we can go back to the top of this loop.
+      # Otherwise, if this program loops faster than the reader/writer on
+      # the other end of the FIFO, we'd end up reading the data we just
+      # wrote.  Quite annoying, actually.
+      #
+      # Note: this value must be manually extracted from the system header files
+      # using the following program:
+      #
+      # -------- fionread.c -------------------
+      #  #include &lt;sys/ioctl.h&gt;
+      #
+      #  int main(int argc, char *argv[]) {
+      #   printf(&quot;%#08x\n&quot;, FIONREAD);
+      #   return 0;
+      # }
+      # ---------------------------------------
+      #
+      # > cc -o fionread fionread.c
+      # > ./fionread
+
+      my $FIONREAD = 0x00541b;
+
+      my $size = pack('L', 0);
+      ioctl($fh, $FIONREAD, $size) or die &quot;$program: unable to use ioctl: $!\n&quot;;
+      $size = unpack('L', $size);
+
+      while ($size != 0) {
+        print STDERR &quot;$program: waiting for buffer to be read\n&quot; if $verbose;
+        select(undef, undef, undef, $delay);
+
+        $size = pack('L', 0);
+        ioctl($fh, $FIONREAD, $size) or die &quot;$program: unable to use ioctl: $!\n&quot;;
+        $size = unpack('L', $size);
+      }
+    }
+
+</pre>
+    To make use of this example script, simply implement your lookup code
+    in the <code>lookup_value()</code> subroutine. Be very careful with
+    such scripts, though:
+
+    <p>
+    <ol>
+      <li>&quot;Keep it simple, stupid&quot; (KISS), because if this program
+        hangs it will hang <code>proftpd</code> when the rule occurs.
+        Well, keep it as simple as possible...<br>
+      <br>
+
+      <li>Avoid one common mistake: avoid buffered I/O if possible. This can
+        cause a deadloop.  If necessary, be sure to flush the filehandle
+        before reading, and after writing.<br>
+      <br>
+
+      <li>Use the <code>RewriteLock</code> directive to define a lockfile
+        <code>mod_rewrite</code> can use to synchronize the communication to
+        the FIFO program. By default no such synchronization takes place.<br>
+      <br>
+    </ol>
+  </li>
+
+  <li><strong>Internal Function</strong><br>
+    <em>map-type</em>: <code>int</code>, <em>map-src</em>: Internal
+    <code>mod_rewrite</code> function.
+
+    <p>
+    Here the <em>map-src</em> is a <code>mod_rewrite</code> built-in function.
+    Currently you cannot create your own, but the following functions already
+    exist:
+    <ul>
+      <p>
+      <li><strong>idnatrans</strong>:<br>
+        Translates text in the lookup up key into <a href="https://en.wikipedia.org/wiki/Internationalized_domain_name">IDNA</a> text.
+      </li>
+
+      <p>
+      <li><strong>replaceall</strong>:<br>
+        Replace all occurrences, in the looked up key, of one string with
+        another string
+      </li>
+
+      <p>
+      <li><strong>toupper</strong>:<br>
+        Converts the looked up key to all upper case.
+      </li>
+
+      <p>
+      <li><strong>tolower</strong>:<br>
+        Converts the looked up key to all lower case.
+      </li>
+
+      <p> 
+      <li><strong>unescape</strong>:<br>
+        Translates hex encodings (<i>i.e.</i> "URL encoding"; see <a href="http://www.faqs.org/rfcs/rfc2396.html">RFC2396</a>, Section 2.4.1), in the looked up
+        key back to special characters.
+      </li>
+
+      <p>
+      <li><strong>utf8trans</strong>:<br>
+        Translates UTF-8 encodings in the lookup up key into Latin-1
+        characters.
+      </li>
+    </ul>
+  </li>
+</ul>
+
+The <code>RewriteMap</code> directive can occur more than once. For each
+mapping-function use one <code>RewriteMap</code> directive to declare its
+rewriting map name.
+
+<p>
+<strong>Note:</strong> For plain text files the looked-up keys are cached
+in-core until the <code>mtime</code> of the text map file changes or the
+server does a restart. This way you can have map-functions in rules which are
+used for <strong>every</strong> request.  This is no problem, because the
+parsing of the text files only happens once!
+
+<p>
+<hr>
+<h3><a name="RewriteMaxReplace">RewriteMaxReplace</a></h3>
+<strong>Syntax:</strong> RewriteMaxReplace <em>count</em><br>
+<strong>Default:</strong> 8<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_rewrite<br>
+<strong>Compatibility:</strong> 1.3.5rc1 and later
+
+<p>
+The <code>RewriteMaxReplace</code> directive is used to increase the number
+of replacements/substitutions that <code>mod_rewrite</code> will perform,
+when rewriting commands.  By default, <code>mod_rewrite</code> will only
+replace up to 8 occurrences of a pattern in the input string; if there are more
+than 8 replacement occurrences, then the input string will be unchanged.
+If your input strings happen to have more than 8 occurrences to be replaced,
+you can use the <code>RewriteMaxReplace</code> to increase that limit.
+
+<p>
+For example, to increase the limit to 32 occurrences to be replaced, use:
+<pre>
+  RewriteMaxReplace 32
+</pre>
+
+<p>
+<hr>
+<h3><a name="RewriteRule">RewriteRule</a></h3>
+<strong>Syntax:</strong> RewriteRule <em>pattern substitution [flags]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code>, <code>&lt;Directory&gt;</code><br>
+<strong>Module:</strong> mod_rewrite<br>
+<strong>Compatibility:</strong> 1.2.6rc1 and later
+
+<p>
+The <code>RewriteRule</code> directive is the real rewriting workhorse. The
+configuration directive can occur more than once. Each directive defines a
+single rewriting rule. The order of definition of these rules is important,
+because this order is used when applying the rules at run-time.
+
+<p>
+<em>Pattern</em> can be POSIX regular expression which gets applied to the
+current FTP command argument(s).
+
+<p>
+Some hints about the syntax of regular expressions:
+<ul>
+  <li><b>Text:</b>
+<pre>
+  .           <em>Any single character</em>
+  [chars]     <em>Character class: one of <code>chars</code></em>
+  [^chars]    <em>Character class: none of <code>chars</code></em>
+  text1|text2 <em>Alternative: <code>text1</code> or <code>text2</code></em>
+</pre>
+  </li>
+
+  <p>
+  <li><b>Quantifiers:</b>
+<pre>
+  ?           <em>0 or 1 of the preceding text</em>
+  *           <em>0 or N of the preceding text (N > 0)</em>
+  +           <em>1 or N of the preceding text (N > 1)</em>
+</pre>
+  </li>
+
+  <p>
+  <li><b>Grouping:</b>
+<pre>
+ (text)       <em>Grouping of text
+              (either to set the borders of an alternative or
+              for making backreferences where the Nth group can 
+              be used on the RHS of a <code>RewriteRule</code> with $N)</em>
+</pre>
+  </li>
+
+  <p>
+  <li><b>Anchors:</b>
+<pre>
+  ^           <em>Start of line anchor</em>
+  $           <em>End of line anchor</em>
+</pre>
+  </li>
+
+  <p>
+  <li><b>Escaping:</b>
+<pre>
+  \char       <em>Escape that particular char
+              (for instance to specify the chars &quot;.[]()&quot; etc.)</em>
+</pre>
+  </li>
+</ul>
+
+<p>
+For more information about regular expressions have a look at your local
+<code>regex(3)</code> manpage. If you are interested in more detailed
+information about regular expressions and their variants (POSIX regex, Perl
+regex, <i>etc.</i>) have a look at the following dedicated book on this topic:
+<p>
+<blockquote>
+    Mastering Regular Expressions<br>
+    Jeffrey E.F. Friedl<br>
+    Nutshell Handbook Series<br>
+    O'Reilly &amp; Associates, Inc. 1997<br>
+    ISBN 1-56592-257-3<br>
+</blockquote>
+
+<p>
+Additionally in <code>mod_rewrite</code> the NOT character ('!') is a possible
+pattern prefix. This gives you the ability to negate a pattern; to say, for
+instance: &quot;if the current argument(s) does NOT match this pattern&quot;.
+This can be used for exceptional cases, where it is easier to match the
+negative pattern, or as a last default rule.
+
+<p>
+<b>Notice</b>: When using the NOT character to negate a pattern you cannot
+have grouped wildcard parts in the pattern. This is impossible because when
+the pattern does NOT match, there are no contents for the groups. In
+consequence, if negated patterns are used, you cannot use $N in the
+substitution string.
+
+<p>
+Substitution of a rewriting rule is the string which is substituted for
+(or replaces) the original argument(s) for which <em>pattern</em> matched.
+Beside plain text you can use:
+<ol>
+  <li><code>$N</code> backreferences to the <code>RewriteRule</code> pattern 
+  <li><code>%N</code> backreferences to the last matched
+    <code>RewriteCondition</code> pattern 
+  <li>variables as in <code>RewriteCondition</code> test strings
+  <li>map function calls (<code>${map-name:lookup-key|default-value}</code>) 
+  <li>environment variable substitutions (<code>%{ENV:<i>variable-name</i>}</code>)
+</ol>
+Backreferences are $<b>N</b> (<b>N</b>=0..9) identifiers which will be replaced
+by the contents of the <b>N</b>th group of the matched <em>pattern</em>. The
+variables are the same as for the <em>condition</em> of a
+<a href="#RewriteCondition"><code>RewriteCondition</code></a> directive, with
+two additions:
+<pre>
+   <b>%P</b>   process ID
+   <b>%t</b>   Unix time since the epoch, in seconds
+</pre>
+The map functions come from the
+<a href="#RewriteMap"><code>RewriteMap</code></a> directive and are explained
+there.  These four types of variables are expanded in the order of the above
+list. 
+
+<p>
+All of the rewriting rules are applied to <em>substitution</em>. The command
+argument(s) is completely replaced by the <em>substitution</em>.
+
+<p>
+<em>Flags</em>, if present, modify how this <code>RewriteRule</code> is
+evaluated.  Supported flags are:
+<ul>
+  <li><b>nocase|NC</b> (<b>n</b>o <b>c</b>ase)<br>
+      This makes the <em>pattern</em> case-insensitive, <i>i.e.</i> there is
+      no difference between 'A-Z' and 'a-z' when <em>pattern</em> is matched
+      against the command arguments
+  </li>
+</ul>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+The <code>mod_rewrite</code>'s regular expressions are POSIX extended regular
+expressions, <b>not</b> Perl regular expressions.  This can catch the
+unsuspecting admin unawares, especially if they are used to Perl.
+
+<p>
+When processing a <code>RewriteRule</code>, the <code>mod_rewrite</code>
+engine will first execute the <code>RewriteRule</code>'s regular expression
+against the command parameters.  If that expression fails, the
+<code>RewriteRule</code> is skipped.  Any <code>RewriteCondition</code>s that
+are attached to the rule are processed only if the rule's expression matches
+first.
+
+<p>
+One of the consequences is that the rewritten path may run afoul of any
+configured <code>AllowFilter</code>, <code>DenyFilter</code>,
+<code>PathAllowFilter</code>, or <code>PathDenyFilter</code> directives,
+causing unexpected or unwanted transfers.  Please keep this in mind when
+configuring <code>RewriteRule</code>s.
+
+<p>
+Some metas are not available at certain times (e.g. %U/%u for USER/PASS
+commands, etc)...
+
+<p>
+<b>Examples</b><br>
+The following example configuration shows how to configure
+<code>mod_rewrite</code> so that all files uploaded to the server will have
+all-uppercase filenames:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+
+    # Have a log for double-checking any errors
+    RewriteLog /var/log/ftpd/rewrite.log
+
+    # Define a map that uses the internal "toupper" function
+    RewriteMap uppercase int:toupper
+
+    # Make the file names used by STOR be in all uppercase
+    RewriteCondition %m STOR
+
+    # Apply the map to the command parameters
+    RewriteRule ^(.*) ${uppercase:$1}
+
+  &lt;/IfModule&gt;
+</pre>
+This example shows how to convert all spaces in uploaded file names to
+underscores:
+<pre>
+  &lt;IfModule mod_rewrite.c&gt;
+    RewriteEngine on
+    RewriteLog /var/log/ftpd/rewrite.log
+
+    # Define a map that uses the internal "replaceall" function
+    RewriteMap replace int:replaceall
+
+    # We only want to use this rule on STOR commands
+    RewriteCondition %m STOR
+
+    # Apply the map to the command parameters
+    RewriteRule ^(.*) "${replace:/$1/ /_}"
+
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+To install <code>mod_rewrite</code>, follow the usual steps for using
+third-party modules in ProFTPD:
+<pre>
+  $ ./configure --with-modules=mod_rewrite
+</pre>
+To build <code>mod_rewrite</code> as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_rewrite
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make 
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your <code>proftpd</code> was compiled with DSO support, you
+can use the <code>prxs</code> tool to build <code>mod_rewrite</code> as a shared
+module:
+<pre>
+  $ prxs -c -i -d mod_rewrite.c
+</pre>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_rewrite</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>rewrite
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace rewrite:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_ifsession</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_ifsession</code></b></h2>
+</center>
+<hr><br>
+
+The purpose of <code>mod_ifsession</code> is to provide a flexible way of
+specifying that certain configuration directives only apply to certain sessions,
+based on credentials such as connection class, user, or group membership.
+
+<p>
+For class-based qualifications, <code>mod_ifsession</code> will apply 
+configuration directives to the current session as soon as the client has
+connected to the server; for user- and group-based qualifications,
+<code>mod_ifsession</code> applies configuration directives to the current
+session, if applicable, only after the client has successfully authenticated.
+This means that <code>mod_ifsession</code> cannot change the effect of some
+user- and group-qualified configuration directives, particularly those that
+influence the session prior to authentication.  These directives include:
+<pre>
+  AccessDenyMsg
+  AccessGrantMsg
+  AnonRequirePassword
+  &lt;Anonymous&gt;
+  AuthGroupFile
+  AuthUserFile
+  CreateHome
+  DefaultChdir
+  DefaultRoot
+  DefaultTransferMode
+  DisplayConnect
+  ExtendedLog
+  MaxInstances
+  RequireValidShell
+  RootLogin
+  ServerIdent
+  ServerName
+  ShowSymlinks
+  TransferLog
+  UseFtpUsers
+  WtmpLog
+</pre>
+and the directives from the <code>mod_auth_pam</code> module.  All of these
+<b>can</b> set on based on class qualifications, however.
+
+<p>
+While the above list of configuration directives is daunting, there <b>are</b>
+still valid uses for this module, <i>e.g.</i> configuring
+<code>&lt;Directory&gt;</code> and/or <code>&lt;Limit&gt;</code> for certain
+sessions, <code>Filter</code> directives, transfer rates, maximum file sizes,
+etc.  Plus, some of the above directives (<i>e.g.</i> <code>DefaultChdir</code>,
+<code>DefaultRoot</code>) already have their own configurable restrictions
+(group expressions in the case of <code>DefaultChdir</code> and
+<code>DefaultRoot</code>), so all is not entirely lost.
+
+<p>
+This module is contained in the <code>contrib/mod_ifsession.c</code> file for
+ProFTPD 1.2.<i>x</i>/1.3.<i>x</i>, and is not compiled by default.
+Installation instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_ifsession</code> is distributed with
+the ProFTPD source.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#IfAuthenticated">&lt;IfAuthenticated&gt;</a>
+  <li><a href="#IfClass">&lt;IfClass&gt;</a>
+  <li><a href="#IfGroup">&lt;IfGroup&gt;</a>
+  <li><a href="#IfUser">&lt;IfUser&gt;</a>
+</ul>
+
+<hr>
+<h3><a name="IfAuthenticated">&lt;IfAuthenticated&gt;</a></h3>
+<strong>Syntax:</strong> &lt;IfAuthenticated&gt;<br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_ifsession<br>
+<strong>Compatibility:</strong> 1.3.5rc1 and later
+
+<p>
+The <code>&lt;IfAuthenticated&gt;</code> context should contain any
+configuration directives that should be in effect for any sessions where
+the client has successfully authenticated.
+
+<p>
+Examples:
+<pre>
+  # Only configure SQL logging for authenticated users, to avoid cluttering
+  # database tables with fail login data
+  &lt;IfAuthenticated&gt;
+    SQLLog ...
+  &lt;/IfAuthenticated&gt;
+</pre>
+
+<p>
+See also: <a href="#IfGroup">&lt;IfGroup&gt;</a>, <a href="#IfUser">&lt;IfUser&gt;</a>
+
+<hr>
+<h3><a name="IfClass">&lt;IfClass&gt;</a></h3>
+<strong>Syntax:</strong> &lt;IfClass <em>[&quot;AND&quot;|&quot;OR&quot;] class-expression|&quot;regex&quot; regexp</em>&gt;<br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_ifsession<br>
+<strong>Compatibility:</strong> 1.2.8rc1 and later
+
+<p>
+The <code>&lt;IfClass&gt;</code> context should contain any configuration
+directives that should be in effect for any sessions that match the
+<em>class-expression</em>.  <code>Classes</code> must be enabled for this
+context to work properly; the connecting client must be in any of the classes
+listed in the expression for the directives contained to be applied.  Note
+that <code>!</code> notation in front of a class name in the expression is
+supported.
+
+<p>
+The given <em>class-expression</em> may optionally be prefixed
+with either the &quot;AND&quot; or &quot;OR&quot; keywords, which affect how
+the expression is evaluated: if &quot;AND&quot; is used, then <b>all</b>
+portions of the expression must evaluate to TRUE for the configuration context
+to be applied to the current session; if &quot;OR&quot; is used, then <b>any</b>
+portion of the expression must be TRUE for the context to be applied.  The
+default setting for <code>&lt;IfClass&gt;</code> is &quot;OR&quot;.
+
+<p>
+If the &quot;regex&quot; keyword is used, the <em>regexp</em> should be a
+regular expression to match class names.
+
+<p>
+Examples:
+<pre>
+  # Give friends, and local users, better transfer rates
+  &lt;IfClass local, friends&gt;
+    TransferRate RETR 8192
+  &lt;/IfClass&gt;
+
+  TransferRate RETR 4096
+</pre>
+
+<p>
+See also: <a href="#IfGroup">&lt;IfGroup&gt;</a>, <a href="#IfUser">&lt;IfUser&gt;</a>
+
+<p>
+<hr>
+<h3><a name="IfGroup">&lt;IfGroup&gt;</a></h3>
+<strong>Syntax:</strong> &lt;IfGroup <em>[&quot;AND&quot;|&quot;OR&quot;] group-expression|&quot;regex&quot; regexp</em>&gt;<br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_ifsession<br>
+<strong>Compatibility:</strong> 1.2.8rc1 and later
+
+<p>
+The <code>&lt;IfGroup&gt;</code> context should contain any configuration
+directives that should be in effect for any sessions that match the
+<em>group-AND-expression</em>.  The authenticated user must be in <b>all</b> of
+the groups listed in the expression for the directives contained to be
+applied.  Note that <code>!</code> notation in front of a group name in the
+expression is supported.
+
+<p>
+The given <em>group-expression</em> may optionally be prefixed
+with either the &quot;AND&quot; or &quot;OR&quot; keywords, which affect how
+the expression is evaluated: if &quot;AND&quot; is used, then <b>all</b>
+portions of the expression must evaluate to TRUE for the configuration context
+to be applied to the current session; if &quot;OR&quot; is used, then <b>any</b>
+portion of the expression must be TRUE for the context to be applied.  The
+default setting for <code>&lt;IfGroup&gt;</code> is &quot;AND&quot;.
+
+<p>
+If the &quot;regex&quot; keyword is used, the <em>regexp</em> should be a
+regular expression to match group names.
+
+<p>
+Example:
+<pre>
+  # Only members of group webusers can upload/download HTML files
+  &lt;IfGroup !webusers&gt;
+    PathDenyFilter \.htm$|\.html$
+  &lt;/IfGroup&gt;
+</pre>
+
+<p>
+See also: <a href="#IfClass">&lt;IfClass&gt;</a>, <a href="#IfUser">&lt;IfUser&gt;</a>
+
+<p>
+<hr>
+<h3><a name="IfUser">&lt;IfUser&gt;</a></h3>
+<strong>Syntax:</strong> &lt;IfUser <em>[&quot;AND&quot;|&quot;OR&quot;] user-expression|&quot;regex&quot; regexp</em>&gt;<br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_ifsession<br>
+<strong>Compatibility:</strong> 1.2.8rc1 and later
+
+<p>
+The <code>&lt;IfUser&gt;</code> context should contain any configuration
+directives that should be in effect for any sessions that match the
+<em>user-OR-expression</em>. The authenticated user must be one of the users
+listed in the expression for the directives contained to be applied.  Note
+that <code>!</code> notation in front of a user name in the expression is
+supported.
+
+<p>
+The given <em>user-expression</em> may optionally be prefixed
+with either the &quot;AND&quot; or &quot;OR&quot; keywords, which affect how
+the expression is evaluated: if &quot;AND&quot; is used, then <b>all</b>
+portions of the expression must evaluate to TRUE for the configuration context
+to be applied to the current session; if &quot;OR&quot; is used, then <b>any</b>
+portion of the expression must be TRUE for the context to be applied.  The
+default setting for <code>&lt;IfUser&gt;</code> is &quot;OR&quot;.
+
+<p>
+If the &quot;regex&quot; keyword is used, the <em>regexp</em> should be a
+regular expression to match user names.
+
+<p>
+Example:
+<pre>
+  # Alter the view of files for everyone except the admin
+  &lt;IfUser !ftpadm&gt;
+    &lt;Directory /&gt;
+      DirFakeUser on ~
+      DirFakeGroup on ~
+      DirFakeMode 0440
+    &lt;/Directory&gt;
+  &lt;/IfUser&gt;
+
+  # Impose a PathDenyFilter on ftp users
+  &lt;IfUser regex ^ftp&gt;
+    PathDenyFilter \.conf$
+  &lt;/IfUser&gt;
+</pre>
+
+<p>
+See also: <a href="#IfClass">&lt;IfClass&gt;</a>, <a href="#IfGroup">&lt;IfGroup&gt;</a>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+
+<p>
+<b>As a Shared Module</b><br>
+If your <code>proftpd</code> is compiled with <code>mod_ifsession</code>
+as a shared module, then you <b>must</b> make sure that
+<code>mod_ifsession</code> is loaded <b>last</b>:
+<pre>
+  &lt;IfModule mod_dso.c&gt;
+    LoadModule mod_sql.c
+    LoadModule mod_sql_mysql.c
+    LoadModule mod_tls.c
+    LoadModule mod_rewrite.c
+    <b>LoadModule mod_ifsession.c</b>
+  &lt;/IfModule&gt;
+</pre>
+Failure to ensure that <code>mod_ifsession</code> is loaded last will mean
+that the per-user/group/class functionality will not work as you expect.
+
+<p>
+<i>Todo</i><br>
+Expressions, AND vs OR
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_ifsession</code> module is distributed with ProFTPD.  Follow the
+usual steps for using third-party modules in ProFTPD:
+<pre>
+  $ ./configure --with-modules=mod_ifsession
+  $ make
+  $ make install
+</pre>
+Note that <code>mod_ifsession</code> should be the <b>last</b> module
+in the <code>--with-modules</code> list, if multiple modules are listed.
+This makes sure that <code>mod_ifsession</code>'s changes will be seen
+properly by other modules.
+
+<p>
+To build <code>mod_ifsession</code> as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_ifsession
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make 
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your <code>proftpd</code> was compiled with DSO support, you
+can use the <code>prxs</code> tool to build <code>mod_ifsession</code> as a
+shared module:
+<pre>
+  $ prxs -c -i -d mod_ifsession.c
+</pre>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_ifsession</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>ifsession
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace ifsession:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2014 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

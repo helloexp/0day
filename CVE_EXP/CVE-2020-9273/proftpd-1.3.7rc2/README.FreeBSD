@@ -1,0 +1,98 @@
+
+			ProFTPD 1.2 README.FreeBSD
+			==========================
+
+Packages
+--------
+
+A precompiled FreeBSD package for x86, Alpha, AMD64, and UltraSPARC systems
+can be installed from sources, including CD-ROM, the FreeBSD FTP server and
+its mirrors.  To install from the main FreeBSD FTP server:
+
+  # pkg_add -r proftpd
+
+Or, if you want MySQL support:
+
+  # pkg_add -r proftpd-mysql
+
+As the port is updated to a newer version, the corresponding package will be
+updated.
+
+
+Bugs
+----
+
+FreeBSD releases 2.0 through 3.3-RELEASE have a libc bug with setpassent().
+If you know that you have a fixed libc you can use the configure command line
+option '--enable-force-setpassent' to use it with one of these fixed releases,
+otherwise ProFTPD will use its internal persistent password support.  If you
+would like more information, this bug is described in FreeBSD PR #14201.
+
+
+Compiling From Source
+---------------------
+
+The FreeBSD ports collection[1,2] enables the downloading, configuring,
+building and installation of ProFTPD in one easy step.
+
+First, you must have the ports collection installed on the system*. The
+ProFTPD port is in ftp/proftpd, so if your ports collection is installed in
+/usr/ports, you should change to that directory:
+
+  $ cd /usr/ports/ftp/proftpd
+
+and run "make" to fetch the ProFTPD source distribution, extract it, apply the
+necessary patches for FreeBSD, configure and build the program. This should be
+done as a normal system user, not root, to minimise the chance of incidents.
+
+  $ make
+
+You can watch the progress as the port builds. Once it has finished, you can
+install the software on the system and register it in the FreeBSD package
+database by running "make install" as root:
+
+  # make install
+
+You can watch the progress as the port installs. Pay attention to any messages
+at the end of the install. Once it has finished, you can set up the system to
+start the ProFTPD server at boot by copying the file proftpd.sh.sample to
+proftpd.sh in directory /usr/local/etc/rc.d/.
+
+If you have installed "portupgrade" (sysutils/portupgrade), you can do this
+all on one line with e.g.:
+
+  $ portupgrade --new --recursive --sudo --verbose ftp/proftpd
+
+After creating your server configuration in /usr/local/etc/proftpd.conf (see
+proftpd.conf.default) for an example) you can start the server with
+
+  # /usr/local/etc/rc.d/proftpd.sh start
+
+Note that the proftpd binary is kept in the library executable directory,
+/usr/local/libexec/ which is not (and should not be) in your PATH, so if you
+want run a configuration test or add debugging flags from the command line,
+use the full path, e.g.:
+
+  # /usr/local/libexec/proftpd --configtest
+
+To get log messages from the FTP server, make sure you have configured syslog
+to save messages with facility "ftp", e.g. in syslog.conf put:
+
+  ftp.info		/var/log/ftplog
+
+and signal syslogd to re-read its configuration:
+
+  # kill -HUP `cat /var/run/syslog.pid`
+
+A second port has been created for the ProFTPD "Candidate" releases with the
+provisional name ftp/proftpd-devel, however at the time of writing it has not
+been added to the ports collection.
+
+* After choosing to install it during the initial FreeBSD install or by
+installing it from the FTP site[3], you should keep it up-to-date using
+cvsup[4].
+
+[1] http://www.freebsd.org/ports/
+[2] http://www.freebsd.org/doc/handbook/ports-using.html
+[3] ftp://ftp.freebsd.org/pub/FreeBSD/ports/ports/ports.tar.gz
+[4] http://www.freebsd.org/doc/handbook/cvsup.html

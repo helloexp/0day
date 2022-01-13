@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<HTML><HEAD><TITLE>Man page of ftpdctl</TITLE>
+</HEAD><BODY>
+
+<H2>NAME</H2>
+
+ftpdctl - ProFTPD control program
+
+<H2>SYNOPSIS</H2>
+
+<B>ftpdctl</B>
+
+[
+<B>-hv</B>
+
+] [
+<B>-s</B><I> Unix domain socket</I>
+
+]
+<B>action</B><I> action-parameters</I>
+
+<H2>DESCRIPTION</H2>
+
+<B>ftpdctl</B>
+
+is the control program for the Professional File Transfer Protocol (FTP) server
+daemon.  The control program is used to control the daemon while it is
+running, supporting actions like restarting or shutting down the daemon,
+disabling or enabling specific virtual servers, kicking FTP users, etc.
+<P>
+
+The specific <B>actions</B> available via
+<B>ftpdctl</B>
+
+depend on the modules compiled into
+<B>proftpd.</B>
+
+Check the modules documentation for more information on the specific
+<B>actions</B> supported by the modules.
+
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-h,--help</B>
+
+<DD>
+Display a short usage description, including all available options.
+<DT><B>-s,--socket</B>
+
+<DD>
+Specifies an alternate <B>path</B> to be used for communicating with
+<B>proftpd</B>
+
+rather than the default Unix domain socket.  The default controls socket is
+<B>/var/run/proftpd/proftpd.sock</B>
+
+<DT><B>-v,--verbose</B>
+
+<DD>
+Display informational messages while communicating with the
+<B>proftpd</B>
+
+daemon.
+<DT>
+<DD>
+</DL>
+
+<H2>AUTHORS</H2>
+
+<P>
+
+ProFTPD is written and maintained by a number of people, full credits
+can be found on
+<B><A HREF="http://www.proftpd.org/credits.html">http://www.proftpd.org/credits.html</A></B>
+
+
+<H2>SEE ALSO</H2>
+inetd(8), ftp(1), proftpd(8)
+
+<P>
+Full documentation on ProFTPD, including configuration and FAQs, is available at
+<B><A HREF="http://www.proftpd.org/">http://www.proftpd.org/</A></B>
+
+<P>
+For help/support, try the ProFTPD mailing lists, detailed on
+<B><A HREF="http://www.proftpd.org/lists.html">http://www.proftpd.org/lists.html</A></B>
+
+<P>
+
+Report bugs at
+<B><A HREF="http://bugs.proftpd.org/">http://bugs.proftpd.org/</A></B>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</BODY>
+</HTML>

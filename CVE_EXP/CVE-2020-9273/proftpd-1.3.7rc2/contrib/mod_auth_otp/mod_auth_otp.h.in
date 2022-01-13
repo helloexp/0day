@@ -1,0 +1,71 @@
+/*
+ * ProFTPD - mod_auth_otp
+ * Copyright (c) 2015-2017 TJ Saunders
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA.
+ *
+ * As a special exemption, TJ Saunders and other respective copyright holders
+ * give permission to link this program with OpenSSL, and distribute the
+ * resulting executable, without including the source code for OpenSSL in the
+ * source distribution.
+ */
+
+#ifndef MOD_AUTH_OTP_H
+#define MOD_AUTH_OTP_H
+
+#include "conf.h"
+#include "privs.h"
+
+/* Define if you have OpenSSL with SHA256 support. */
+#undef HAVE_SHA256_OPENSSL
+
+/* Define if you have OpenSSL with SHA512 support. */
+#undef HAVE_SHA512_OPENSSL
+
+/* Define if you have mod_sftp support. */
+#undef HAVE_SFTP
+
+#define MOD_AUTH_OTP_VERSION	"mod_auth_otp/0.2"
+
+/* Make sure the version of proftpd is as necessary. */
+#if PROFTPD_VERSION_NUMBER < 0x0001030402
+# error "ProFTPD 1.3.4rc2 or later required"
+#endif
+
+#include <openssl/conf.h>
+#include <openssl/evp.h>
+#include <openssl/hmac.h>
+#include <openssl/err.h>
+#include <openssl/rand.h>
+
+/* Define if you have the LibreSSL library.  */
+#if defined(LIBRESSL_VERSION_NUMBER)
+# define HAVE_LIBRESSL	1
+#endif
+
+/* mod_auth_otp option flags */
+
+/* Miscellaneous */
+extern int auth_otp_logfd;
+extern pool *auth_otp_pool;
+extern unsigned long auth_otp_opts;
+
+/* Supported OTP algorithms */
+#define AUTH_OTP_ALGO_HOTP		1
+#define AUTH_OTP_ALGO_TOTP_SHA1		2
+#define AUTH_OTP_ALGO_TOTP_SHA256	3
+#define AUTH_OTP_ALGO_TOTP_SHA512	4
+
+#endif

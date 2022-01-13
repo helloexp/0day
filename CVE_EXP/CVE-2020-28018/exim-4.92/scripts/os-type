@@ -1,0 +1,164 @@
+#! /bin/sh
+
+# Shell script to determine the operating system type. Some of the heuristics
+# herein have accumulated over the years and may not strictly be needed now,
+# but they are left in under the principle of "If it ain't broke, don't fix
+# it."
+
+# For some OS there are two variants: a full name, which is used for the
+# build directory, and a generic name, which is used to identify the OS-
+# specific scripts, and which can be the same for different versions of
+# the OS. Solaris 2 is one such OS. The option -generic specifies the
+# latter type of output.
+
+# If EXIM_OSTYPE is set, use it. This allows a manual override.
+
+case "$EXIM_OSTYPE" in ?*) os="$EXIM_OSTYPE";; esac
+
+# Otherwise, try to get a value from the uname command. Use an explicit
+# option just in case there are any systems where -s is not the default.
+
+case "$os" in '') os=`uname -s`;; esac
+
+# Identify Glibc systems under different names.
+
+case "$os" in GNU) os=GNU;; esac
+case "$os" in GNU/*|Linux) os=Linux;; esac
+
+# It is believed that all systems respond to uname -s, but just in case
+# there is one that doesn't, use the shell's $OSTYPE variable. It is known
+# to be unhelpful for some systems (under IRIX is it "irix" and under BSDI
+# 3.0 it may be "386BSD") but those systems respond to uname -s, so this
+# doesn't matter.
+
+case "$os" in '') os="$OSTYPE";; esac
+
+# Failed to find OS type.
+
+case "$os" in
+'') echo "" 1>&2
+    echo "*** Failed to determine the operating system type." 1>&2
+    echo "" 1>&2
+    echo UnKnown
+    exit 1;;
+esac
+
+# Clean out gash characters
+
+os=`echo $os | sed 's,[^-+_.a-zA-Z0-9],,g'`
+
+# A value has been obtained for the os. Some massaging may be needed in
+# some cases to get a uniform set of values. In earlier versions of this
+# script, $OSTYPE was looked at before uname -s, and various shells set it
+# to things that are subtly different. It is possible that some of this may
+# no longer be needed.
+
+case "$os" in
+aix*)       os=AIX;;
+AIX*)       os=AIX;;
+bsdi*)      os=BSDI;;
+BSDOS)      os=BSDI;;
+BSD_OS)     os=BSDI;;
+CYGWIN*)    os=CYGWIN;;
+dgux)       os=DGUX;;
+freebsd*)   os=FreeBSD;;
+gnu)        os=GNU;;
+Irix5)      os=IRIX;;
+Irix6)      os=IRIX6;;
+IRIX64)     os=IRIX6;;
+irix6.5)    os=IRIX65;;
+IRIX)       version=`uname -r`
+            case "$version" in
+            5*)  os=IRIX;;
+            6.5) version=`uname -R | awk '{print $NF}'`
+                 version=`echo $version | sed 's,[^-+_a-zA-Z0-9],,g'`
+                 os=IRIX$version;;
+            6*)  os=IRIX632;;
+            esac;;
+HI-OSF1-MJ) os=HI-OSF;;
+HI-UXMPP)   os=HI-OSF;;
+hpux*)      os=HP-UX;;
+linux)      os=Linux;;
+linux-*)    os=Linux;;
+Linux-*)    os=Linux;;
+netbsd*)    os=NetBSD;;
+NetBSD*)    os=NetBSD;;
+openbsd*)   os=OpenBSD;;
+osf1)       os=OSF1;;
+qnx*)       os=QNX;;
+solaris*)   os=SunOS5;;
+sunos4*)    os=SunOS4;;
+UnixWare)   os=Unixware7;;
+Ultrix)     os=ULTRIX;;
+ultrix*)    os=ULTRIX;;
+esac
+
+# In the case of SunOS we need to distinguish between SunOS4 and Solaris (aka
+# SunOS5); in the case of BSDI we need to distinguish between versions 3 and 4;
+# in the case of HP-UX we need to distinguish between version 9 and later.
+
+case "$os" in
+SunOS)  case `uname -r` in
+        5*)     os="${os}5";;
+        4*)     os="${os}4";;
+        esac;;
+
+BSDI)   case `uname -r` in
+        3*)     os="${os}3";;
+        4.2*)   os="${os}4.2";;
+        4*)     os="${os}4";;
+        esac;;
+
+HP-UX)  case `uname -r` in
+        A.09*)  os="${os}-9";;
+        esac;;
+esac
+
+# Need to distinguish Solaris from the version on the HAL (64bit sparc,
+# CC=hcc -DV7). Also need to distinguish different versions of the OS
+# for building different binaries.
+
+case "$os" in
+SunOS5) case `uname -m` in
+        sun4H)  os="${os}-hal";;
+            *)  os="${os}-`uname -r`";;
+        esac
+        ;;
+
+# In the case of Linux we used to distinguish which libc was used so that
+# the old libc5 was supported as well as the current glibc. This support
+# was giving some people problems, so it was removed in June 2005, under
+# the assumption that nobody would be using libc5 any more (it is over seven
+# years old).
+
+# In the case of NetBSD we need to distinguish between a.out, ELF
+# and COFF binary formats.  However, a.out and COFF are the same
+# for our purposes, so both of them are defined as "a.out".
+# Todd Vierling of Wasabi Systems reported that NetBSD/sh3 (the
+# only NetBSD port that uses COFF binary format) will switch to
+# ELF soon.
+
+NetBSD) if echo __ELF__ | ${CC-cc} -E - | grep -q __ELF__ ; then
+        # Non-ELF system
+        os="NetBSD-a.out"
+        fi
+        ;;
+
+esac
+
+# If a generic OS name is requested, some further massaging is needed
+# for some systems.
+
+if [ "$1" = '-generic' ]; then
+  case "$os" in
+  SunOS5*) os=SunOS5;;
+  BSDI*)   os=BSDI;;
+  IRIX65*) os=IRIX65;;
+  esac
+fi
+
+# OK, the script seems to have worked. Pass the value back.
+
+echo "$os"
+
+# End of os-type

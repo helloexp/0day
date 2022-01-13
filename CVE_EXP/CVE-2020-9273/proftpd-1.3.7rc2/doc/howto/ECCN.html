@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: ECCN</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD ECCN</b></h2></center>
+<hr>
+
+<p>
+<b>What is an ECCN?</b><br>
+<i>ECCN</i> stands for <i>E</i>xport <i>C</i>ontrol <i>C</i>lassification
+<i>N</i>umber; see:
+<pre>
+  <a href="http://en.wikipedia.org/wiki/Export_Control_Classification_Number">http://en.wikipedia.org/wiki/Export_Control_Classification_Number</a>
+</pre>
+These numbers are assigned through the US Export Administration Regulations
+(<a href="http://www.bis.doc.gov/policiesandregulations/#ear">EAR</a>), part of
+the US Bureau of Industry and Security
+(<a href="http://www.bis.doc.gov/">BIS</a>), which is a branch of the US
+Department of Commerce.  The EAR describe the export rules and restrictions on
+a wide range of commodities, technologies, and software.  This document is no
+substitute for understanding those regulations; the ProFTPD Project cannot
+anticipate how they might apply to third party distributions or for specific
+export decisions made by those parties.  End-user, end-use and country of
+ultimate destination may affect export licensing requirements.
+
+<p><a name="ECCN">
+<b>ProFTPD ECCN</b><br>
+According to the
+<a href="http://www.bis.doc.gov/encryption/question2.htm">current regulations
+and descriptions</a>, the ProFTPD Project software products fall into the
+category of "publicly available" encryption software and source code, and
+are thus classified as <b>ECCN 5D002</b>.
+
+<p>
+Products classified as ECCN 5D002 are exported by the ProFTPD Project under
+the License Exception TSU in EAR 740.13(e), which applies to software
+containing or designed for use with encryption software that is publicly
+available as open source.  License exception TSU further provides that:
+<blockquote>
+  Posting encryption source code and corresponding object code on the Internet
+  (e.g., FTP or World Wide Web site) where it may be downloaded by anyone
+  neither establishes "knowledge" of a prohibited export or reexport for
+  purposes of this paragraph, nor triggers any "red flags" necessitating the
+  affirmative duty to inquire...
+</blockquote>
+Note that exporters other than the ProFTPD Project within the US may or may not
+be eligible for exception TSU, and it is each specific exporter's
+responsibility to understand and comply with all export regulations applicable
+within their jurisdiction.
+
+<p>
+<b>Cryptographic Components</b><br>
+The ProFTPD Project source code distributions include cryptographic software.
+The country in which you currently reside may have restrictions on the import,
+possession, use, and/or re-export to another country, of encryption software.
+<b>BEFORE</b> using any encryption software, please check your country's laws,
+regulations and policies concerning the import, possession, or use, and
+re-export of encryption software, to see if this is permitted. See
+<a href="http://www.wassenaar.org/">http://www.wassenaar.org/</a> for more
+information.
+
+<p>
+The U.S. Government Department of Commerce, Bureau of Industry and Security
+(BIS), has classified this software as Export Commodity Control Number (ECCN)
+5D002, which includes information security software using or performing
+cryptographic functions with asymmetric algorithms. The form and manner of this
+ProFTPD Project distribution makes it eligible for export under the License
+Exception ENC Technology Software Unrestricted (TSU) exception (see the BIS
+Export Administration Regulations, Section 740.13e) for source code.
+
+<p>
+The following lists the modules, included in the source distributions,
+which explicitly include/use cryptographic code:
+<ul>
+  <li><a href="../contrib/mod_sftp.html"><code>mod_sftp</code></a>
+  <li><a href="../contrib/mod_sql_passwd.html"><code>mod_sql_passwd</code></a>
+  <li><a href="../contrib/mod_tls.html"><code>mod_tls</code></a>
+</ul>
+
+<p><a name="References">
+<b>References</b><br>
+See:
+<pre>
+  <a href="http://www.bis.doc.gov/news/2010/fr_01072011.pdf">http://www.bis.doc.gov/news/2010/fr_01072011.pdf</a>
+</pre>
+which effectively removes <b>ECCN 5D002</b> from the EAR, effective January 7,
+2011.
+
+<p>
+A similar question came up for Mozilla; this blog post (now a bit dated)
+explains things further:
+<pre>
+  <a href="http://hecker.org/mozilla/eccn">http://hecker.org/mozilla/eccn</a>
+</pre>
+
+<p>
+The Apache Software Foundation (ASF) page on this topic is also quite
+relevant:
+<pre>
+  <a href="http://www.apache.org/licenses/exports/">http://www.apache.org/licenses/exports/</a>
+</pre>
+
+<p>
+And the text of EAR Section 740, for those interested:
+<pre>
+  <a href="http://www.bis.doc.gov/policiesandregulations/ear/740.pdf">http://www.bis.doc.gov/policiesandregulations/ear/740.pdf</a>
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

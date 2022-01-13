@@ -1,0 +1,374 @@
+#! PERL_COMMAND
+
+use warnings;
+use strict;
+BEGIN { pop @INC if $INC[-1] eq '.' };
+
+use Pod::Usage;
+use Getopt::Long;
+use File::Basename;
+
+# Copyright (c) 2007-2017 University of Cambridge.
+# See the file NOTICE for conditions of use and distribution.
+
+# Except when they appear in comments, the following placeholders in this
+# source are replaced when it is turned into a runnable script:
+#
+# PERL_COMMAND
+# ZCAT_COMMAND
+# COMPRESS_SUFFIX
+
+# PROCESSED_FLAG
+
+# This is a perl script which extracts from an Exim log all entries
+# for all messages that have an entry that matches a given pattern.
+# If *any* entry for a particular message matches the pattern, *all*
+# entries for that message are displayed.
+
+# We buffer up information on a per-message basis. It is done this way rather
+# than reading the input twice so that the input can be a pipe.
+
+# There must be one argument, which is the pattern. Subsequent arguments
+# are the files to scan; if none, the standard input is read. If any file
+# appears to be compressed, it is passed through zcat. We can't just do this
+# for all files, because zcat chokes on non-compressed files.
+
+# Performance optimized in 02/02/2007 by Jori Hamalainen
+# Typical run time acceleration: 4 times
+
+
+use POSIX qw(mktime);
+
+
+# This subroutine converts a time/date string from an Exim log line into
+# the number of seconds since the epoch. It handles optional timezone
+# information.
+
+sub seconds {
+my($year,$month,$day,$hour,$min,$sec,$tzs,$tzh,$tzm) =
+  $_[0] =~ /^(\d{4})-(\d\d)-(\d\d)\s(\d\d):(\d\d):(\d\d)(?:.\d+)?(?>\s([+-])(\d\d)(\d\d))?/o;
+
+my $seconds = mktime $sec, $min, $hour, $day, $month - 1, $year - 1900;
+
+if (defined $tzs)
+  {
+  $seconds -= $tzh * 3600 + $tzm * 60 if $tzs eq "+";
+  $seconds += $tzh * 3600 + $tzm * 60 if $tzs eq "-";
+  }
+
+return $seconds;
+}
+
+
+# This subroutine processes a single line (in $_) from a log file. Program
+# defensively against short lines finding their way into the log.
+
+my (%saved, %id_list, $pattern);
+
+my $queue_time  = -1;
+my $insensitive = 1;
+my $invert      = 0;
+my $related     = 0;
+my $use_pager   = 1;
+my $literal     = 0;
+
+
+# If using "related" option, have to track extra message IDs
+my $related_re='';
+my @Mids = ();
+
+sub do_line {
+
+# Convert syslog lines to mainlog format, as in eximstats.
+
+if (!/^\d{4}-/o) { $_ =~ s/^.*? exim\b.*?: //o; }
+
+return unless
+  my($date,$id) = /^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d(?:\.\d+)? (?:[+-]\d{4} )?)(?:\[\d+\] )?(\w{6}\-\w{6}\-\w{2})?/o;
+
+# Handle the case when the log line belongs to a specific message. We save
+# lines for specific messages until the message is complete. Then either print
+# or discard.
+
+if (defined $id)
+  {
+  $saved{$id} = '' unless defined($saved{$id});
+
+  # Save up the data for this message in case it becomes interesting later.
+
+  $saved{$id} .= $_;
+
+  # Are we interested in this id ? Short circuit if we already were interested.
+
+  if ($invert)
+    {
+    $id_list{$id} = 1 if (!defined($id_list{$id}));
+    $id_list{$id} = 0 if (($insensitive && /$pattern/io) || /$pattern/o);
+    }
+  else
+    {
+    if (defined $id_list{$id} ||
+      ($insensitive && /$pattern/io) || /$pattern/o)
+      {
+      $id_list{$id} = 1;
+      get_related_ids($id) if $related;
+      }
+    elsif ($related && $related_re)
+      {
+      grep_for_related($_, $id);
+      }
+    }
+
+  # See if this is a completion for some message. If it is interesting,
+  # print it, but in any event, throw away what was saved.
+
+  if (index($_, 'Completed') != -1 ||
+      index($_, 'SMTP data timeout') != -1 ||
+        (index($_, 'rejected') != -1 &&
+          /^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d(?:\.\d+)? (?:[+-]\d{4} )?)(?:\[\d+\] )?\w{6}\-\w{6}\-\w{2} rejected/o))
+    {
+    if ($queue_time != -1 &&
+        $saved{$id} =~ /^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d ([+-]\d{4} )?)/o)
+      {
+      my $old_sec = &seconds($1);
+      my $sec = &seconds($date);
+      $id_list{$id} = 0 if $id_list{$id} && $sec - $old_sec <= $queue_time;
+      }
+
+    print "$saved{$id}\n" if ($id_list{$id});
+    delete $id_list{$id};
+    delete $saved{$id};
+    }
+  }
+
+# Handle the case where the log line does not belong to a specific message.
+# Print it if it is interesting.
+
+elsif ( ($invert && (($insensitive && !/$pattern/io) || !/$pattern/o)) ||
+       (!$invert && (($insensitive &&  /$pattern/io) ||  /$pattern/o)) )
+  { print "$_\n"; }
+}
+
+# Rotated log files are frequently compressed and there are a variety of
+# formats it could be compressed with. Rather than use just one that is
+# detected and hardcoded at Exim compile time, detect and use what the
+# logfile is compressed with on the fly.
+#
+# List of known compression extensions and their associated commands:
+my $compressors = {
+  gz   => { cmd => 'zcat',  args => '' },
+  bz2  => { cmd => 'bzcat', args => '' },
+  xz   => { cmd => 'xzcat', args => '' },
+  lzma => { cmd => 'lzma',  args => '-dc' }
+};
+my $csearch = 0;
+
+sub detect_compressor_bin
+  {
+  my $ext = shift();
+  my $c = $compressors->{$ext}->{cmd};
+  $compressors->{$ext}->{bin} = `which $c 2>/dev/null`;
+  chomp($compressors->{$ext}->{bin});
+  }
+
+sub detect_compressor_capable
+  {
+  my $filename = shift();
+  map { &detect_compressor_bin($_) } keys %$compressors
+    if (!$csearch);
+  $csearch = 1;
+  return undef
+    unless (grep {$filename =~ /\.(?:$_)$/} keys %$compressors);
+  # Loop through them, figure out which one it detected,
+  # and build the commandline.
+  my $cmdline = undef;
+  foreach my $ext (keys %$compressors)
+    {
+    if ($filename =~ /\.(?:$ext)$/)
+      {
+      # Just die if compressor not found; if this occurs in the middle of
+      # two valid files with a lot of matches, error could easily be missed.
+      die("Didn't find $ext decompressor for $filename\n")
+        if ($compressors->{$ext}->{bin} eq '');
+      $cmdline = $compressors->{$ext}->{bin} ." ".
+                   $compressors->{$ext}->{args};
+      last;
+      }
+    }
+  return $cmdline;
+  }
+
+sub grep_for_related {
+  my ($line,$id) = @_;
+  $id_list{$id} = 1 if $line =~ m/$related_re/;
+}
+
+sub get_related_ids {
+  my ($id) = @_;
+  push @Mids, $id unless grep /\b$id\b/, @Mids;
+  my $re = join '|', @Mids;
+  $related_re = qr/$re/;
+}
+
+# The main program. Extract the pattern and make sure any relevant characters
+# are quoted if the -l flag is given. The -t flag gives a time-on-queue value
+# which is an additional condition. The -M flag will also display "related"
+# loglines (msgid from matched lines is searched in following lines).
+
+GetOptions(
+    'I|sensitive' => sub { $insensitive = 0 },
+      'l|literal' => \$literal,
+      'M|related' => \$related,
+      't|queue-time=i' => \$queue_time,
+      'pager!'         => \$use_pager,
+      'v|invert'       => \$invert,
+      'h|help'         => sub { pod2usage(-exit => 0, -verbose => 1) },
+      'm|man'          => sub {
+        pod2usage(
+            -exit      => 0,
+            -verbose   => 2,
+            -noperldoc => system('perldoc -V 2>/dev/null >&2')
+        );
+      },
+      'version'        => sub {
+            print basename($0) . ": $0\n",
+                "build: EXIM_RELEASE_VERSIONEXIM_VARIANT_VERSION\n",
+                "perl(runtime): $]\n";
+            exit 0;
+      },
+) and @ARGV or pod2usage;
+
+$pattern = shift @ARGV;
+$pattern = quotemeta $pattern if $literal;
+
+# Start a pager if output goes to a terminal
+if (-t 1 and $use_pager)
+  {
+  # for perl >= v5.10.x: foreach ($ENV{PAGER}//(), 'less', 'more')
+  foreach (defined $ENV{PAGER} ? $ENV{PAGER} : (), 'less', 'more')
+    {
+    local $ENV{LESS} .= ' --no-init --quit-if-one-screen';
+    open(my $pager, '|-', $_) or next;
+    select $pager;
+    last;
+    }
+  }
+
+# If file arguments are given, open each one and process according as it is
+# is compressed or not.
+
+if (@ARGV)
+  {
+  foreach (@ARGV)
+    {
+    my $filename = $_;
+    if (-x 'ZCAT_COMMAND' && $filename =~ /\.(?:COMPRESS_SUFFIX)$/o)
+      {
+      open(LOG, "ZCAT_COMMAND $filename |") ||
+        die "Unable to zcat $filename: $!\n";
+      }
+    elsif (my $cmdline = &detect_compressor_capable($filename))
+      {
+      open(LOG, "$cmdline $filename |") ||
+        die "Unable to decompress $filename: $!\n";
+      }
+    else
+      {
+      open(LOG, "<$filename") || die "Unable to open $filename: $!\n";
+      }
+    do_line() while (<LOG>);
+    close(LOG);
+    }
+  }
+
+# If no files are named, process STDIN only
+
+else { do_line() while (<STDIN>); }
+
+# At the end of processing all the input, print any uncompleted messages.
+
+for (keys %id_list)
+  {
+  print "+++ $_ has not completed +++\n$saved{$_}\n";
+  }
+
+__END__
+
+=head1 NAME
+
+exigrep - search Exim's main log
+
+=head1 SYNOPSIS
+
+B<exigrep> [options] pattern [log] ...
+
+=head1 DESCRIPTION
+
+The B<exigrep> utility is a Perl script that searches one or more main log
+files for entries that match a given pattern.  When it finds  a  match,
+it  extracts  all  the  log  entries for the relevant message, not just
+those that match the pattern.  Thus, B<exigrep> can extract  complete  log
+entries  for  a  given  message, or all mail for a given user, or for a
+given host, for example.
+
+If no file names are given on the command line, the standard input is read.
+
+For known file extensions indicating compression (F<.gz>, F<.bz2>, F<.xz>, and F<.lzma>)
+a suitable de-compressor is used, if available.
+
+The output is sent through a pager if a terminal is connected to STDOUT. As
+pager are considered: C<$ENV{PAGER}>, C<less>, C<more>.
+
+=head1 OPTIONS
+
+=over
+
+=item B<-l>|B<--literal>
+
+This means 'literal', that is, treat all characters in the
+pattern  as standing for themselves.  Otherwise the pattern must be a
+Perl regular expression.  The pattern match is case-insensitive.
+
+=item B<-t>|B<--queue-time> I<seconds>
+
+Limit the output to messages that spent at least I<seconds> in the
+queue.
+
+=item B<-I>|B<--sensitive>
+
+Do a case sensitive search.
+
+=item B<-v>|B<--invert>
+
+Invert the meaning of the search pattern. That is, print message log
+entries that are not related to that pattern.
+
+=item B<-M>|B<--related>
+
+Search for related messages too.
+
+=item B<--no-pager>
+
+Do not use a pager, even if STDOUT is connected to a terminal.
+
+=item B<-h>|B<--help>
+
+Print a short reference help. For more detailed help try L<exigrep(8)>,
+or C<exigrep -m>.
+
+=item B<-m>|B<--man>
+
+Print this manual page of B<exigrep>.
+
+=back
+
+=head1 SEE ALSO
+
+L<exim(8)>, L<perlre(1)>, L<Exim|http://exim.org/>
+
+=head1 AUTHOR
+
+This  manual  page  was stitched together from spec.txt by Andreas Metzler L<ametzler at downhill.at.eu.org>
+and updated by Heiko Schlittermann L<hs@schlittermann.de>.
+
+=cut

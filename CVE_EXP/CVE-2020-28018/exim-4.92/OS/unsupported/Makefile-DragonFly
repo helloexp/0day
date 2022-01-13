@@ -1,0 +1,31 @@
+# Exim: OS-specific make file for DragonFly
+# There's no setting of CFLAGS here, to allow the system default
+# for "make" to be the default.
+
+CHOWN_COMMAND=/usr/sbin/chown
+CHMOD_COMMAND=/bin/chmod
+
+HAVE_SA_LEN=YES
+
+# crypt() is in a separate library
+LIBS=-lcrypt -lm
+
+# DragonFly always ships with Berkeley DB
+USE_DB=yes
+
+# X11 may be under /usr/pkg/xorg/ for example.
+# X11=/usr/X11R6
+X11=$(X11BASE)
+
+XINCLUDE=-I$(X11)/include
+XLFLAGS=-L$(X11)/lib
+XLFLAGS+=-Wl,-rpath,${X11BASE}/lib
+X11_LD_LIB=$(X11)/lib
+
+EXIWHAT_PS_ARG=-ax
+EXIWHAT_EGREP_ARG='/exim( |$$)'
+EXIWHAT_MULTIKILL_CMD='killall -m'
+EXIWHAT_MULTIKILL_ARG='^exim($$|-[0-9.]+-[0-9]+$$)'
+EXIWHAT_KILL_SIGNAL=-USR1
+
+# End

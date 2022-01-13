@@ -1,0 +1,132 @@
+#!/bin/sh
+
+# Script to build links for all the exim source files from the system-
+# specific build directory. It should be run from within that directory.
+#
+# Copyright (c) The Exim Maintainers 1995 - 2018
+
+test ! -d ../src && \
+  echo "*** $0 should be run in a system-specific subdirectory." && \
+  exit 1
+test -r version.c && \
+  echo "*** It appears that $0 has already been run." && \
+  exit 1
+if [ -r pcre/Makefile ] ; then
+  echo "*** It appears that $0 was previously interrupted."
+  echo "*** You need to remove the build directory, and then run 'make' again."
+  exit 1
+fi
+
+
+echo ""
+echo ">>> Creating links to source files..."
+
+
+# The sources for modular parts of Exim have to be linked independently
+# in their own sub-directories, since their .o files are built using
+# their own Makefile in their sub-directory.
+
+# Firstly the lookups
+mkdir lookups
+cd lookups
+# Makefile is generated
+for f in README cdb.c dbmdb.c dnsdb.c dsearch.c ibase.c ldap.h ldap.c \
+  lmdb.c lsearch.c mysql.c redis.c nis.c nisplus.c oracle.c passwd.c \
+  pgsql.c spf.c sqlite.c testdb.c whoson.c \
+  lf_functions.h lf_check_file.c lf_quote.c lf_sqlperform.c
+do
+  ln -s ../../src/lookups/$f $f
+done
+
+cd ..
+
+# Likewise for the code for the routers
+mkdir routers
+cd routers
+for f in README Makefile accept.h accept.c dnslookup.h dnslookup.c \
+  ipliteral.h ipliteral.c iplookup.h iplookup.c manualroute.h \
+  manualroute.c queryprogram.h queryprogram.c redirect.h redirect.c \
+  rf_functions.h rf_change_domain.c rf_expand_data.c rf_get_errors_address.c \
+  rf_get_munge_headers.c rf_get_transport.c rf_get_ugid.c rf_queue_add.c \
+  rf_lookup_hostlist.c rf_self_action.c rf_set_ugid.c
+do
+  ln -s ../../src/routers/$f $f
+done
+
+cd ..
+
+# Likewise for the code for the transports
+mkdir transports
+cd transports
+for f in README Makefile appendfile.h appendfile.c autoreply.h \
+  autoreply.c lmtp.h lmtp.c pipe.h pipe.c queuefile.c queuefile.h \
+  smtp.h smtp.c smtp_socks.c tf_maildir.c tf_maildir.h
+do
+  ln -s ../../src/transports/$f $f
+done
+
+cd ..
+
+# Likewise for the code for the authorization functions
+mkdir auths
+cd auths
+for f in README Makefile call_pam.c call_pwcheck.c \
+  call_radius.c check_serv_cond.c cyrus_sasl.c cyrus_sasl.h gsasl_exim.c \
+  gsasl_exim.h get_data.c get_no64_data.c heimdal_gssapi.c heimdal_gssapi.h \
+  md5.c xtextencode.c xtextdecode.c cram_md5.c cram_md5.h plaintext.c plaintext.h \
+  pwcheck.c pwcheck.h auth-spa.c auth-spa.h dovecot.c dovecot.h sha1.c spa.c \
+  spa.h tls.c tls.h
+do
+  ln -s ../../src/auths/$f $f
+done
+cd ..
+
+# Likewise for the code for the PDKIM library
+mkdir pdkim
+cd pdkim
+for f in README Makefile crypt_ver.h pdkim.c \
+  pdkim.h hash.c hash.h signing.c signing.h blob.h
+do
+  ln -s ../../src/pdkim/$f $f
+done
+cd ..
+
+# The basic source files for Exim and utilities. NB local_scan.h gets linked,
+# but local_scan.c does not, because its location is taken from the build-time
+# configuration. Likewise for the os.c file, which gets build dynamically.
+
+for f in blob.h dbfunctions.h dbstuff.h exim.h functions.h globals.h \
+  hash.h local_scan.h \
+  macros.h mytypes.h osfunctions.h store.h structs.h lookupapi.h sha_ver.h \
+  \
+  acl.c buildconfig.c base64.c child.c crypt16.c daemon.c dbfn.c debug.c deliver.c \
+  directory.c dns.c drtables.c dummies.c enq.c exim.c exim_dbmbuild.c \
+  exim_dbutil.c exim_lock.c expand.c filter.c filtertest.c globals.c \
+  hash.c header.c host.c ip.c log.c lss.c match.c moan.c parse.c perl.c queue.c \
+  rda.c readconf.c receive.c retry.c rewrite.c rfc2047.c route.c search.c \
+  setenv.c environment.c \
+  sieve.c smtp_in.c smtp_out.c spool_in.c spool_out.c std-crypto.c store.c \
+  string.c tls.c tlscert-gnu.c tlscert-openssl.c tls-gnu.c tls-openssl.c \
+  tod.c transport.c tree.c verify.c version.c \
+  dkim.c dkim.h dkim_transport.c dmarc.c dmarc.h \
+  valgrind.h memcheck.h \
+  macro_predef.c macro_predef.h
+do
+  ln -s ../src/$f $f
+done
+
+# WITH_CONTENT_SCAN
+for f in  spam.c spam.h spool_mbox.c regex.c mime.c mime.h malware.c
+do
+  ln -s ../src/$f $f
+done
+
+# EXPERIMENTAL_*
+for f in  arc.c bmi_spam.c bmi_spam.h dcc.c dcc.h dane.c dane-openssl.c \
+  danessl.h imap_utf7.c spf.c spf.h srs.c srs.h utf8.c
+do
+  ln -s ../src/$f $f
+done
+
+
+# End of MakeLinks

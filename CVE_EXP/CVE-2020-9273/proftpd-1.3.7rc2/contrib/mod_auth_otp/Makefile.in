@@ -1,0 +1,72 @@
+# Note: we include the additional tweaking of top_builddir, so that LIBTOOL
+# resolves to the correct place.
+top_builddir=@top_builddir@/../..
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+
+include $(top_builddir)/Make.rules
+
+.SUFFIXES: .la .lo
+
+EXEEXT=@EXEEXT@
+SHARED_CFLAGS=-DPR_SHARED_MODULE
+SHARED_LDFLAGS=-avoid-version -export-dynamic -module
+VPATH=@srcdir@
+
+MODULE_NAME=mod_auth_otp
+MODULE_OBJS=mod_auth_otp.o base32.o otp.o crypto.o db.o
+SHARED_MODULE_OBJS=mod_auth_otp.lo base32.lo otp.lo crypto.lo db.lo
+UTILS_LIBS=@UTILS_LIBS@
+UTILS_OBJS=base32.o otp.o crypto.o auth-otp.o
+UTILS_API_OBJS=../../src/pool.o \
+  ../../src/str.o
+
+# Necessary redefinitions
+INCLUDES=-I. -I../.. -I../../include -I$(top_srcdir)/../../include @INCLUDES@
+CPPFLAGS=$(ADDL_CPPFLAGS) -DHAVE_CONFIG_H $(DEFAULT_PATHS) $(PLATFORM) $(INCLUDES)
+LDFLAGS=-L../../lib @LDFLAGS@
+
+.c.o:
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
+
+.c.lo:
+	$(LIBTOOL) --mode=compile --tag=CC $(CC) $(CPPFLAGS) $(CFLAGS) $(SHARED_CFLAGS) -c $<
+
+shared: $(SHARED_MODULE_OBJS)
+	$(LIBTOOL) --mode=link --tag=CC $(CC) -o $(MODULE_NAME).la $(SHARED_MODULE_OBJS) -rpath $(LIBEXECDIR) $(LDFLAGS) $(SHARED_LDFLAGS) $(SHARED_MODULE_LIBS) `cat $(top_srcdir)/$(MODULE_NAME).c | grep '$$Libraries:' | sed -e 's/^.*\$$Libraries: \(.*\)\\$$/\1/'`
+
+static: $(MODULE_OBJS) auth-otp$(EXEEXT)
+	$(AR) rc $(MODULE_NAME).a $(MODULE_OBJS)
+	$(RANLIB) $(MODULE_NAME).a
+
+auth-otp$(EXEEXT): $(UTILS_OBJS)
+	$(CC) $(LDFLAGS) -o $@ $(UTILS_OBJS) $(UTILS_API_OBJS) $(UTILS_LIBS)
+
+install: install-headers install-man install-utils
+	if [ -f $(MODULE_NAME).la ] ; then \
+		$(LIBTOOL) --mode=install --tag=CC $(INSTALL_BIN) $(MODULE_NAME).la $(DESTDIR)$(LIBEXECDIR) ; \
+	fi
+
+# BSD install -d doesn't work, so ...
+$(DESTDIR)$(includedir) $(DESTDIR)$(includedir)/proftpd $(DESTDIR)$(mandir) $(DESTDIR)$(mandir)/man1 $(DESTDIR)$(mandir)/man5 $(DESTDIR)$(mandir)/man8:
+	@if [ ! -d $@ ]; then \
+		mkdir -p $@; \
+		chown $(INSTALL_USER):$(INSTALL_GROUP) $@; \
+		chmod 0755 $@; \
+	fi
+
+install-headers: $(DESTDIR)$(includedir)/proftpd
+	$(INSTALL_MAN) $(MODULE_NAME).h $(DESTDIR)$(includedir)/proftpd/$(MODULE_NAME).h
+
+install-man: $(DESTDIR)$(mandir) $(DESTDIR)$(mandir)/man8
+	$(INSTALL_MAN) $(top_srcdir)/auth-otp.8 $(DESTDIR)$(mandir)/man8
+
+install-utils: $(DESTDIR)$(sbindir) auth-otp$(EXEEXT)
+	$(INSTALL_BIN) auth-otp$(EXEEXT) $(DESTDIR)$(sbindir)/auth-otp$(EXEEXT)
+
+clean:
+	$(LIBTOOL) --mode=clean $(RM) $(MODULE_NAME).a $(MODULE_NAME).la *.o *.lo .libs/*.o
+
+dist: clean
+	$(RM) Makefile $(MODULE_NAME).h config.status config.cache config.log *.gcda *.gcno
+	-$(RM) -r CVS/ RCS/

@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_redis</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_redis</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_redis</code> module enables ProFTPD support for caching data in
+<a href="https://redis.io">Redis</a> servers, using the
+<a href="https://github.com/redis/hiredis">hiredis</a> client library.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#RedisEngine">RedisEngine</a>
+  <li><a href="#RedisLog">RedisLog</a>
+  <li><a href="#RedisLogOnCommand">RedisLogOnCommand</a>
+  <li><a href="#RedisLogOnEvent">RedisLogOnEvent</a>
+  <li><a href="#RedisOptions">RedisOptions</a>
+  <li><a href="#RedisSentinel">RedisSentinel</a>
+  <li><a href="#RedisServer">RedisServer</a>
+  <li><a href="#RedisTimeouts">RedisTimeouts</a>
+</ul>
+
+<hr>
+<h3><a name="RedisEngine">RedisEngine</a></h3>
+<strong>Syntax:</strong> RedisEngine <em>on|off</em><br>
+<strong>Default:</strong> RedisEngine off<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_redis<br>
+<strong>Compatibility:</strong> 1.3.6rc5 and later
+
+<p>
+The <code>RedisEngine</code> directive enables or disables the
+<code>mod_redis</code> module, and thus the configuration of Redis support for
+the <code>proftpd</code> daemon.
+
+<p>
+<hr>
+<h3><a name="RedisLog">RedisLog</a></h3>
+<strong>Syntax:</strong> RedisLog <em>path|"none"</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_redis<br>
+<strong>Compatibility:</strong> 1.3.6rc5 and later
+
+<p>
+The <code>RedisLog</code> directive is used to specify a log file for
+<code>mod_redis</code>'s reporting on a per-server basis.  The
+<em>file</em> parameter given must be the full path to the file to use for
+logging.
+
+<p>
+Note that this path must <b>not</b> be to a world-writable directory and,
+unless <code>AllowLogSymlinks</code> is explicitly set to <em>on</em>
+(generally a bad idea), the path must <b>not</b> be a symbolic link.
+
+<p>
+<hr>
+<h3><a name="RedisLogOnCommand">RedisLogOnCommand</a></h3>
+<strong>Syntax:</strong> RedisLogOnCommand <em>"none"|commands format-name [key]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code>, <code>&lt;Directory&gt;</code><br>
+<strong>Module:</strong> mod_redis<br>
+<strong>Compatibility:</strong> 1.3.6rc5 and later
+
+<p>
+The <code>RedisLogOnCommand</code> directive configures the use of Redis for
+<em>logging</em>.  Whenever one of the comma-separated list of <em>commands</em>
+occurs, <code>mod_redis</code> will compose a JSON object, using the
+<a href="mod_log.html#LogFormat"><code>LogFormat</code></a> named by
+<em>format-name</em> as a <i>template</i> for the fields to include in the
+JSON object.  The JSON object of that event will then be appended to a list
+stored in Redis, using <em>format-name</em> as the default key name.  Multiple
+<code>RedisLogOnCommand</code> directives can be used, for different log formats
+for different events.
+
+<p>
+The optional <em>key</em> parameter, if present, specifies the value to use
+as the Redis key.  This <em>key</em> parameter supports all of the
+<code>LogFormat</code> variables, thus you can use <i>e.g.</i>:
+<pre>
+  RedisLogOnCommand RETR,STOR xferlog %m:ftpxfer:%u
+</pre>
+
+<p>
+More on the use of Redis logging, including a table showing how
+<code>LogFormat</code> variables are mapped to JSON object keys can be found
+<a href="#Logging">here</a>.
+
+<p>
+Example:
+<pre>
+  LogFormat file-transfers "%h %l %u %t \"%r\" %s %b"
+
+  # Only log to Redis for uploads in this directory
+  <Directory /path/to/inbox>
+    RedisLogOnCommand APPE,STOR,STOU file-transfers
+  </Directory>
+
+  # Only log to Redis for downloads from this directory
+  <Directory /path/to/pub>
+    RedisLogOnCommand RETR file-transfers
+  </Directory>
+
+  # ...but prevent Redis logging in this subdirectory
+  <Directory /path/to/pub/subdir>
+    RedisLogOnCommand none
+  </Directory
+</pre>
+
+<p>
+<b>Note</b> that <code>RedisLogOnCommand</code> does <b>not</b> currently
+support the logging <i>classes</i> that the <code>ExtendedLog</code> directive
+supports.
+
+<p>
+<hr>
+<h3><a name="RedisLogOnEvent">RedisLogOnEvent</a></h3>
+<strong>Syntax:</strong> RedisLogOnEvent <em>"none"|events format-name [key]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code>, <code>&lt;Directory&gt;</code><br>
+<strong>Module:</strong> mod_redis<br>
+<strong>Compatibility:</strong> 1.3.7rc1 and later
+
+<p>
+The <code>RedisLogOnEvent</code> directive configures the use of Redis for
+<em>logging</em>.  Whenever one of the comma-separated list of <em>events</em>
+occurs, <code>mod_redis</code> will compose a JSON object, using the
+<a href="mod_log.html#LogFormat"><code>LogFormat</code></a> named by
+<em>format-name</em> as a <i>template</i> for the fields to include in the
+JSON object.  The JSON object of that event will then be appended to a list
+stored in Redis, using <em>format-name</em> as the default key name.  Multiple
+<code>RedisLogOnEvent</code> directives can be used, for different log formats
+for different events.
+
+<p>
+The optional <em>key</em> parameter, if present, specifies the value to use
+as the Redis key.  This <em>key</em> parameter supports all of the
+<code>LogFormat</code> variables, thus you can use <i>e.g.</i>:
+<pre>
+  RedisLogOnEvent READ ftp.download.%u.%m:%f
+</pre>
+
+<p>
+More on the use of Redis logging, including a table showing how
+<code>LogFormat</code> variables are mapped to JSON object keys can be found
+<a href="#Logging">here</a>.
+
+<p>
+Example:
+<pre>
+  LogFormat sessions "%{iso8601} %a"
+  RedisLogOnEvent CONNECT,DISCONNECT sessions
+</pre>
+
+<p>
+In addition to specific FTP commands, the <em>events</em> list can specify
+"ALL", for logging on <b>all</b> commands.  Or it can <i>include</i> the
+"CONNECT" and "DISCONNECT" <i>events</i>, which can be useful for logging the
+start and end times of a session.  <b>Note</b> that
+<code>RedisLogOnEvent</code> <i>does</i> support the logging <i>classes</i>
+that the <code>ExtendedLog</code> directive supports.
+
+<p>
+<hr>
+<h3><a name="RedisOptions">RedisOptions</a></h3>
+<strong>Syntax:</strong> RedisOptions <em>opt1 ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_redis<br>
+<strong>Compatibility:</strong> 1.3.7rc1 and later
+
+<p>
+The <code>RedisOptions</code> directive is used to configure various optional
+behavior of <code>mod_redis</code>.
+
+<p>
+Example:
+<pre>
+  RedisOptions NoReconnect
+</pre>
+
+<p>
+The currently implemented options are:
+<ul>
+  <li><code>NoReconnect</code><br>
+    <p>
+    If the connection to Redis breaks unexpectedly, <code>mod_redis</code>
+    will attempt to <em>reconnect</em> automatically.  Use this option to
+    disable the automatic reconnection.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h3><a name="RedisSentinel">RedisSentinel</a></h3>
+<strong>Syntax:</strong> RedisSentinel host1 ... ["master" name]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_redis<br>
+<strong>Compatibility:</strong> 1.3.7rc1 and later
+
+<p>
+The <code>RedisSentinel</code> directive is used to configure a list of IP
+addresses/ports of Redis Sentinels that the <code>mod_redis</code> module is
+to use, for discovering the location of named <em>master</em> database.  For
+example:
+<pre>
+  # Configure two Sentinels; the first master discovered will be used
+  RedisSentinel 1.2.3.4:26379 5.6.7.8:36379
+
+  # Configure two Sentinels on the default Sentinel port, and
+  # look for the location of the master named "proftpd".
+  RedisSentinel 1.2.3.4 5.6.7.8 master proftpd
+
+  # Configure three Sentinels including an IPv6 address, with explicit ports,
+  # and look for the location of the "proftpd" master.
+  RedisSentinel redis1.example.com:26379 1.2.3.4:26379 [::1]:26379 master proftpd
+</pre>
+
+<p>
+The <code>RedisSentinel</code> directive can be used <em>instead of</em> the
+<code>RedisServer</code> directive, for discovering the Redis server to use.
+<b>However</b>, if your Redis server requires authentication, <b>or</b>
+supports multiple databases, then you <b>will</b> need to use
+<code>RedisServer</code> as well:
+<pre>
+  # Use this to configure our password and database
+  RedisServer 127.0.0.1:6379 redisr0cks 2
+
+  # And use Sentinels to discover the true address/port
+  RedisSentine 1.2.3.4 5.6.7.8 9.10.11.12
+</pre>
+
+<p>
+<hr>
+<h3><a name="RedisServer">RedisServer</a></h3>
+<strong>Syntax:</strong> RedisServer <em>server [password] [db-index]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_redis<br>
+<strong>Compatibility:</strong> 1.3.6rc5 and later
+
+<p>
+The <code>RedisServer</code> directive is used to configure the IP address/port
+of the Redis server that the <code>mod_redis</code> module is to use.  For
+example:
+<pre>
+  RedisServer 1.2.3.4:6379
+</pre>
+or, for an IPv6 address, make sure the IPv6 address is enclosed in square
+brackets:
+<pre>
+  RedisServer [::ffff:1.2.3.4]:6379
+</pre>
+
+<p>
+Alternatively, you can configure a Unix domain socket path using <i>e.g.</i>:
+<pre>
+  RedisServer /var/run/redis.sock
+</pre>
+
+<p>
+An optional <em>password</em> parameter can be provided, for Redis servers
+which are password protected.
+
+<p>
+As of ProFTPD 1.3.7rc1, the optional <em>db-index</em> parameter can be
+provided, for <i>selecting</i> the server-side Redis database by index:
+<pre>
+  RedisServer 1.2.3.4:6379 passwd 2
+</pre>
+Connecting to a Redis server without password authentication <i>but</i> still
+selecting the database would be done using the empty string for the password:
+<pre>
+  RedisServer 1.2.3.4:6379 "" 2
+</pre>
+
+<p>
+<hr>
+<h3><a name="RedisTimeouts">RedisTimeouts</a></h3>
+<strong>Syntax:</strong> RedisTimeouts <em>connect-millis io-millis</em><br>
+<strong>Default:</strong> RedisTimeouts 500 500<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_redis<br>
+<strong>Compatibility:</strong> 1.3.6rc5 and later
+
+<p>
+The <code>RedisTimeouts</code> directive configures timeouts to be used
+when communicating with the Redis server.  The <em>connect-millis</em>
+parameter specifies a timeout, in milliseconds, to use when first
+connecting to the Redis server.  The <em>io-millis</em> parameter specifies
+a timeout, in milliseconds, to use both when sending commands to Redis, and
+when reading responses.
+
+<p>
+The default is 500 milliseconds for both timeouts:
+<pre>
+  RedisTimeouts 500 500
+</pre>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_redis</code> module is distributed with ProFTPD.  To enable
+support and use of the Redis protocol in your <code>proftpd</code> daemon,
+use the <code>--enable-redis</code> configure option:
+<pre>
+  $ ./configure --enable-redis ...
+  $ make
+  $ make install
+</pre>
+This option causes the <code>mod_redis</code> module to be compiled into
+<code>proftpd</code>.
+
+<p>
+You may also need to tell <code>configure</code> how to find the
+<code>hiredis</code> header and library files:
+<pre>
+  $ ./configure --enable-redis \
+    --with-includes=<i>/path/to/hiredis/include</i> \
+    --with-libraries=<i>/path/to/hiredis/lib</i>
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+
+<p>
+Configuring Redis for use by other modules, <i>e.g.</i> <code>mod_ban</code>
+or <code>mod_tls_redis</code>:
+<pre>
+  &lt;IfModule mod_redis.c&gt;
+    RedisEngine on
+    RedisLog /var/log/ftpd/redis.log
+    RedisServer 127.0.0.1:6379
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+This example shows the use of Redis logging for <em>all</em> commands:
+<pre>
+  &lt;IfModule mod_redis.c&gt;
+    RedisEngine on
+    RedisLog /var/log/ftpd/redis.log
+    RedisServer 127.0.0.1:6379
+
+    LogFormat redis "%h %l %u %t \"%r\" %s %b"
+    RedisLogOnCommand ALL redis
+  &lt;/IfModule&gt;
+</pre>
+
+<p><a name="Logging"></a>
+<b>Redis Logging</b><br>
+When using Redis logging, the following table shows how <code>mod_redis</code>
+converts a <code>LogFormat</code> variable into the key names in the JSON
+logging objects:
+<table border=1 summary="Redis LogFormat Variables">
+  <tr>
+    <td><b><code>LogFormat</code> Variable</b></td>
+    <td><b>Key</b></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%A</code>&nbsp;</td>
+    <td>anon_password</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%a</code>&nbsp;</td>
+    <td>remote_ip</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%b</code>&nbsp;</td>
+    <td>bytes_sent</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%c</code>&nbsp;</td>
+    <td>connection_class</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%D</code>&nbsp;</td>
+    <td>dir_path</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%d</code>&nbsp;</td>
+    <td>dir_name</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%E</code>&nbsp;</td>
+    <td>session_end_reason</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{epoch}</code>&nbsp;</td>
+    <td>Unix timestamp, in seconds since Jan 1 1970.</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{<em>name</em>}e</code>&nbsp;</td>
+    <td>ENV:<em>name</em></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%F</code>&nbsp;</td>
+    <td>transfer_path</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%f</code>&nbsp;</td>
+    <td>file</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{file-modified}</code>&nbsp;</td>
+    <td>file_modified</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%g</code>&nbsp;</td>
+    <td>group</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{gid}</code>&nbsp;</td>
+    <td>gid</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%H</code>&nbsp;</td>
+    <td>server_ip</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%h</code>&nbsp;</td>
+    <td>remote_dns</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%I</code>&nbsp;</td>
+    <td>session_bytes_rcvd</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{iso8601}</code>&nbsp;</td>
+    <td>timestamp</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%J</code>&nbsp;</td>
+    <td>command_params</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%L</code>&nbsp;</td>
+    <td>local_ip</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%l</code>&nbsp;</td>
+    <td>identd_user</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%m</code>&nbsp;</td>
+    <td>command</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{microsecs}</code>&nbsp;</td>
+    <td>microsecs</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{millisecs}</code>&nbsp;</td>
+    <td>millisecs</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{note:<em>name</em>}</code>&nbsp;</td>
+    <td>NOTE:<em>name</em></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%O</code>&nbsp;</td>
+    <td>session_bytes_sent</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%P</code>&nbsp;</td>
+    <td>pid</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%p</code>&nbsp;</td>
+    <td>local_port</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{protocol}</code>&nbsp;</td>
+    <td>protocol</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%r</code>&nbsp;</td>
+    <td>raw_command</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%S</code>&nbsp;</td>
+    <td>response_msg</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%s</code>&nbsp;</td>
+    <td>response_code</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%T</code>&nbsp;</td>
+    <td>transfer_secs</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%t</code>&nbsp;</td>
+    <td>local_time</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{transfer-failure}</code>&nbsp;</td>
+    <td>transfer_failure</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{transfer-status}</code>&nbsp;</td>
+    <td>transfer_status</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%U</code>&nbsp;</td>
+    <td>original_user</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%u</code>&nbsp;</td>
+    <td>user</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{uid}</code>&nbsp;</td>
+    <td>uid</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%V</code>&nbsp;</td>
+    <td>server_dns</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%v</code>&nbsp;</td>
+    <td>server_name</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%{version}</code>&nbsp;</td>
+    <td>server_version</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>%w</code>&nbsp;</td>
+    <td>rename_from</td>
+  </tr>
+</table>
+
+<p>
+In addition to the standard <code>LogFormat</code> variables, the
+<code>mod_redis</code> module also adds a "connecting" key for events
+generated when a client first connects, and a "disconnecting" key for events
+generated when a client disconnects.  These keys can be used for determining
+the start/finish events for a given session.
+
+<p>
+Here is an example of the JSON-formatted records generated, using the above
+example configuration:
+<pre>
+  {"connecting":true,"timestamp":"2013-08-21 23:08:22,171"}
+  {"command":"USER","timestamp":"2013-08-21 23:08:22,278"}
+  {"user":"proftpd","command":"PASS","timestamp":"2013-08-21 23:08:22,305"}
+  {"user":"proftpd","command":"PASV","timestamp":"2013-08-21 23:08:22,317"}
+  {"user":"proftpd","command":"LIST","bytes_sent":432,"transfer_secs":4.211,"timestamp":"2013-08-21 23:08:22,329"}
+  {"user":"proftpd","command":"QUIT","timestamp":"2013-08-21 23:08:22,336"}
+  {"disconnecting":true,"user":"proftpd","timestamp":"2013-08-21 23:08:22,348"}
+</pre>
+Notice that for a given event, not <i>all</i> of the <code>LogFormat</code>
+variables are filled in.  If <code>mod_redis</code> determines that a given
+<code>LogFormat</code> variable has no value for the logged event, it will
+simply omit that variable from the JSON object.
+
+<p>
+Another thing to notice is that the generated JSON object ignores the textual
+delimiters configured by the <code>LogFormat</code> directive; all that
+matters are the <code>LogFormat</code> variables which appear in the directive.
+
+<p><a name="FAQ"></a>
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="SQLLog"></a>
+<font color=red>Question</font>: How can I convert this SQL logging into the
+equivalent Redis logging?
+<pre>
+  SQLNamedQuery upload FREEFORM "INSERT INTO ftplogs ('userid', 'server_ip', 'transfer_date', 'operation', 'protocol', 'client_ip', 'transfer_time', 'bytes_transfer', 'file_hash_type', 'file_hash', 'file_path', 'transfer_status') VALUES ('%u', '%H', NOW(), '%r', '%{protocol}', '%a', '%T', '%b', '%{note:mod_digest.algo}', '%{note:mod_digest.digest}', '%f', '%{transfer-status}')"
+  SQLLog STOR upload
+</pre>
+<font color=blue>Answer</font>: Since the JSON object key names are hardcoded
+in <code>mod_redis</code>, converting the above <code>SQLNamedQuery</code>
+into a suitable/matching <code>LogFormat</code> is the necessary step.  Thus
+for example it might become:
+<pre>
+  LogFormat upload "%u %H %{YYYY-MM-DD HH:MM:SS}t %r %{protocol} %a %T %b %{note:mod_digest.algo} %{note:mod_digest.digest} %f %{transfer-status}"
+  RedisLogOnCommand STOR upload
+</pre>
+<b>Note</b> that <code>LogFormat</code> does not provide a <code>NOW()</code>
+function, unlike many SQL databases, thus the <code>%t</code> variable is
+needed to provide/fill in that timestamp.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

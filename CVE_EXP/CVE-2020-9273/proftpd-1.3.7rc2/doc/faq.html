@@ -1,0 +1,4741 @@
+<HTML
+><HEAD
+><TITLE
+>Professional FTP Daemon FAQ</TITLE
+><META
+NAME="GENERATOR"
+CONTENT="Modular DocBook HTML Stylesheet Version 1.77+"></HEAD
+><BODY
+CLASS="BOOK"
+BGCOLOR="#FFFFFF"
+TEXT="#000000"
+LINK="#0000FF"
+VLINK="#840084"
+ALINK="#0000FF"
+><DIV
+CLASS="BOOK"
+><A
+NAME="AEN1"
+></A
+><DIV
+CLASS="TITLEPAGE"
+><H1
+CLASS="TITLE"
+><A
+NAME="AEN2"
+></A
+>Professional FTP Daemon FAQ</H1
+><H3
+CLASS="AUTHOR"
+><A
+NAME="AEN4"
+></A
+>Mark Lowes</H3
+><DIV
+CLASS="AFFILIATION"
+><DIV
+CLASS="ADDRESS"
+><P
+CLASS="ADDRESS"
+><TT
+CLASS="EMAIL"
+>&#60;<A
+HREF="mailto:hamster@vom.org.uk"
+>hamster@vom.org.uk</A
+>&#62;</TT
+></P
+></DIV
+></DIV
+><P
+CLASS="COPYRIGHT"
+>Copyright &copy; 1999-2003 Mark Lowes</P
+><DIV
+CLASS="LEGALNOTICE"
+><A
+NAME="AEN15"
+></A
+><P
+><B
+>Copyrights and Trademarks</B
+></P
+><P
+>This document may be reproduced in whole or in part, without fee,
+subject to the following restrictions:</P
+><P
+></P
+><OL
+COMPACT="COMPACT"
+TYPE="1"
+><LI
+><P
+>The copyright notice above and this permission notice must be
+preserved complete on all complete or partial copies</P
+></LI
+><LI
+><P
+>Any translation or derived work must be approved by the author in
+writing before distribution.</P
+></LI
+><LI
+><P
+>If you distribute this work in part, instructions for obtaining
+the complete version of this manual must be included, and a means
+for obtaining a complete version provided.</P
+></LI
+><LI
+><P
+>Small portions may be reproduced as illustrations for reviews or
+quotes in other works without this permission notice if proper
+citation is given.</P
+></LI
+></OL
+><P
+>Exceptions to these rules may be granted for academic purposes:
+Write to the author and ask. These restrictions are here to protect us
+as authors, not to restrict you as learners and educators. </P
+></DIV
+><HR></DIV
+><DIV
+CLASS="TOC"
+><DL
+><DT
+><B
+>Table of Contents</B
+></DT
+><DT
+><A
+HREF="#AEN29"
+>Preface</A
+></DT
+><DT
+>1. <A
+HREF="#AEN33"
+>Introduction to ProFTPD</A
+></DT
+><DT
+>2. <A
+HREF="#AEN163"
+>Compilation and installing</A
+></DT
+><DT
+>3. <A
+HREF="#AEN239"
+>Compatibility and Integration</A
+></DT
+><DT
+>4. <A
+HREF="#AEN288"
+>Common Running problems</A
+></DT
+><DT
+>5. <A
+HREF="#AEN553"
+>Configuration problems</A
+></DT
+><DT
+>6. <A
+HREF="#AEN727"
+>Security</A
+></DT
+><DT
+>7. <A
+HREF="#AEN813"
+>User Authentication</A
+></DT
+><DT
+>8. <A
+HREF="#AEN924"
+>FAQ Notes</A
+></DT
+></DL
+></DIV
+><DIV
+CLASS="PREFACE"
+><HR><H1
+><A
+NAME="AEN29"
+></A
+>Preface</H1
+><BLOCKQUOTE
+CLASS="ABSTRACT"
+><DIV
+CLASS="ABSTRACT"
+><A
+NAME="AEN31"
+></A
+><P
+></P
+><P
+>This document sets out many of the FAQs related to the installation,
+        functioning and configuration of ProFTPD.  It also provides some guidance
+        on policy and security issues.</P
+><P
+></P
+></DIV
+></BLOCKQUOTE
+></DIV
+><DIV
+CLASS="CHAPTER"
+><HR><H1
+><A
+NAME="AEN33"
+></A
+>Chapter 1. Introduction to ProFTPD</H1
+><DIV
+CLASS="QANDASET"
+><DL
+><DT
+>1. <A
+HREF="#AEN37"
+>What is ProFTPD?</A
+></DT
+><DT
+>2. <A
+HREF="#AEN42"
+>What is the current version?</A
+></DT
+><DT
+>3. <A
+HREF="#AEN50"
+>Version numbering scheme</A
+></DT
+><DT
+>4. <A
+HREF="#AEN77"
+>Website &#38; documentation</A
+></DT
+><DT
+>5. <A
+HREF="#AEN89"
+>Bug reporting</A
+></DT
+><DT
+>6. <A
+HREF="#AEN95"
+>I've found a security hole</A
+></DT
+><DT
+>7. <A
+HREF="#AEN103"
+>Downloading</A
+></DT
+><DT
+>8. <A
+HREF="#AEN118"
+>Mailing lists</A
+></DT
+><DT
+>9. <A
+HREF="#AEN159"
+>Copyright Issues</A
+></DT
+></DL
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN37"
+></A
+><B
+>1. </B
+>What is ProFTPD?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>ProFTPD is a ftp server primarily written for the
+	    various unix variants however it will compile under Cygwin
+	    giving some support on Windows platforms.  It has been
+	    designed to be much like Apache in concept taking many
+	    of the ideas (configuration format, modular design, etc)
+	    from it.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN42"
+></A
+><B
+>2. </B
+>What is the current version?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Stable:   1.2.9</P
+><P
+></P
+><TABLE
+BORDER="0"
+><TBODY
+><TR
+><TD
+>Release Candidate: -none-</TD
+></TR
+></TBODY
+></TABLE
+><P
+></P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN50"
+></A
+><B
+>3. </B
+>Version numbering scheme</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>At the moment there is a little irrationality in the numbering scheme however it can be summarised as follows</P
+><A
+NAME="AEN54"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><P
+></P
+><DIV
+CLASS="VARIABLELIST"
+><DL
+><DT
+>1.0.x</DT
+><DD
+><P
+>This is the previous stable version.</P
+></DD
+><DT
+>1.1.x</DT
+><DD
+><P
+>Development code</P
+></DD
+><DT
+>1.2.0rcx</DT
+><DD
+><P
+>Release candidate code, these releases are
+		    pretty much bug free and are testing releases prior
+		    to the final stable code.</P
+></DD
+><DT
+>1.2.x</DT
+><DD
+><P
+>This will be the stable cycle with the final .x
+		    being the incremental patches to fix bugs discovered
+		    after the release version is issued.</P
+></DD
+><DT
+>1.3.x</DT
+><DD
+><P
+>1.3.x is the planned development tree, work
+		    on this has been pushed back while more active
+		    development of 1.2.x is undertaken.
+		    </P
+></DD
+></DL
+></DIV
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN77"
+></A
+><B
+>4. </B
+>Website &#38; documentation</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+><A
+HREF="http://www.proftpd.org/"
+TARGET="_top"
+>http://www.proftpd.org/</A
+>
+	      is the primary source for all information about the
+	      project including documentation and security alerts.
+	      There are a number of geographic mirror sites,
+	      see the mirror pages on www.proftpd.org for more
+	      details or try www.&lt;isocode&gt;.proftpd.org (ie
+	      www.uk.proftpd.org).</P
+><A
+NAME="AEN82"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN83"
+></A
+>Helping with documentation</H3
+><P
+>Writing documentation is time consuming and requires
+	      some work but it's not actually difficult.  Look through the
+	      directive list shipped with the source and package builds
+	      of ProFTPD and see what needs work.  Check the source code
+	      to ensure that the context is correct by grepping through
+	      the source code looking for something like</P
+><PRE
+CLASS="PROGRAMLISTING"
+>CHECK_CONF(cmd,CONF_ROOT|CONF_VIRTUAL|CONF_ANON|CONF_GLOBAL)
+              </PRE
+><P
+>to figure out where the directive is valid
+	      (server config, &lt;VirtualHost&gt;, &lt;Anonymous&gt;,
+	      &lt;Global&gt; for the above example).  Once you think you
+	      understand what it does, test, play, break (if possible).
+	      </P
+><P
+>	      Then either submit a plain text update via the bug reporting
+	      system or a patch against the docbook/sgml source (available
+	      from CVS on sourceforge (Project: pdd)
+	      </P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN89"
+></A
+><B
+>5. </B
+>Bug reporting</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Bug reports should be made via <A
+HREF="http://bugs.proftpd.org/"
+TARGET="_top"
+>http://bugs.proftpd.org/</A
+>
+	  which uses the bugzilla tracking system.  Patches should be
+	  attached to the appropriate bug and not mailed directly to
+	  the mailing lists or any given team member.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN95"
+></A
+><B
+>6. </B
+>I've found a security hole</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Please report all security problems with the code to
+<TT
+CLASS="EMAIL"
+>&#60;<A
+HREF="mailto:security@proftpd.org"
+>security@proftpd.org</A
+>&#62;</TT
+> before releasing the information into the public
+domain.  It would be appreciated if you give the core team a few days
+to put together a patch and/or new release to address the issue.</P
+><P
+>Please adhere to the proceedures and timescales given in the RF
+Policy document <A
+HREF="http://www.wiretrip.net/rfp/policy.html"
+TARGET="_top"
+>http://www.wiretrip.net/rfp/policy.html</A
+>, this will give the core development team a chance to get a fix or workaround in place before the problem becomes fully public domain.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN103"
+></A
+><B
+>7. </B
+>Downloading</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There are two main methods of getting the software.  Downloading a
+compressed tarball or rpm (there is also a Debian package available in the main distribution) from proftpd.org or from a mirror site, alternatively if you wish to run the latest bleeding edge code then collecting from the cvs server is the best method.</P
+><A
+NAME="AEN107"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN108"
+></A
+>Mirror sites</H3
+><P
+>There is a complete and maintained list of ftp mirror sites available
+from <A
+HREF="http://www.proftpd.org/download.html"
+TARGET="_top"
+>http://www.proftpd.org/download.html</A
+></P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN111"
+></A
+>CVS</H3
+><P
+> cvs -d :pserver:anonymous@cvs.proftp.sourceforge.net:/cvsroot/proftp
+login (Hit Enter when prompted for a password.)</P
+><P
+>Then do:</P
+><P
+>cvs -d :pserver:anonymous@cvs.proftp.sourceforge.net:/cvsroot/proftp -z3 co proftpd</P
+><P
+>To obtain the latest/greatest updates, just hop into the
+proftpd directory and do: cvs update</P
+><P
+>A couple of sites generate downloadable tarballs of the latest CVS
+code to make obtaining the test code easier.</P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN118"
+></A
+><B
+>8. </B
+>Mailing lists</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There are a number of mailing lists for ProFTPD</P
+><A
+NAME="AEN122"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN123"
+></A
+>Announce</H3
+><P
+>proftpd-announce@proftpd.org</P
+><P
+>This is a very low traffic list where only ProFTPD announcements/changes
+will be announced.  Subscribe by sending a message to <TT
+CLASS="EMAIL"
+>&#60;<A
+HREF="mailto:proftpd-announce-request@proftpd.org"
+>proftpd-announce-request@proftpd.org</A
+>&#62;</TT
+> with
+"subscribe" in the subject.</P
+><P
+>Web interface: 
+                <A
+HREF="https://lists.sourceforge.net/lists/listinfo/proftp-announce"
+TARGET="_top"
+>                  https://lists.sourceforge.net/lists/listinfo/proftp-announce
+                </A
+>
+              </P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN129"
+></A
+>Users</H3
+><P
+>proftp-user@proftpd.org</P
+><P
+>This is intended to the the user support channel for the software,
+in most likelihood this is going to be a high traffic list and
+slightly chatty.  Please read the FAQ, the documentation and the list
+archives before posting a question.</P
+><P
+>Subscribe by sending a message to <TT
+CLASS="EMAIL"
+>&#60;<A
+HREF="mailto:proftpd-user-request@proftpd.org"
+>proftpd-user-request@proftpd.org</A
+>&#62;</TT
+> with
+"subscribe" in the subject.</P
+><P
+>Web interface: <A
+HREF="https://lists.sourceforge.net/lists/listinfo/proftp-user"
+TARGET="_top"
+>https://lists.sourceforge.net/lists/listinfo/proftp-user</A
+></P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN136"
+></A
+>Development</H3
+><P
+>proftpd-devel@proftpd.org</P
+><P
+>This list is intended for discussion of development-related issues
+of ProFTPD, and feature design.  It is NOT intended to be a "user
+help" group.</P
+><P
+>Subscribe by sending a message to <TT
+CLASS="EMAIL"
+>&#60;<A
+HREF="mailto:proftpd-devel-request@proftpd.org"
+>proftpd-devel-request@proftpd.org</A
+>&#62;</TT
+>
+with "subscribe" in the subject.</P
+><P
+>Web interface: 
+                <A
+HREF="https://lists.sourceforge.net/lists/listinfo/proftp-devel"
+TARGET="_top"
+>                  https://lists.sourceforge.net/lists/listinfo/proftp-devel
+                </A
+>
+              </P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN143"
+></A
+>Archives</H3
+><P
+>The mailing list archives can be found at:</P
+><P
+></P
+><UL
+><LI
+><P
+><A
+HREF="http://www.proftpd.org/proftpd-announce-archive/"
+TARGET="_top"
+>                  http://www.proftpd.org/proftpd-announce-archive/</A
+></P
+></LI
+><LI
+><P
+><A
+HREF="http://www.proftpd.org/proftpd-l-archive/"
+TARGET="_top"
+>                  http://www.proftpd.org/proftpd-l-archive/</A
+></P
+></LI
+><LI
+><P
+><A
+HREF="http://www.proftpd.org/proftpd-devel-archive/"
+TARGET="_top"
+>                  http://www.proftpd.org/proftpd-devel-archive/</A
+></P
+></LI
+></UL
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN155"
+></A
+>Unsubscribing</H3
+><P
+>Before posting to any of the lists or mailing the list admins
+please try and remove yourself first.  Either by emailing
+&lt;listname&gt;-request@lists.sourceforge.net with the subject "unsubscribe" or
+visiting the web interface and unsubscribing from there.</P
+><P
+>I've (lost / never had) a password to the interface.  Easy,
+enter the address you are subscribed to the list as into the form and
+hit the "email me my password" button.</P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN159"
+></A
+><B
+>9. </B
+>Copyright Issues</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The software is currently distributed under the GNU General Public License
+(version 2 or later) as published by the Free Software Foundation.
+Copyright is held by Public Flood Software.</P
+></DIV
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="CHAPTER"
+><HR><H1
+><A
+NAME="AEN163"
+></A
+>Chapter 2. Compilation and installing</H1
+><DIV
+CLASS="QANDASET"
+><DL
+><DT
+>1. <A
+HREF="#AEN167"
+>What platforms will it compile on?</A
+></DT
+><DT
+>2. <A
+HREF="#AEN193"
+>Why not libc5 on Linux?</A
+></DT
+><DT
+>3. <A
+HREF="#AEN198"
+>CVS</A
+></DT
+><DT
+>4. <A
+HREF="#AEN210"
+>How do I get debug output</A
+></DT
+><DT
+>5. <A
+HREF="#AEN217"
+>Patches</A
+></DT
+><DT
+>6. <A
+HREF="#AEN224"
+>Using non-default modules</A
+></DT
+><DT
+>7. <A
+HREF="#AEN230"
+>Microsoft platform support</A
+></DT
+><DT
+>8. <A
+HREF="#AEN235"
+>New features/modules</A
+></DT
+></DL
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN167"
+></A
+><B
+>1. </B
+>What platforms will it compile on?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There have been reports of ProFTPD compiling on all the following
+platforms (and versions).</P
+><P
+></P
+><UL
+><LI
+><P
+>Linux 2.0.x &amp; 2.2.x (glibc 2.x only) &amp; 2.4.x</P
+></LI
+><LI
+><P
+>BSDI 3.1 &#38; 4.0</P
+></LI
+><LI
+><P
+>IRIX 6.2, 6.3, 6.4, 6.5</P
+></LI
+><LI
+><P
+>Solaris 2.5.1, 2.6, 2.7, 8 (Sparc)</P
+></LI
+><LI
+><P
+>AIX 3.2 &#38; 4.2</P
+></LI
+><LI
+><P
+>OpenBSD 2.2/2.3</P
+></LI
+><LI
+><P
+>FreeBSD 2.2.7</P
+></LI
+><LI
+><P
+>Digital UNIX 4.0A</P
+></LI
+><LI
+><P
+>DEC OFS/1</P
+></LI
+><LI
+><P
+>Cygwin</P
+></LI
+></UL
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN193"
+></A
+><B
+>2. </B
+>Why not libc5 on Linux?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There are several known problems with libc5-based
+	    systems, including improperly implemented library routines
+	    (vsprintf and vsnprintf are examples).  There are known
+	    problems with the resolver library.  For these reasons
+	    and others lib5 is not being supported at all, the latest
+	    versions of the major distributions (inc Debian, Redhat and
+	    Suse) are all glibc.  </P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN198"
+></A
+><B
+>3. </B
+>CVS</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>CVS (Concurrent Versions System), is a version control system which
+allows multiple developers (scattered across the same room or across
+the world) to maintain a single codebase and keep a record of all
+changes to the work.</P
+><P
+>The CVS repository for ProFTPD is available for non-developers in
+read-only mode, however this code is right on the bleeding edge and is 
+not guaranteed to even compile let alone work.  Access to CVS is given 
+to allow important security patches out into the wild and to allow
+users and interested users to test out the latest changes on real
+systems. </P
+><P
+>Nightly tarballs of the current CVS are available on
+            ftp.proftpd.org, these are built at approx 1am UK time.</P
+><A
+NAME="AEN204"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN205"
+></A
+>Recommended ~/.cvsrc settings</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>cvs -z 3
+update -Pd
+diff -u
+            </PRE
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN207"
+></A
+>Where can I get information on cvs?</H3
+><P
+>CVS is produced by Cyclic Software (http://www.cyclic.com/) and
+details on CVS can be found on their website.  The CVS documentation
+is clear, detailed and above all heavy when printed.  I'd recommend
+reading it if you're planning on using CVS a lot.</P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN210"
+></A
+><B
+>4. </B
+>How do I get debug output</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The easiest way is to fire up proftpd manually from the command
+line with the debug level cranked up.</P
+><PRE
+CLASS="PROGRAMLISTING"
+>/usr/local/sbin/proftpd -d9 -n
+            </PRE
+><P
+>This will result in maximal debug output direct to the
+console. Warning, this can get messy on a busy server, for testing I
+would suggest copying the config and altering the port the server
+binds to and then testing.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN217"
+></A
+><B
+>5. </B
+>Patches</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Any patches should be submitted in Universal format, this makes
+integrating them into the main cvs source a lot easier.  When
+generating a diff against the current cvs source use "cvs diff -uw" to
+generate the patch.</P
+><PRE
+CLASS="PROGRAMLISTING"
+>cvs diff -u filename &#62; filename.patch
+
+  or
+
+cvs diff -u &#62; bigger.patch
+            </PRE
+><P
+>Patches that add configuration directives without proper
+documentation.  Will be rejected.  New features without documentation
+are less than useless to the community at large.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN224"
+></A
+><B
+>6. </B
+>Using non-default modules</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Simply configure ProFTPD with </P
+><PRE
+CLASS="PROGRAMLISTING"
+>./configure --with-modules=mod_module1:mod_module2:mod_module3
+make
+make install
+            </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN230"
+></A
+><B
+>7. </B
+>Microsoft platform support</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There are no current plans for a direct port to any MS platform.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN235"
+></A
+><B
+>8. </B
+>New features/modules</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>While anything new is welcomed it's probably better
+	    to at least float the idea first on the devel mailing list
+	    to ensure that someone else isn't already hacking on it.
+	    Also when submitting the patch or module for inclusion into
+	    the ProFTPD source full documentation is needed.</P
+></DIV
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="CHAPTER"
+><HR><H1
+><A
+NAME="AEN239"
+></A
+>Chapter 3. Compatibility and Integration</H1
+><DIV
+CLASS="QANDASET"
+><DL
+><DT
+>1. <A
+HREF="#AEN243"
+>SQL</A
+></DT
+><DT
+>2. <A
+HREF="#AEN248"
+>SSH</A
+></DT
+><DT
+>3. <A
+HREF="#AEN254"
+>sendfile()</A
+></DT
+><DT
+>4. <A
+HREF="#AEN270"
+>IPv6</A
+></DT
+><DT
+>5. <A
+HREF="#AEN276"
+>Filename case sensitivity</A
+></DT
+><DT
+>6. <A
+HREF="#AEN281"
+>FXP</A
+></DT
+></DL
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN243"
+></A
+><B
+>1. </B
+>SQL</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>ProFTPD has support for authentication and logging via SQL
+databases using the mod_sql module as supplied in the main
+distribution.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN248"
+></A
+><B
+>2. </B
+>SSH</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There is a mini-HOWTO at <A
+HREF="http://www.castaglia.org/proftpd/doc/"
+TARGET="_top"
+>http://www.castaglia.org/proftpd/doc/</A
+> detailing how to tunnel ftp connections over ssh.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN254"
+></A
+><B
+>3. </B
+>sendfile()</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>sendfile() is a system call which streamlines the copying of data
+between the disk and the tcp socket.  The call copied from the page
+cache directly rather than requiring a kernel -&#62; user space -&#62; kernel
+space copy for every read() and write() call.  Generally the
+advantages are only felt on heavily loaded servers.  The call is
+supported in ProFTPD for Linux and FreeBSD.</P
+><A
+NAME="AEN258"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN259"
+></A
+>Linux 2.0.x</H3
+><P
+>sendfile is not supported under 2.0.x, this is not an issue when
+compiling for 2.0.x on a 2.0.x system. However when compiling on a
+2.2.x system for use on 2.0.x use the --disable-sendfile flag.</P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN261"
+></A
+>Runtime detection of sendfile()</H3
+><P
+>Johnie Ingram (aka netgod)'s:
+<A
+HREF="http://www.proftpd.org/proftpd-devel-archive/99-10/msg00073.html"
+TARGET="_top"
+>http://www.proftpd.org/proftpd-devel-archive/99-10/msg00073.html</A
+></P
+><P
+>John Pierce &lt;hawkfan@pyrotechnics.com&gt;
+<A
+HREF="http://www.proftpd.org/proftpd-devel-archive/99-10/msg00112.html"
+TARGET="_top"
+>http://www.proftpd.org/proftpd-devel-archive/99-10/msg00112.html</A
+></P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN266"
+></A
+>Problems with sendfile</H3
+><P
+>There appear to be a number of problems with sendfile()
+particularly with the directives and features which require accurate
+determination of filesize.  Such as the Rate* functions and
+downloading large files, the best advice at the moment appears to be
+to disable sendfile by default ( --disable-sendfile ).</P
+><P
+>Sendfile() also appears to be the source of a number of file corruption problems.</P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN270"
+></A
+><B
+>4. </B
+>IPv6</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There is currently no official support for IPv6 within the 1.2.x
+code tree, however there is an <A
+HREF="http://www.t17.ds.pwr.wroc.pl/~misiek/ipv6/"
+TARGET="_top"
+>http://www.t17.ds.pwr.wroc.pl/~misiek/ipv6/</A
+> and more comprehensive support will probably be developed
+during the 1.3.x development cycle.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN276"
+></A
+><B
+>5. </B
+>Filename case sensitivity</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>ProFTPD is utterly dependant on the underlying OS to handle
+filename case sensitivity.  If the underlying OS is case sensitive
+then ProFTPD will be, there are currently no plans for a module to
+handle this.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN281"
+></A
+><B
+>6. </B
+>FXP</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>FXP is capable of bouncing data between websites.  There have been
+a number of reports of problems in configuring ProFTPD to function
+cleanly with this program (http://flashfxp.skuz.net/).</P
+><P
+>To support FXP when connecting as a user place "AllowForeignAddress 
+on" in the Global or VirtualHost context.</P
+><P
+>To support FXP when connecting as anon "AllowForeignAddress on"
+must be placed in the Anonymous context.</P
+><P
+>The config will happily support "AllowForeignAddress on" in
+multiple places within the config.</P
+></DIV
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="CHAPTER"
+><HR><H1
+><A
+NAME="AEN288"
+></A
+>Chapter 4. Common Running problems</H1
+><DIV
+CLASS="QANDASET"
+><DL
+><DT
+>1. <A
+HREF="#AEN292"
+>ProFTPD doesn't seem to work.</A
+></DT
+><DT
+>2. <A
+HREF="#AEN325"
+>"inet_create_connection() failed: Operation not permitted".</A
+></DT
+><DT
+>3. <A
+HREF="#AEN330"
+>Unable to bind to port/Address already in use</A
+></DT
+><DT
+>4. <A
+HREF="#AEN339"
+>"(Login failed): Invalid shell"</A
+></DT
+><DT
+>5. <A
+HREF="#AEN345"
+>"Fatal: Socket operation on non-socket"</A
+></DT
+><DT
+>6. <A
+HREF="#AEN351"
+>"Fatal: unable to determine IP address of "hostname:</A
+></DT
+><DT
+>7. <A
+HREF="#AEN356"
+>I'm having problems with FTP clients behind firewalls</A
+></DT
+><DT
+>8. <A
+HREF="#AEN367"
+>Can I run more that one VirtualHost on a single IP?</A
+></DT
+><DT
+>9. <A
+HREF="#AEN377"
+>How do I run ProFTPD from inetd?</A
+></DT
+><DT
+>10. <A
+HREF="#AEN388"
+>Can I use tcp-wrappers with ProFTPD?</A
+></DT
+><DT
+>11. <A
+HREF="#AEN394"
+>Can I run an FTP server on a non-standard port?</A
+></DT
+><DT
+>12. <A
+HREF="#AEN400"
+>Can control upload/download ratios?</A
+></DT
+><DT
+>13. <A
+HREF="#AEN413"
+>Slow logins</A
+></DT
+><DT
+>14. <A
+HREF="#AEN420"
+>Lots of "FTP session closed" messages</A
+></DT
+><DT
+>15. <A
+HREF="#AEN427"
+>How do I see who is connected?</A
+></DT
+><DT
+>16. <A
+HREF="#AEN432"
+>Can I force ProFTPD to listen on only one IP?</A
+></DT
+><DT
+>17. <A
+HREF="#AEN445"
+>"FTP server shut down ... please try again later."</A
+></DT
+><DT
+>18. <A
+HREF="#AEN450"
+>How do I shutdown the server without killing proftpd?</A
+></DT
+><DT
+>19. <A
+HREF="#AEN455"
+>Is is possible to shutdown a single VirtualHost?</A
+></DT
+><DT
+>20. <A
+HREF="#AEN460"
+>Error 421</A
+></DT
+><DT
+>21. <A
+HREF="#AEN477"
+>proftpd doesn't show in the processlist</A
+></DT
+><DT
+>22. <A
+HREF="#AEN482"
+>How do I restart/reload the server?</A
+></DT
+><DT
+>23. <A
+HREF="#AEN492"
+>503 No PORT command issued</A
+></DT
+><DT
+>24. <A
+HREF="#AEN497"
+>Fatal: unable to determine IP address of</A
+></DT
+><DT
+>25. <A
+HREF="#AEN502"
+>451 append/restart not permitted, try again</A
+></DT
+><DT
+>26. <A
+HREF="#AEN507"
+>501 REST not compatible with server configuration</A
+></DT
+><DT
+>27. <A
+HREF="#AEN512"
+>The time being displayed is wrong</A
+></DT
+><DT
+>28. <A
+HREF="#AEN518"
+>Authentication is taking too long</A
+></DT
+><DT
+>29. <A
+HREF="#AEN523"
+>Corrupted files</A
+></DT
+><DT
+>30. <A
+HREF="#AEN528"
+>Can I upgrade ProFTPD without terminating the current sessions?</A
+></DT
+><DT
+>31. <A
+HREF="#AEN533"
+>No such group "nogroup"</A
+></DT
+><DT
+>32. <A
+HREF="#AEN538"
+>Why do I see "unable to set groups: Invalid argument"? </A
+></DT
+><DT
+>33. <A
+HREF="#AEN547"
+>Why do I see error messages like these when I logout?</A
+></DT
+></DL
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN292"
+></A
+><B
+>1. </B
+>ProFTPD doesn't seem to work.</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Starting ProFTPD in standalone mode it doesn't show in "ps" It
+could be many things, possibly something like not running ProFTPD as
+root (it needs to be run as root initially, but will switch to a
+non-privileged user). Regardless, ProFTPD logs all errors via the
+standard syslog mechanism. You need to check your system logs in order
+to determine what the problem is.</P
+><A
+NAME="AEN296"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN297"
+></A
+>It doesn't work!</H3
+><P
+>There are many times when there's a completely random problem which
+appears to be insoluble.  The best place to ask for help is definately
+the mailing list (proftpd-l) but it's not productive to ask for help
+without giving enough information for intelligent debugging.</P
+><P
+>Have you?</P
+><P
+></P
+><UL
+><LI
+><P
+>Checked your logs</P
+></LI
+><LI
+><P
+>Tried the server in debug mode</P
+></LI
+><LI
+><P
+>Read the FAQ?</P
+></LI
+><LI
+><P
+>Checked the mailing list archive?</P
+></LI
+><LI
+><P
+>Are you running the latest version?</P
+></LI
+></UL
+></BLOCKQUOTE
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>When posting try giving enough information, this might include but
+not be limited to.</P
+><P
+></P
+><UL
+><LI
+><P
+>OS and server version (proftpd -vv)</P
+></LI
+><LI
+><P
+>List of included modules (proftpd -l)</P
+></LI
+><LI
+><P
+>Appropriate log extracts</P
+></LI
+><LI
+><P
+>Output fom debug mode</P
+></LI
+><LI
+><P
+>Configration fragment</P
+></LI
+></UL
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN325"
+></A
+><B
+>2. </B
+>"inet_create_connection() failed: Operation not permitted".</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>You aren't starting ProFTPD as root, or you have inetd configured
+to run ProFTPD as a user other than root. The ProFTPD daemon must be
+started as root in order to bind to tcp ports lower than 1024, or to
+open your shadow password file when authenticating users. The daemon
+switches uid/gids to the user and group specified by the User/Group
+directives during normal operation, so a "ps" will show it running as
+the user you specified.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN330"
+></A
+><B
+>3. </B
+>Unable to bind to port/Address already in use</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>0.0.0.0 is INADDR_ANY, which means to bind to any interface.  The
+"address in use" will normally mean that something has already bound
+to that address.</P
+><P
+>Under linux it is possible to run:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>fuser -n tcp 21
+            </PRE
+><P
+>to get the PID of the process currently bound to port ProFTPD is
+configured to run as.</P
+><P
+>The most common cause is that ProFTPD is configured standalone and
+inetd is still configured for port 21.  Comment out the line starting
+"ftp" in /etc/inetd.conf and restart (killall -HUP inetd or something
+similar should do the trick) and try again.  </P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN339"
+></A
+><B
+>4. </B
+>"(Login failed): Invalid shell"</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The user attempting to login has been given a shell that is
+not listed in the system's /etc/shells file.  By default, proftpd will require
+that users logging in have valid shells.  Use the RequireValidShell directive
+to turn off this requirement:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>RequireValidShell off
+	    </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN345"
+></A
+><B
+>5. </B
+>"Fatal: Socket operation on non-socket"</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>You have ProFTPD configured to run in inetd mode rather than
+standalone. In this mode, ProFTPD expects that it will be run from the
+inetd super-server, which implies that stdin/stdout will be sockets
+instead of terminals. As a result, socket operations will fail and the
+above error will be printed. If you wish to run ProFTPD from the
+shell, in standalone mode, you'll need to modify your proftpd.conf
+configuration file and add or edit the ServerType directive to read:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>ServerType standalone
+            </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN351"
+></A
+><B
+>6. </B
+>"Fatal: unable to determine IP address of "hostname:</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The hosting machine has a poorly configured hostname setup to the
+point where the resolver library cannot determine the IP from the
+name.  Solutions include, fixing the DNS for the domain, fixing the
+hostname, fixing the /etc/hosts file.  Which one works for you will
+largely depend on your OS and exactly what is wrong.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN356"
+></A
+><B
+>7. </B
+>I'm having problems with FTP clients behind firewalls</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The FTP Specification defines that two sockets should be used for
+all communications.  The first runs over port 21 and is the control
+channel over which all commands and response codes are sent.  Whenever 
+data is required to be transfered, for example for a file download, a
+directory listing etc etc.  A second channel is created on demand,
+this socket can take one of two forms.</P
+><A
+NAME="AEN360"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN361"
+></A
+>non-Passive</H3
+><P
+>The server end of the data socket uses port 20.  This is nice and
+easy to work into a firewall configuration.</P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN363"
+></A
+>Passive</H3
+><P
+>The port at either end is dynamically allocated.  This is virtually 
+impossible to cater for in a firewall configuration given that the
+port mapping will be different for every data connection.</P
+><P
+>The solution is to force the users to configure their clients to
+use the non-passive mode (ie port 20)</P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN367"
+></A
+><B
+>8. </B
+>Can I run more that one VirtualHost on a single IP?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>No, or at least not in the HTTP/1.1 manner of virtual hosting.
+This is an inbuilt limitation of the current FTP RFC., unlike the
+HTTP/1.1 spec there is no mechanism comparable to the "Host:
+foo.bar.com" HTTP header for specifying which host the connection is
+for.  Therefore the only method for determining which VirtualHost the
+connection is destined for is by the destination IP.</P
+><P
+>The one exception to this is if you host multiple servers on the same
+IP but using different ports, however this requires that the connecting
+client uses a non-standard port and therefore is probably not a good
+solution for mass hosting.</P
+><A
+NAME="AEN372"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN373"
+></A
+>Is there anything in the pipeline to fix this?</H3
+><P
+>There is a draft standard <A
+HREF="http://search.ietf.org/internet-drafts/draft-ietf-ftpext-mlst-12.txt"
+TARGET="_top"
+>http://search.ietf.org/internet-drafts/draft-ietf-ftpext-mlst-12.txt</A
+> with the IETF which extends and improves on the FTP specification including support for a HOST command.  However given that the IP crunch is coming from websites and not virtual ftp servers this is unlikely to be pushed through any time soon.</P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN377"
+></A
+><B
+>9. </B
+>How do I run ProFTPD from inetd?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Find the line in /etc/inetd.conf that looks something like this:</P
+><A
+NAME="AEN381"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><P
+>ftp stream tcp nowait root in.ftpd in.ftpd</P
+></BLOCKQUOTE
+><P
+>Replace it with:</P
+><A
+NAME="AEN384"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><P
+>ftp stream tcp nowait root in.proftpd in.proftpd</P
+></BLOCKQUOTE
+><P
+>Then, find your inetd process in the process listing and send it
+the SIGHUP signal so that it will rehash and reconfigure itself.  You
+may also need to add in.ProFTPD to hosts.allow on your system.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN388"
+></A
+><B
+>10. </B
+>Can I use tcp-wrappers with ProFTPD?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Yup. Although ProFTPD has built-in IP access control (see the Deny
+and Allow directives), many admins choose to consolidate IP access
+control in one place via in.tcpd. Just configure ProFTPD to run from
+inetd as any other tcp-wrapper wrapped daemon and add the
+appropriate lines to hosts.allow/deny files.</P
+><P
+>If running ProFTPD in standalone mode, mod_wrap can be used to direct the
+server to use the normal hosts.allow/deny files.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN394"
+></A
+><B
+>11. </B
+>Can I run an FTP server on a non-standard port?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Yes. Use a &lt;VirtualHost&gt; block with your machine's FQDN
+(Fully Qualified Domain Name) or IP address, and a Port directive
+inside the &lt;VirtualHost&gt; block. For example, if your host is
+named "myhost.mydomain.com" and you want to run an additional FTP
+server on port 2001, you would:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>...
+&lt;VirtualHost myhost.mydomain.com&gt;
+Port 2001
+...
+&lt;/VirtualHost&gt;
+            </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN400"
+></A
+><B
+>12. </B
+>Can control upload/download ratios?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Yes the mod_ratio module provides for doing just this.</P
+><P
+>The ratio directives take four numbers: file ratio, initial file
+credit, byte ratio, and initial byte credit.  Setting either ratio
+to 0 disables that check.</P
+><P
+>The directives are HostRatio (matches FQDN, wildcards allowed),
+AnonRatio (matches password entered at login), UserRatio (accepts "*"
+for "any user"), and GroupRatio. </P
+><PRE
+CLASS="PROGRAMLISTING"
+>Ratios on                                    # enable module
+UserRatio ftp 0 0 0 0
+HostRatio master.debian.org 0 0 0 0          # leech access (default)
+GroupRatio proftpd 100 10 5 100000           # 100:1 files, 10 file cred 5:1 bytes, 100k byte cred
+AnonRatio billg@microsoft.com 1 0 1 0        # 1:1 ratio, no credits
+UserRatio * 5 5 5 50000                      # special default case
+              </PRE
+><P
+>This example is for someone who (1) has downloaded 1 file of 82k,
+(2) has uploaded nothing, (3) has a ratio of 5:1 files and 5:1
+bytes, (4) has 4 files and 17k credit remaining, and (5) is now
+changing directory to /art/nudes/young/carla.  The initial credit,
+not shown, was 5 files and 100k (UserRatio * 5 5 5 100000).</P
+><P
+>Version 2.0 and above of this module integrate with mod_sql.</P
+><A
+NAME="AEN409"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN410"
+></A
+>Limitations of mod_ratio</H3
+><P
+>It appears that the ratio limits in mod_ratio are only maintained
+on a per session basis and there is no ongoing tracking of usage.</P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN413"
+></A
+><B
+>13. </B
+>Slow logins</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>This is probably caused by a firewall or DNS timeout.  By default
+ProFTPD will try to do both DNS and ident lookups against the incoming 
+connection.  If these are blocked or excessively delayed a slower than 
+normal login will result.  To turn off DNS and ident use:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>UseReverseDNS off
+IdentLookups                    off
+            </PRE
+><P
+>IdentLookups and tcpwrappers
+***</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN420"
+></A
+><B
+>14. </B
+>Lots of "FTP session closed" messages</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Oct  7 12:30:48 salvage2 proftpd[8874]: FTP session closed.
+Oct  7 12:30:48 salvage2 proftpd[8874]: FTP session closed.
+Oct  7 12:30:48 salvage2 proftpd[8874]: FTP session closed.
+Oct  7 12:30:48 salvage2 proftpd[8874]: FTP session closed.
+            </P
+><P
+>The above log extract is likely to be caused by a local monitoring
+system or a particularly aggressive DoS attack.  Most service
+monitoring systems try opening the ftp port on the target server to
+detect whether it is active and running.  Most of the time these tests 
+are followed by an immediate "QUIT" or disconnection.</P
+><P
+>TCPdump/TCPshow on the server in question should show which machine
+on your network is is generating these connections.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN427"
+></A
+><B
+>15. </B
+>How do I see who is connected?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The ftpwho command lists the state of each ftp connection to the
+server and what it's current activity is.  However this does not
+detail the connection information on a virtual by virtual basis.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN432"
+></A
+><B
+>16. </B
+>Can I force ProFTPD to listen on only one IP?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Sort, of it's not quite as clean as the socket binding under Apache 
+but the principle works something like this.</P
+><A
+NAME="AEN436"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN437"
+></A
+>Standalone mode</H3
+><P
+>To listen on the primary IP of a host use the SocketBindTight directive</P
+><P
+>To listen on a interfaces which are not the primary host interface use the SocketBindTight directive, place your server configuration in a &lt;VirtualHost ftp.mydomain.com&gt; block and use "Port 0" for the main host configuration and and "Port 21" inside the VirtualHost block.</P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN440"
+></A
+>inetd</H3
+><P
+>There are two approaches possible, the first is to use the patch
+from Daniel Roesen &lt;droesen@entire-systems.com&gt; (check
+the mailing list archives).</P
+><P
+>The second method is to run ProFTPD from xinetd
+(http://synack.net/xinetd/), a more advanced replacement of inetd. An
+entry for this in xinetd.conf would be something like this:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>service ftp
+{
+        disable = no
+        flags			= REUSE
+        socket_type             = stream
+        wait                    = no
+        user                    = root
+        server                  = /usr/sbin/proftpd
+        log_on_success          += DURATION USERID
+        log_on_failure          += USERID
+        nice                    = 10
+	#bind			= [IP to bind to]
+}
+            </PRE
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN445"
+></A
+><B
+>17. </B
+>"FTP server shut down ... please try again later."</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Check for /etc/shutmsg and delete it.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN450"
+></A
+><B
+>18. </B
+>How do I shutdown the server without killing proftpd?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>ftpshut, allows the server to disallow connections with a message
+without actually taking down the service.  The shutdown can be
+scheduled for a point in the future or right now, existing connections
+can be allowed to finish, or be terminated now.  Re-enabling is done
+by removing the /etc/shutmsg file.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN455"
+></A
+><B
+>19. </B
+>Is is possible to shutdown a single VirtualHost?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>No, the shutmsg file works at a daemon level not at a virtual host
+level.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN460"
+></A
+><B
+>20. </B
+>Error 421</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>This appears to be a general catch all error code meaning "something
+nasty has gone wrong".</P
+><P
+></P
+><UL
+><LI
+><P
+>Connection has timed out</P
+></LI
+><LI
+><P
+>The DefaultRoot specified doesn't exist</P
+></LI
+><LI
+><P
+>The parent server has been killed</P
+></LI
+><LI
+><P
+>Check /etc/services</P
+></LI
+><LI
+><P
+>Wrong permissions on the DefaultRoot</P
+></LI
+></UL
+><P
+>You get the idea...</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN477"
+></A
+><B
+>21. </B
+>proftpd doesn't show in the processlist</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Two possible reasons, first that it's simply not running, try
+proftpd -n -d2 to run in debug mode and see what happens.  The other
+is that it's running from inetd and there are no active sessions at
+the moment.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN482"
+></A
+><B
+>22. </B
+>How do I restart/reload the server?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>This depends on the mode you're running the server in.</P
+><A
+NAME="AEN486"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN487"
+></A
+>inetd</H3
+><P
+>Unless you're making a configuration change to inetd itself nothing 
+needs doing.  The server reloads the configuration everytime a new
+connection is made.</P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN489"
+></A
+>Standalone</H3
+><P
+>Either stop and start the server completely (a little aggressive
+for most admins tastes) or send a SIGHUP to the master daemon
+process.</P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN492"
+></A
+><B
+>23. </B
+>503 No PORT command issued</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>A bug was introduced in 1.2.0rc2 which prevented the PORT command
+working properly and therefore breaking the data socket under certain
+conditions.  The bug was documented as bug 240 and has been fixed in
+CVS.  A rc3 release is due before the end of Jan 2001.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN497"
+></A
+><B
+>24. </B
+>Fatal: unable to determine IP address of</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Proftpd was unable to work out what IP is associated with the
+hostname in the VirtualHost block.  Normally caused by a problem
+with the DNS resolution of the host, check the resolv.conf file
+and that your chosen nameservers are functional.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN502"
+></A
+><B
+>25. </B
+>451 append/restart not permitted, try again</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>AllowStoreRestart is disabled by default because it will allow any
+writable file to be corrupted by a malicious user.  It is recommended
+that this option is only used with authenticated users and then only
+in certain directories.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN507"
+></A
+><B
+>26. </B
+>501 REST not compatible with server configuration</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>As mentioned in the description of the HiddenStor configuration directive,
+use of that directive is incompatible with the FTP command REST.  Either
+disable use of REST with the AllowRetrieveRestart and AllowStoreRestart
+directives, or do not use HiddenStor.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN512"
+></A
+><B
+>27. </B
+>The time being displayed is wrong</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The default behaviour for ProFTPD is to display all times relative
+to GMT.  To use local time set "TimesGMT off" in the server section of
+the config.  There is a known issue with Redhat 7, with regard to time
+handling.
+<A
+HREF="http://www.redhat.com/support/rh7-errata-bugfixes.html"
+TARGET="_top"
+>http://www.redhat.com/support/errata/rh7-errata-bugfixes.html</A
+></P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN518"
+></A
+><B
+>28. </B
+>Authentication is taking too long</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Make sure that ReverseDNS is disabled, turn off ident lookups.
+Additionally check the size of your /etc/passwd (or shadow) file, if
+it is large then the only solution may be to move to another
+authentication scheme.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN523"
+></A
+><B
+>29. </B
+>Corrupted files</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There appear to be some problems with both the use of sendfile()
+in ProFTPD and with the implementation within certain operating systems.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN528"
+></A
+><B
+>30. </B
+>Can I upgrade ProFTPD without terminating the current sessions?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Short answer, no.  Longer answer is no, but you can minimise the
+effects.  The cleanest approach on servers which have significant
+amounts of traffic appears to be to use ftpshut to block new
+connections and terminate existing ones after a pre-determined time
+period and then to upgrade and restart.  This approach limits the
+number of downloads which are terminated part way through.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN533"
+></A
+><B
+>31. </B
+>No such group "nogroup"</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The default ProFTPD configuration file uses the user "nouser" and
+the group "nogroup", some systems / distributions do not have the
+group "nogroup" defined.  The solution is to either add the group
+"nogroup" to /etc/groups or to change the "nogroup" entry in the
+proftpd.conf to a group which does exist.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN538"
+></A
+><B
+>32. </B
+>Why do I see "unable to set groups: Invalid argument"? </P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The setting of the group privileges for a process uses the setgroups(2)
+   system call.  This call will fail with the above error message for
+   one of two reasons: there is a negative GID value for one of the
+   groups, or the maximum number of groups for a single user has been
+   exceeded.</P
+><P
+>Ideally, all IDs, both UID and GID, will be positive.  Unfortunately,
+   it is common on many systems to use -1 or -2, especially for such
+   users as 'nobody', or group 'nogroup'.  Use of these values uses C's
+   treatment of data types to make the actual numeric value very high;
+   some functions, like setgroups(), do not like this, though.  In
+   general, always use positive ID numbers.</P
+><P
+>The other limitation is the number of supplemental groups for a user
+   (eg non-primary groups, the ones configured in /etc/group).  The
+   maximum number of supplemental groups to which a user may belong
+   is defined by the operating system constant NGROUPS_MAX.  On
+   some operating systems, such as Solaris, this limitation may be
+   tunable.</P
+><P
+>Some other applications may not encounter this error if they use the
+   initgroups(3) function, which reads the /etc/group file for a user's
+   supplemental group memberships, and sets those groups.  This function,
+   however, silently ignores any supplemental groups for user greater than
+   NGROUPS_MAX, unlike setgroups(2), which complains.</P
+><P
+>   If this is the cause of your error message, any solution will most
+   likely involve reducing the number of groups your users are members of,
+   or tuning the NGROUPS_MAX value, if your operating system allows it.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN547"
+></A
+><B
+>33. </B
+>Why do I see error messages like these when I logout?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>	  <PRE
+CLASS="PROGRAMLISTING"
+>            PAM(exit): Permission denied
+            open_module: stat(/usr/lib/security/pam_unix.so.1) failed: No such file or directory
+            load_modules: can not open module /usr/lib/security/pam_unix.so.1
+            PAM(exit): Dlopen failure.
+          </PRE
+></P
+><P
+>These messages appear when the DefaultRoot configuration directive is
+   in effect.  This directive causes a user to be confined using the
+   chroot(2) system call.  This call, however, affects other system
+   utilities, such as PAM.  In this case, PAM's configuration is causing
+   the PAM library to attempt to open PAM modules using a path that is
+   no longer valid, thus the errors.  This happens on logout because the
+   chroot has already happened by that point; on login, the PAM modules
+   are successfully found and loaded before the chroot, so no errors.
+   These are merely cosmetic reporting errors, and do not really affect
+   the functionality or security of the server.</P
+></DIV
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="CHAPTER"
+><HR><H1
+><A
+NAME="AEN553"
+></A
+>Chapter 5. Configuration problems</H1
+><DIV
+CLASS="QANDASET"
+><DL
+><DT
+>1. <A
+HREF="#AEN558"
+>How do I add another anonymous login or guest account?</A
+></DT
+><DT
+>2. <A
+HREF="#AEN565"
+>How do I ftp as root?</A
+></DT
+><DT
+>3. <A
+HREF="#AEN572"
+>How do I provide a secure upload facility?</A
+></DT
+><DT
+>4. <A
+HREF="#AEN579"
+>How can I stop my users from using their space as a warez repository</A
+></DT
+><DT
+>5. <A
+HREF="#AEN584"
+>Can I rotate files out of an upload directory after upload?</A
+></DT
+><DT
+>6. <A
+HREF="#AEN589"
+>How can I hide a directory from anonymous clients.</A
+></DT
+><DT
+>7. <A
+HREF="#AEN597"
+>File/Directory hiding isn't working for me!</A
+></DT
+><DT
+>8. <A
+HREF="#AEN602"
+>I want to prevent users from accessing a hidden directory</A
+></DT
+><DT
+>9. <A
+HREF="#AEN607"
+>How do I setup a virtual FTP server?</A
+></DT
+><DT
+>10. <A
+HREF="#AEN614"
+>I only want to allow anonymous access to a virtual server.</A
+></DT
+><DT
+>11. <A
+HREF="#AEN620"
+>How does &lt;Limit LOGIN&gt; work, and where should I use it?</A
+></DT
+><DT
+>12. <A
+HREF="#AEN630"
+>How can I limit users to a particular directory tree?</A
+></DT
+><DT
+>13. <A
+HREF="#AEN651"
+>How do I create individual anonymous FTP sites for my users?</A
+></DT
+><DT
+>14. <A
+HREF="#AEN665"
+>I want to support normal login and Anonymous under a particular 
+user</A
+></DT
+><DT
+>15. <A
+HREF="#AEN673"
+>Why doesn't Anonymous ftp work (550 login incorrect)?</A
+></DT
+><DT
+>16. <A
+HREF="#AEN687"
+>Bandwidth control</A
+></DT
+><DT
+>17. <A
+HREF="#AEN693"
+>CHMOD isn't working</A
+></DT
+><DT
+>18. <A
+HREF="#AEN698"
+>How can I limit the size of uploaded files?</A
+></DT
+><DT
+>19. <A
+HREF="#AEN703"
+>Can I disable Anonymous logins?</A
+></DT
+><DT
+>20. <A
+HREF="#AEN708"
+>Limiting the connections per loginID</A
+></DT
+><DT
+>21. <A
+HREF="#AEN713"
+>How do I configure proftpd to allow transfer
+	  resumption (for downloads and uploads)?</A
+></DT
+><DT
+>22. <A
+HREF="#AEN720"
+>When should the Bind directive be used?</A
+></DT
+></DL
+><P
+>Problems encountered in trying to make the server behave 
+exactly as required after compilation and installation are 
+complete and the server is running.</P
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN558"
+></A
+><B
+>1. </B
+>How do I add another anonymous login or guest account?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>You should look in the sample-configurations/ directory from
+your distribution tarball. Basically, you'll need to create another
+user on your system for the guest/anonymous ftp login. For security
+reasons, it's very important that you make sure the user account
+either has a password or has an "unmatchable" password. The root
+directory of the guest/anonymous account doesn't have to be the user's
+directory, but it makes sense to do so. After you have created the
+account, put something like the following in your /etc/proftpd.conf
+file (assuming the new user/group name is private/private):</P
+><PRE
+CLASS="PROGRAMLISTING"
+>&lt;Anonymous ~private&gt;
+AnonRequirePassword off
+User private
+Group private
+RequireValidShell off
+&lt;Directory *&gt;
+&lt;Limit WRITE&gt;
+DenyAll
+&lt;/Limit&gt;
+&lt;/Directory&gt;
+&lt;/Anonymous&gt;
+          </PRE
+><P
+>This will allow ftp clients to login to your site with the username
+"private" and their e-mail address as a password. You can change the
+AnonRequirePassword directive to "on" if you want clients to be
+forced to transmit the correct password for the "private" account.
+This sample configuration allows clients to change into, list and read
+all directories, but denies write access of any kind.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN565"
+></A
+><B
+>2. </B
+>How do I ftp as root?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>First off this is a <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>bad</I
+></SPAN
+> idea ftping as root is insecure,
+there are better more secure ways of shifting files as root.</P
+><P
+>To enable root ftp ensure that the directive "RootLogin on" is
+included in your configuration.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN572"
+></A
+><B
+>3. </B
+>How do I provide a secure upload facility?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The following snippet from a sample configuration file
+illustrates how to protect an "upload" directory in such a fashion
+(which is a very good idea if you don't want people using your site
+for "warez"):</P
+><PRE
+CLASS="PROGRAMLISTING"
+>&lt;Anonymous /home/ftp&gt;
+  # All files uploaded are set to username.usergroup ownership
+  User username
+  Group usergroup
+  UserAlias ftp username
+  AuthAliasOnly on
+  RequireValidShell off
+
+  &lt;Directory pub/incoming/&gt;
+     &lt;Limit STOR CWD&gt;
+        AllowAll
+     &lt;/Limit&gt;
+     &lt;Limit READ RMD DELE MKD&gt;
+        DenyAll
+     &lt;/Limit&gt;
+  &lt;/Directory&gt;
+&lt;/Anonymous&gt;
+          </PRE
+><P
+>This denies all write operations to the anonymous root directory
+and sub-directories, except "incoming/" where the permissions are
+reversed and the client can store but not read. If you used &lt;Limit
+WRITE&gt; instead of &lt;Limit STOR&gt; on &lt;Directory incoming&gt;,
+ftp clients would be allowed to perform all write operations to the
+sub-dir, including deleting, renaming and creating directories.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN579"
+></A
+><B
+>4. </B
+>How can I stop my users from using their space as a warez repository</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The above fragment will control anonymous users however if a local
+user with a full account with up and download capability is abusing
+their space then the technical measures which can be taken are
+limited.  Applying a sane system quota is a good start, using the
+mod_quota and mod_ratio modules may control the rates of
+upload/download making it less useful as a warez repository.  In the
+end it comes down to system monitoring and good site AUP's and
+enforcement.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN584"
+></A
+><B
+>5. </B
+>Can I rotate files out of an upload directory after upload?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Yes.  You'll need to write a script which either checks the
+contents of the directory regularly and moves once it's detected no
+size change in a file for xyz seconds.  Or a script which monitors an
+upload log.  There is no automatic method for doing this.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN589"
+></A
+><B
+>6. </B
+>How can I hide a directory from anonymous clients.</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Use the HideUser or HideGroup directive in combination with the
+proper user/group ownership on the directive. For example, if you
+have the follow directory in your anonymous ftp directory tree:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>drwxrwxr-x 3 ftp staff 6144 Apr 21 16:40 private
+          </PRE
+><P
+>You can use a directive such as "HideGroup staff" to hide the private
+directory from a directory listing. For example:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>&lt;Anonymous ~ftp&gt;
+...
+&lt;Directory Private&gt;
+HideGroup staff
+&lt;/Directory&gt;
+...
+&lt;/Anonymous&gt;
+          </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN597"
+></A
+><B
+>7. </B
+>File/Directory hiding isn't working for me!</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>You need to make sure that the group you are hiding isn't the
+anonymous ftp user's primary group, or HideGroup won't apply.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN602"
+></A
+><B
+>8. </B
+>I want to prevent users from accessing a hidden directory</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>You can either change the permissions on the directory to prevent
+the anonymous FTP user from accessing it, or if you want to make it
+appear completely invisible (as though there is no such directory),
+use the IgnoreHidden directive inside a &lt;Limit&gt; block for one or
+more commands that you want to completely ignore the hidden directory
+entries (ignore = act as if the directory entry does not exist).</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN607"
+></A
+><B
+>9. </B
+>How do I setup a virtual FTP server?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>You'll need to configure your host to be able to handle multiple IP
+addresses. This is often called "aliasing", and can generally be
+configured through an IP alias or dummy interface. You need to read
+your operating system documentation to figure out how to do this. Once
+your have the host configured to accept the additional IP address that
+you wish to offer a virtual FTP server on, use the &lt;VirtualHost&gt;
+configuration directive to create the virtual server:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>&lt;VirtualHost 10.0.0.1&gt;
+ServerName "My virtual FTP server"
+&lt;/VirtualHost&gt;
+          </PRE
+><P
+>You can add additional directive blocks into the &lt;VirtualHost&gt; block
+in order to create anonymous/guest logins and the like which are only
+available on the virtual host.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN614"
+></A
+><B
+>10. </B
+>I only want to allow anonymous access to a virtual server.</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Use a &lt;Limit LOGIN&gt; block to deny access at the top-level of
+the virtual host, then use &lt;Limit LOGIN&gt; again in your
+&lt;Anonymous&gt; block to allow access to the anonymous login. This
+permits logins to a virtual anonymous server, but denies to everything
+else. Example:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>&lt;VirtualHost 10.0.0.1&gt;
+ServerName "My virtual FTP server"
+&lt;Limit LOGIN&gt;
+DenyAll
+&lt;/Limit&gt;
+&lt;Anonymous /usr/local/private&gt;
+User private
+Group private
+&lt;Limit LOGIN&gt;
+AllowAll
+&lt;/Limit&gt;
+...
+&lt;/Anonymous&gt;
+&lt;/VirtualHost&gt;
+          </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN620"
+></A
+><B
+>11. </B
+>How does &lt;Limit LOGIN&gt; work, and where should I use it?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The &lt;LOGIN&gt; directive is used to control connection or login
+access to a particular context (the directive block which contains
+it). When a client initially connects to ProFTPD, the daemon searches
+the configuration tree for &lt;Limit LOGIN&gt; directives, and
+attached parameters (such as Allow, Deny, etc). If it determines that
+there is no possible way for the client to ever be allowed to login,
+such as a "Deny from" matching the client's source address, without an
+overriding "Allow from" at a lower level, the client is disconnected
+without being offered the opportunity to transmit a user and password.</P
+><P
+>However, if it is possible for the client to be allowed a login,
+ProFTPD continues as per normal, allowing the client to login only if
+the proper &lt;Limit LOGIN&gt; applies. Normally, &lt;Limit&gt; directive blocks
+are allowed in the server config, &lt;VirtualHost&gt;, &lt;Anonymous&gt;
+and &lt;Directory&gt; contexts. However, &lt;Limit LOGIN&gt; should not be
+used in a &lt;Directory&gt; context, as clients do not connect/login to a
+directory (and thus it is meaningless).</P
+><P
+>By way of example, the following configuration snippet illustrates a
+&lt;Limit LOGIN&gt; deny which will cause any incoming connections from the
+10.1.1.x subnet to be immediately disconnected, without a welcome
+message:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>...
+&lt;Limit LOGIN&gt;
+Order deny,allow
+Deny from 10.1.1.
+Allow from all
+&lt;/Limit&gt;
+...
+          </PRE
+><P
+>Next, an example of a configuration using &lt;Limit LOGIN&gt; that will not
+immediately disconnect an incoming client, but will return "Login
+invalid" for all login attempts except anonymous.</P
+><PRE
+CLASS="PROGRAMLISTING"
+>...
+&lt;Limit LOGIN&gt;
+DenyAll
+&lt;/Limit&gt;
+&lt;Anonymous ~ftp&gt;
+...
+&lt;Limit LOGIN&gt;
+AllowAll
+&lt;/Limit&gt;
+...
+          </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN630"
+></A
+><B
+>12. </B
+>How can I limit users to a particular directory tree?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>For general open access you can use an &lt;Anonymous&gt; directive context block,
+possibly in combination with a UserPassword/AnonRequirePassword directive. </P
+><P
+>However if you wish to jail an entire group (or groups) of users,
+you can use the DefaultRoot directive.  DefaultRoot lets you specify a
+root jailed directory (or "~" for the user's home directory), and an
+optional group-expression argument which can be used to control which
+groups of users the jail will be applied to. For example:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>...
+&lt;VirtualHost myhost.mynet.foo&gt;
+DefaultRoot ~
+...
+&lt;/VirtualHost&gt;
+          </PRE
+><P
+>This creates a configuration where all users who log into
+myhost.mynet.foo are jailed into their home directories (cannot chdir
+into a higher level directory). Alternatively, you could:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>...
+&lt;VirtualHost myhost.mynet.foo&gt;
+DefaultRoot /u2/public users,!staff
+...
+&lt;/VirtualHost&gt;
+          </PRE
+><P
+>In this example, all users who are members of group "users", but
+not members of group "staff" are jailed into /u2/public. If a user
+does not meet the group-expression requirements, they login as per
+normal (not jailed, default directory is their home).  You can use
+multiple DefaultRoot directives to create multiple jails inside the
+same directive context. If two DefaultRoot directives apply to the
+same user, ProFTPD arbitrarily chooses one (based on how the
+configuration file was parsed).</P
+><A
+NAME="AEN639"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN640"
+></A
+>Security Implications</H3
+><P
+>The DefaultRoot directive is implemented using the chroot(2) system
+call.  This moves the "/" (or root) directory to a specified point
+within the file system and jails the user into this sub-tree.  However
+this is not the holy grail of security, a chroot jail can be broken,
+it is not a trivial matter but it's nowhere near impossible.
+DefaultRoot should be used as part of a general system of security not
+the only security measure.</P
+><P
+>A more detailed <A
+HREF="http://www.bpfh.net/simes/computing/chroot-break.html"
+TARGET="_top"
+>http://www.bpfh.net/simes/computing/chroot-break.html</A
+> on this subject and on the breaking of chroot jails has been written by Simon Burr</P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN644"
+></A
+>Non-root server issues</H3
+><P
+>The chroot() system call will not work under a non-root ftp server
+process, the call requires root privaliges.  Without them it simply
+doesn't work, there doesn't appear to be any checking in the code of
+the uid/gid before calling chroot so using DefaultRoot in such a setup 
+will cause the server to fail.</P
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN646"
+></A
+>Symlinks</H3
+><P
+>Symlinks will not work from within a chrooted area.  The reason
+	    should be clear from a casual inspection of the nature of
+	    the chroot command.  It is not possible to have a symbolic
+	    link to a directory which can"t be reached beacuse it's
+	    outside of the current chroot.  Work arounds to allow
+	    access to other parts of the file system include exporting
+	    the part of the filesystem to be accessed from inside the
+	    chroot and mounting via NFS, using hard file links or (on
+	    Solaris) using lofs to mount the directory via the loopback.
+          </P
+><PRE
+CLASS="PROGRAMLISTING"
+>mount -Flofs /home/data1 /ftp/data1
+mount -Flofs /home/data2 /ftp/data2
+          </PRE
+><P
+>As of the 2.4.x Linux kernel tree it is possible to mount filesystems
+multiple times and to mount subdirectories of filesystems elsewhere on
+the filesystem.</P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN651"
+></A
+><B
+>13. </B
+>How do I create individual anonymous FTP sites for my users?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There are two methods of accomplishing this (possibly more).
+First, you can create a directory structure inside your anonymous FTP
+root directory, creating a single directory for each user and setting
+ownership/permissions as appropriate. Then, either create a symlink
+from each user's home directory into the FTP site, or instruct your
+users on how to access their directory.</P
+><P
+>The alternate method (and more versatile) of accomplishing per-user
+anonymous FTP is to use AnonymousGroup in combination with the
+DefaultRoot directory. You'll probably want to do this inside a
+&lt;VirtualHost&gt;, otherwise none of your users will be able to access
+your system without being stuck inside their per-user FTP site.
+Additionally, you'll want to use a deferred &lt;Directory&gt; block to
+carefully limit outside access to each user's site.</P
+><P
+></P
+><OL
+TYPE="1"
+><LI
+><P
+>Create a new unix group on your system named `anonftp". Please
+each user who will have per-user anonymous FTP in this group.</P
+></LI
+><LI
+><P
+>Create an `anon-ftp" and `anon-ftp/incoming" directory in each
+user's home directory.</P
+></LI
+><LI
+><P
+>Modify your /etc/proftpd.conf file to look something like this
+(you'll probably want to customize this to your needs):</P
+><PRE
+CLASS="PROGRAMLISTING"
+> &lt;VirtualHost my.per-user.virtual.host.address&gt;
+ 
+ # the next line limits all logins to this virtual host, so that only
+ anonftp users can connect
+ 
+ &lt;Limit LOGIN&gt;
+ DenyGroup !anonftp
+ &lt;/Limit&gt;
+ 
+ # limit access to each user's anon-ftp directory, we want read-only
+ except on incoming
+ 
+ &lt;Directory ~/anon-ftp&gt;
+ 
+ &lt;Limit WRITE&gt;
+ DenyAll
+ &lt;/Limit&gt;
+ 
+ &lt;/Directory&gt;
+ 
+ # permit stor access to each user's anon-ftp/incoming directory,
+ but deny everything else
+ 
+ &lt;Directory ~/anon-ftp/incoming&gt;
+ 
+ &lt;Limit STOR&gt;
+ AllowAll
+ &lt;/Limit&gt;
+ &lt;Limit READ WRITE&gt;
+ DenyAll
+ &lt;/Limit&gt;
+ 
+ &lt;/Directory&gt;
+ 
+ # provide a default root for all logins to this virtual host.
+ DefaultRoot ~/anon-ftp
+ # Finally, force all logins to be anonymous for the anonftp group
+ AnonymousGroup anonftp
+ 
+ &lt;/VirtualHost&gt;
+              </PRE
+></LI
+></OL
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN665"
+></A
+><B
+>14. </B
+>I want to support normal login and Anonymous under a particular 
+user</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>You can use the AuthAliasOnly directive to control how and
+where real usernames get authenticated (as opposed to aliased names,
+via the UserAlias directive). Note that it is still impossible to
+have two identical aliased names login to different anonymous sites;
+for that you would need &lt;VirtualHost&gt;.</P
+><P
+>Example:</P
+><PRE
+CLASS="PROGRAMLISTING"
+>...
+&lt;Anonymous ~jrluser&gt;
+
+ User jrluser
+ Group jrluser
+ UserAlias ftp jrluser
+ UserAlias anonymous jrluser
+ AuthAliasOnly on
+ ...
+ 
+&lt;/Anonymous&gt;
+          </PRE
+><P
+>Here, the &lt;Anonymous&gt; configuration for ~jrluser is set to allow
+alias authentication only. Thus, if a client attempts to authenticate
+as "jrluser", the anonymous config will be ignored and the client will
+be authenticated as if they were a normal user (typically resulting in
+`jrluser" logging in normally). However, if the client uses the
+aliased username `ftp" or `anonymous", the anonymous block is applied.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN673"
+></A
+><B
+>15. </B
+>Why doesn't Anonymous ftp work (550 login incorrect)?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Things to check</P
+><P
+></P
+><P
+><B
+>Check the following first:</B
+></P
+><UL
+><LI
+><P
+>Make sure the user/group you specified inside the &lt;Anonymous&gt;
+block actually exists. This must be a real user and group, as it is
+used to control whom the daemon runs as and authenticates as.</P
+></LI
+><LI
+><P
+>If RequireValidShell is not specifically turned off, make sure
+that your "ftp user" (as specified by the User directive inside an
+&lt;Anonymous&gt; block), has a valid shell listed in /etc/shells. If you do
+not wish to give the user a valid shell, you can always use
+"RequireValidShell off" to disable this check.</P
+></LI
+><LI
+><P
+>If UseFtpUsers is not specifically turned off, make sure that
+your "ftp user" is not listed in /etc/ftpusers.</P
+></LI
+></UL
+><P
+>If all else fails, you should check your syslog. When authentication
+fails for any reason, ProFTPD uses the syslog mechanism to log the
+reason for failure; using the AUTH (or AUTHPRIV) facility. If you need
+further assistance, you can send email, including related syslog
+entries and your configuration file, to the ProFTPD mailing list
+mentioned elsewhere in this FAQ.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN687"
+></A
+><B
+>16. </B
+>Bandwidth control</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>A new patch providing the TransferRate directive has
+	  been provided and is slated for inclusion in 1.2.8, this
+	  gives per-connection bandwidth limits with Class support.
+	  The limits are more effective against downloads than
+	  uploads.</P
+><P
+>There is no method to control the total bandwidth a
+          single VirtualHost context can use.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN693"
+></A
+><B
+>17. </B
+>CHMOD isn't working</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>AllowChmod is deprecated and has been replaced with
+	  the SITE_CHMOD expansion for controlling this
+	  functionality.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN698"
+></A
+><B
+>18. </B
+>How can I limit the size of uploaded files?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>As of 1.2.7rc1 there are two new directives
+	  MaxRetrieveFileSize and MaxStoreFileSize to control the
+	  maximum size of files being transfered to or from the
+	  server.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN703"
+></A
+><B
+>19. </B
+>Can I disable Anonymous logins?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Yes, just remove all the &lt;Anonymous&gt; sections
+	  from your configuration file and reload the daemon.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN708"
+></A
+><B
+>20. </B
+>Limiting the connections per loginID</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>As of 1.2.7rc1 MaxClientsPerUser has been
+	  implemented.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN713"
+></A
+><B
+>21. </B
+>How do I configure proftpd to allow transfer
+	  resumption (for downloads and uploads)?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>To allow downloads to be resumed, you need to use the
+   AllowRetrieveRestart configuration directive.</P
+><P
+>To allow uploads to be resumed, you need to use both the
+   AllowOverwrite and AllowStoreRestart directives.  The reason that both
+   need to be allowed is that a restarted/resumed upload is a form of
+   overwriting the file.</P
+><P
+>Also note that using HiddenStor and AllowStoreRestart is incompatible,
+   as mentioned in the documentation for the AllowStoreRestart
+   and HiddenStor directives.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN720"
+></A
+><B
+>22. </B
+>When should the Bind directive be used?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The Bind directive is used to specify additional interfaces (addresses)
+   for a given server; it is *not* used to configure the main interface
+   for the server.  For &lt;VirtualHost&gt; servers, this is not a problem, as
+   the main interface for the server is set in the &lt;VirtualHost&gt; line.</P
+><P
+>For the main "default" server, however, the controlling of the main
+   interface is more problematic.  There is currently a bug report
+   opened for this issue:</P
+><P
+><A
+HREF="http://bugs.proftpd.org/show_bug.cgi?id=1253"
+TARGET="_top"
+>http://bugs.proftpd.org/show_bug.cgi?id=1253</A
+></P
+></DIV
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="CHAPTER"
+><HR><H1
+><A
+NAME="AEN727"
+></A
+>Chapter 6. Security</H1
+><DIV
+CLASS="QANDASET"
+><DL
+><DT
+>1. <A
+HREF="#AEN731"
+>General</A
+></DT
+><DT
+>2. <A
+HREF="#AEN741"
+>Surely running ProFTPD as non-root will help?</A
+></DT
+><DT
+>3. <A
+HREF="#AEN748"
+>How can I control what commands the server accepts?</A
+></DT
+><DT
+>4. <A
+HREF="#AEN753"
+>How can I prevent the server version from being displayed?</A
+></DT
+><DT
+>5. <A
+HREF="#AEN759"
+>I want to show a message prior to login</A
+></DT
+><DT
+>6. <A
+HREF="#AEN765"
+>I want to display a message after login</A
+></DT
+><DT
+>7. <A
+HREF="#AEN771"
+>Can I have a custom welcome response?</A
+></DT
+><DT
+>8. <A
+HREF="#AEN778"
+>External Programs</A
+></DT
+><DT
+>9. <A
+HREF="#AEN783"
+>Why do I see "No certificates found!"? </A
+></DT
+><DT
+>10. <A
+HREF="#AEN791"
+>I can delete files owned by root. Why is this?</A
+></DT
+></DL
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN731"
+></A
+><B
+>1. </B
+>General</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>As with all software there have been a number of security issues
+during the life of the project.  The most recent information can
+always be found on http://www.proftpd.org/security.html</P
+><P
+>Versions 1.2.0 and above should be considered to be production code
+and few if any new features will be added to this code branch to
+maintain stability.</P
+><A
+NAME="AEN736"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN737"
+></A
+>What about using Stackguard?</H3
+><P
+>Stackguard (<A
+HREF="http://immunix.org"
+TARGET="_top"
+>http://immunix.org</A
+>) is a gcc variant which can protect programs from stack-smashing attacks, programs compiled using Stackguard dies without executing the stack code.  While this approach is a good first line of defense against future problems it"s not a complete cure-all.  Some of the buffer overflows were found on static variables, which are not protected by stack protection mechanisms. </P
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN741"
+></A
+><B
+>2. </B
+>Surely running ProFTPD as non-root will help?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Running ProFTPD as a non-root user gives only a marginal security
+improvement on the normal case and adds some functional problems.
+Such as not being able to bind to ports 20 or 21, unless it's spawned
+from inetd.</P
+><P
+>ProFTPD takes a middle road in terms of security.  It only uses
+root privileges where required and drops to the UID defined in the
+config file at all other times.  Times when root is required include,
+binding to ports &#60; 1024, setting resource limits, reading
+configuration information and some network code.</P
+><P
+>For Linux 2.2.x kernel systems there is the POSIX style
+mod_linuxprivs module which allows very fine grain control over
+privileges.  This is highly recommended for security-conscious admins.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN748"
+></A
+><B
+>3. </B
+>How can I control what commands the server accepts?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Use a sane Allow/DenyFilter, these directives use regular
+expressions to control all text sent over the control socket.  (If
+anyone has some good examples please let me know.)&#13;</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN753"
+></A
+><B
+>4. </B
+>How can I prevent the server version from being displayed?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Setting SeverIdent to "off" should turn off the information about
+what type of server is running.  To have maximum effect this directive 
+should either be in the Global context or included in every virtual
+host block and the default block.</P
+><PRE
+CLASS="PROGRAMLISTING"
+>ServerIdent  On "Linux.co.uk server"
+
+ServerIdent  Off
+          </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN759"
+></A
+><B
+>5. </B
+>I want to show a message prior to login</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Use the DisplayConnect directive to specify a file containing a
+message to be displayed prior to login.</P
+><PRE
+CLASS="PROGRAMLISTING"
+>DisplayConnect /ftp/ftp.virtualhost/login.msg
+          </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN765"
+></A
+><B
+>6. </B
+>I want to display a message after login</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Use the DisplayLogin directive, this sends a specified ASCII file to the
+connected user.</P
+><PRE
+CLASS="PROGRAMLISTING"
+>DisplayLogin       /etc/proftp.msg
+          </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN771"
+></A
+><B
+>7. </B
+>Can I have a custom welcome response?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Use the AccessGrantMsg directive, this sends a simple single line
+message back to the user after a successful authentication.  Magic
+cookies appear to be honoured in this directive.</P
+><PRE
+CLASS="PROGRAMLISTING"
+>AccessGrantMsg "Guest access granted for %u."
+          </PRE
+><P
+>Note, this directive has an overriding default and needs to be
+specified in both VirtualHost and Anonymous blocks.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN778"
+></A
+><B
+>8. </B
+>External Programs</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>ProFTPD has been designed to run as a secure ftp server, this means 
+that it tries to keep as much as possible under it's control.  An
+external program is a security risk in itself because it's behaviour
+is not controllable from within the ftpd code.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN783"
+></A
+><B
+>9. </B
+>Why do I see "No certificates found!"? </P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>This message is generated by mod_tls, the third-party module that can
+   be used to encrypt both the control and data connections with TLS
+   (Transport Layer Security), the next generation of SSL.  Certificates
+   are used to establish the security context for this secure transport.</P
+><P
+>Generation of certifications is beyond the scope of this document;
+   however, more information can be found here:</P
+><P
+>    <A
+HREF="http://en.tldp.org/HOWTO/SSL-Certificates-HOWTO/"
+TARGET="_top"
+>http://en.tldp.org/HOWTO/SSL-Certificates-HOWTO/</A
+></P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN791"
+></A
+><B
+>10. </B
+>I can delete files owned by root. Why is this?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>ProPTPD follows the UNIX file permission rules when determining the level of access and/or control a user is granted when working with a file.  UNIX systems divide the world into three classes when determining the permissions that a user is granted for a particular file:
+<P
+></P
+><UL
+><LI
+><P
+>User - the owner of the file</P
+></LI
+><LI
+><P
+>Group - a collection of users defined in /etc/group</P
+></LI
+><LI
+><P
+>Others - neither the owner, nor a member of the group</P
+></LI
+></UL
+></P
+><P
+>Every file in a Unix filesystem has a permission definition associated with it. At a minimum, the permission established for a file will determine whether a particular user may READ, WRITE, or EXECUTE the file in question.  A directory listing will show the permissions associated with a file in the format shown below:
+<PRE
+CLASS="PROGRAMLISTING"
+>&#13;  rwx  r-x  r-x
+   |    |    |
+   |    |    |_____________ Others:  READ/NO WRITE/EXECUTE
+   |    |__________________ Group:   READ/NO WRITE/EXECUTE
+   |_______________________ User:    READ/WRITE/EXECUTE&#13;</PRE
+></P
+><P
+>In the sample directory listing shown below, READ/WRITE/EXECUTE privileges are granted to the owner of the directory, and READ/EXECUTE privileges are granted to members of the <TT
+CLASS="COMPUTEROUTPUT"
+>users</TT
+> group and everyone else.  Note the letter "d" at the beginning of each entry, denoting that the entry is actually a directory.
+
+<PRE
+CLASS="PROGRAMLISTING"
+>  prince&#62; ls -l /home/ftp
+
+  total 8
+  drwxr-xr-x    2 andrea   users        4096 May  3 00:40 andrea
+  drwxr-xr-x    2 eve      users        4096 May  3 00:40 eve
+
+  prince&#62; ls -l /home/ftp/andrea 
+
+  total 156
+  -rw-r--r--    1 andrea   users       85991 May  3 01:12 bland.txt
+  -rwxr-xr-x    1 root     root        65107 May  3 01:12 secret.txt&#13;</PRE
+></P
+><P
+>The answer to this question is shown in the above example.  When describing the permissions associated with a directory, WRITE means that permission is granted to modify the contents of a directory by adding or deleting files.  Thus, the user <TT
+CLASS="COMPUTEROUTPUT"
+>andrea</TT
+> may delete the file <TT
+CLASS="COMPUTEROUTPUT"
+>secret.txt</TT
+>, even though she cannot modify the file itself.</P
+><P
+>Refer to the documentation for the <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>IgnoreHidden</I
+></SPAN
+> and <SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>HideNoAccess</I
+></SPAN
+> directives for a method to mitigate this hazard.</P
+></DIV
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="CHAPTER"
+><HR><H1
+><A
+NAME="AEN813"
+></A
+>Chapter 7. User Authentication</H1
+><DIV
+CLASS="QANDASET"
+><DL
+><DT
+>1. <A
+HREF="#AEN818"
+>Why is PAM the default authentication system?</A
+></DT
+><DT
+>2. <A
+HREF="#AEN823"
+>Authentication methods supported</A
+></DT
+><DT
+>3. <A
+HREF="#AEN841"
+>Problems with non-PAM authentication</A
+></DT
+><DT
+>4. <A
+HREF="#AEN847"
+>AuthPAMAuthorative is an unknown directive!</A
+></DT
+><DT
+>5. <A
+HREF="#AEN852"
+>Configuring PAM</A
+></DT
+><DT
+>6. <A
+HREF="#AEN867"
+>pam_sm_open_session errors</A
+></DT
+><DT
+>7. <A
+HREF="#AEN872"
+>Normal users can't login, only anon.</A
+></DT
+><DT
+>8. <A
+HREF="#AEN877"
+>AuthPAMAuthoritative</A
+></DT
+><DT
+>9. <A
+HREF="#AEN885"
+>LDAP</A
+></DT
+><DT
+>10. <A
+HREF="#AEN891"
+>Encrypted passwords</A
+></DT
+><DT
+>11. <A
+HREF="#AEN896"
+>SecureID</A
+></DT
+><DT
+>12. <A
+HREF="#AEN901"
+>One time passwords</A
+></DT
+><DT
+>13. <A
+HREF="#AEN910"
+>RADIUS</A
+></DT
+><DT
+>14. <A
+HREF="#AEN915"
+>Anonymous password checking</A
+></DT
+><DT
+>15. <A
+HREF="#AEN920"
+>Why do I see "PAM(name): Authentication failure", but I can login
+     anyway?</A
+></DT
+></DL
+><P
+>This section is being re-written due to major structural changes to the SQL module prior to 1.2.0</P
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN818"
+></A
+><B
+>1. </B
+>Why is PAM the default authentication system?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Security, pure and simple.  PAM is the most secure (or securable)
+of the available authentication systems.  Many of the issues and
+configuration hints for PAM are contained in README.PAM which is
+bundled with the server source and in the various packaged builds.  To 
+use /etc/passwd manual compilation will be required with the configure 
+script being run with the --without-pam flag.  Unless the PAM
+subsystem is properly configured authentication will fail.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN823"
+></A
+><B
+>2. </B
+>Authentication methods supported</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+><LI
+><P
+>PAM</P
+></LI
+><LI
+><P
+>Standard /etc/passwd lookups</P
+></LI
+><LI
+><P
+>NIS</P
+></LI
+><LI
+><P
+>Shadow passwords</P
+></LI
+><LI
+><P
+>Indvidual passwd/group files for each virtual</P
+></LI
+><LI
+><P
+>SQL databases</P
+></LI
+></P
+><P
+>If these don't fit in with your system then writing a custom module
+or using such as the "ld.so.preload" approach to intercept
+getpwbynam() system calls works happily with ProFTPD.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN841"
+></A
+><B
+>3. </B
+>Problems with non-PAM authentication</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Generally these problems will be cured by either disabling PAM
+completely or by ensuring that these directives are set</P
+><PRE
+CLASS="PROGRAMLISTING"
+>PersistentPasswd   off
+AuthPAMAuthoritative off
+          </PRE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN847"
+></A
+><B
+>4. </B
+>AuthPAMAuthorative is an unknown directive!</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Check the spelling it should be AuthPAMAuthoritative not
+AuthPAMAuthorative or any other variation.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN852"
+></A
+><B
+>5. </B
+>Configuring PAM</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There is a README.Pam in the top directory of the ProFTPD install
+directory :</P
+><A
+NAME="AEN856"
+></A
+><BLOCKQUOTE
+CLASS="BLOCKQUOTE"
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN857"
+></A
+>Redhat Linux</H3
+><PRE
+CLASS="PROGRAMLISTING"
+>#%PAM-1.0
+auth       required     /lib/security/pam_listfile.so item=user
+sense=deny file=/etc/ftpusers onerr=succeed
+auth       required     /lib/security/pam_pwdb.so shadow nullok
+account    required     /lib/security/pam_pwdb.so
+session    required     /lib/security/pam_pwdb.so
+          </PRE
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN859"
+></A
+>SuSE Linux</H3
+><P
+>SuSE appears to uses pam_unix rather than pam_pwdb which is the
+Redhat approach.  All references to pam_pwdb should be replaced with
+"pam_unix" on SuSE systems.</P
+><P
+>The following fragment is reported to work fine on SuSE 6.2</P
+><PRE
+CLASS="PROGRAMLISTING"
+>/etc/pam.d/ftpd
+#%PAM-1.0
+
+# Uncomment this to achieve what used to be ftpd -A.
+# auth       required     /lib/security/pam_listfile.so item=user sense=allow file=/etc/ftpchroot onerr=fail
+
+auth     required       /lib/security/pam_listfile.so item=user
+sense=deny file=/etc/ftpusers onerr=succeed
+auth     sufficient     /lib/security/pam_ftp.so
+auth     required       /lib/security/pam_unix.so
+auth     required       /lib/security/pam_shells.so
+account  required       /lib/security/pam_unix.so
+password required       /lib/security/pam_unix.so
+session  required       /lib/security/pam_unix.so
+          </PRE
+><H3
+CLASS="BRIDGEHEAD"
+><A
+NAME="AEN863"
+></A
+>FreeBSD</H3
+><P
+>FreeBSD does not support PAM session directives. If you remove the
+following line from the FreeBSD section of README.PAM, PAM should work
+properly under recent versions of FreeBSD.</P
+><PRE
+CLASS="PROGRAMLISTING"
+> ftp session required    pam_unix.so         try_first_pass
+          </PRE
+></BLOCKQUOTE
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN867"
+></A
+><B
+>6. </B
+>pam_sm_open_session errors</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>ProFTPD requires PAM version 0.59 or better.  pam_sm_open_session
+is not part of previous versions.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN872"
+></A
+><B
+>7. </B
+>Normal users can't login, only anon.</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Check that the /etc/pam.d/ftp file exists on the system and is
+configured as detailed in README.PAM</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN877"
+></A
+><B
+>8. </B
+>AuthPAMAuthoritative</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Currently AuthPAMAuthoritative defaults on "ON" resulting in login
+failures if PAM cannot authenticate the user.  This breaks the
+AuthUserFile directive as it never gets a chance to authenticate the
+user unless the AuthPAMAuthoritative directive is set to "OFF"</P
+><P
+>The reasoning behind the current default is to ensure that the
+system is secure by default requiring that the admin explicitly and
+knowingly has to disable it.  There are discussions underway which
+may result in the directive flipping to a default of "Off" if
+AuthUserFile is specified.</P
+><P
+><SPAN
+CLASS="emphasis"
+><I
+CLASS="EMPHASIS"
+>Note:</I
+></SPAN
+> as of the current CVS and the forthcoming pre9
+release the default has changed to "Off"</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN885"
+></A
+><B
+>9. </B
+>LDAP</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>mod_ldap is currently stable; there were a couple bugs that were
+squashed after release 1.0 of the module.  it is still udner
+development , check the <A
+HREF="http://horde.net/~jwm/software/mod_ldap/"
+TARGET="_top"
+>http://horde.net/~jwm/software/mod_ldap/</A
+> for
+more information.  There is an example config fragment on the author's
+site which gives a reasonable idea on how to use this module.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN891"
+></A
+><B
+>10. </B
+>Encrypted passwords</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>There are patches which are being merged in at the moment to provide
+SHA encryption.  The plan is to have the server get all user information
+except passwords via an anonymous bind.  The server will then reconnect
+as a user is logging in and attempt to get the password via an encrypted
+connection.  This should be in the next major release (2.5)</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN896"
+></A
+><B
+>11. </B
+>SecureID</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>No support yet</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN901"
+></A
+><B
+>12. </B
+>One time passwords</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>This is possible using either PAM or the Opie modules.  The module
+passes back a challenge which the user puts into a key generator along
+with their "pass phrase" and it gives them back 5 words which get sent
+as the password.  As long as you do it correctly it will never repeat.</P
+><P
+>It requires <A
+HREF="http://inner.net/opie/"
+TARGET="_top"
+>http://inner.net/opie/</A
+> to be installed on the server. There are key gen clients for win95/98, *nix, mac.</P
+><P
+><A
+HREF="ftp://ftp.urbanrage.com/pub/c/mod_opie.c"
+TARGET="_top"
+>ftp://ftp.urbanrage.com/pub/c/mod_opie.c</A
+></P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN910"
+></A
+><B
+>13. </B
+>RADIUS</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The new mod_radius module provides RADIUS authentication
+	  and accounting support to ProFTPD.  </P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN915"
+></A
+><B
+>14. </B
+>Anonymous password checking</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Is it possible to check an offered email address in an anonymous
+login before allowing access.  Simple answer, not a hope in hell,
+anonymous access is pretty much designed to be freely open without
+checks and restrictions other than those placed on upload/download
+from the site.  The best that can be hoped for is decent logging and
+tracking of accesses, and the requesting IP.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN920"
+></A
+><B
+>15. </B
+>Why do I see "PAM(name): Authentication failure", but I can login
+     anyway?</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>If the operating system supports PAM (Pluggable Authentication Modules)
+   proftpd will perform PAM authentication by default.  However, this
+   authentication is not "authoritative" by default, meaning that
+   a PAM authentication failure will not necessary cause a login to
+   fail.  The use of PAM can be configured using the AuthPAM configuration
+   directive; the "authoritativeness" of any PAM checks is controlled via
+   the AuthPAMAuthoritative configuration directive.</P
+></DIV
+></DIV
+></DIV
+></DIV
+><DIV
+CLASS="CHAPTER"
+><HR><H1
+><A
+NAME="AEN924"
+></A
+>Chapter 8. FAQ Notes</H1
+><DIV
+CLASS="QANDASET"
+><DL
+><DT
+>1. <A
+HREF="#AEN928"
+>History</A
+></DT
+><DT
+>2. <A
+HREF="#AEN934"
+>Acknowledgements and Thanks</A
+></DT
+></DL
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN928"
+></A
+><B
+>1. </B
+>History</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>The original text for this document was based on the
+          configuration FAQ on www.proftpd.org.  It was taken over in
+          Sept 1999 when the maintainer of the software changed.</P
+><P
+>The faq is maintained by a group of people (usually
+	  lurking on irc or on proftpd-docs) using CVS and Docbook.</P
+></DIV
+></DIV
+><DIV
+CLASS="QANDAENTRY"
+><DIV
+CLASS="QUESTION"
+><P
+><A
+NAME="AEN934"
+></A
+><B
+>2. </B
+>Acknowledgements and Thanks</P
+></DIV
+><DIV
+CLASS="ANSWER"
+><P
+><B
+> </B
+>Thanks to the developers, anyone who's posted useful information to 
+the mailing lists and those who've mailed me direct.</P
+><P
+>This document couldn't have been maintained without the Sgml Tools
+package and the document layout defined by the Linux HOWTO
+maintainers. </P
+><P
+>Some specific mentions, in no particular order, and I've missed
+anyone please drop me a line.</P
+><P
+></P
+><TABLE
+BORDER="0"
+><TBODY
+><TR
+><TD
+>Updates to the SQL section, Michael Grabenstein
+&lt;mgrabens@popd.isinet.com&gt;</TD
+></TR
+><TR
+><TD
+>Matt Mozur, who's been cleaning up some of my mess
+and generally stuffing patches in my direction.</TD
+></TR
+><TR
+><TD
+>TJ Saunders, for the HOWTOs and other docs.</TD
+></TR
+></TBODY
+></TABLE
+><P
+></P
+></DIV
+></DIV
+></DIV
+></DIV
+></DIV
+></BODY
+></HTML
+>

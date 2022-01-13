@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_ctrls</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_ctrls</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+This module is contained in the <code>mod_ctrls.c</code> and
+<code>mod_ctrls.h</code> files for ProFTPD 1.2, and is not compiled by default.
+Installation instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+This module implements the server side of a Unix domain socket, used for
+communication with a running <code>proftpd</code> daemon.  The client used for
+this communication is <code>ftpdctl</code>, part of the Controls API.
+See the <code>ftpdctl</code> man page for details on using that program;
+details on the <a href="#Usage">usage</a> of this module follow
+the directive descriptions.
+
+<p>
+The most current version of <code>mod_ctrls</code> can be found in the
+ProFTPD source distribution:
+<pre>
+  <a href="http://www.proftpd.org/">http://www.proftpd.org/</a>
+</pre>
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#ControlsACLs">ControlsACLs</a>
+  <li><a href="#ControlsAuthFreshness">ControlsAuthFreshness</a>
+  <li><a href="#ControlsEngine">ControlsEngine</a>
+  <li><a href="#ControlsInterval">ControlsInterval</a>
+  <li><a href="#ControlsLog">ControlsLog</a>
+  <li><a href="#ControlsMaxClients">ControlsMaxClients</a>
+  <li><a href="#ControlsSocket">ControlsSocket</a>
+  <li><a href="#ControlsSocketACL">ControlsSocketACL</a>
+  <li><a href="#ControlsSocketOwner">ControlsSocketOwner</a>
+</ul>
+
+<h2>Control Actions</h2>
+<ul>
+  <li><a href="#help"><code>help</code></a>
+  <li><a href="#insctrl"><code>insctrl</code></a>
+  <li><a href="#lsctrl"><code>lsctrl</code></a>
+  <li><a href="#rmctrl"><code>rmctrl</code></a>
+</ul>
+
+<p>
+<hr>
+<h1>Directives</h1>
+
+<p>
+<hr>
+<h3><a name="ControlsACLs">ControlsACLs</a></h3>
+<strong>Syntax:</strong> ControlsACLs <em>actions|all allow|deny user|group list</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ctrls<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ControlsACLs</code> directive configures access lists of
+<em>users</em> or <em>groups</em> who are allowed (or denied) the ability to
+use the <em>actions</em> implemented by <code>mod_ctrls</code>. The default
+behavior is to deny everyone unless an ACL allowing access has been explicitly
+configured.
+
+<p>
+If &quot;allow&quot; is used, then <em>list</em>, a comma-delimited list
+of <em>users</em> or <em>groups</em>, can use the given <em>actions</em>; all
+others are denied.  If &quot;deny&quot; is used, then the <em>list</em> of
+<em>users</em> or <em>groups</em> cannot use <em>actions</em> all others are
+allowed.  Multiple <code>ControlsACLs</code> directives may be used to configure
+ACLs for different control actions, and for both users and groups.
+
+<p>
+<hr>
+<h3><a name="ControlsAuthFreshness">ControlsAuthFreshness</a></h3>
+<strong>Syntax:</strong> ControlsAuthFreshness <em>seconds</em><br>
+<strong>Default:</strong> ControlsAuthFreshness 10<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ctrls<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ControlsAuthFreshness</code> directive configures the maximum age,
+in seconds, for the client's end of a connection.  If the client-specific file
+is older than the configured age, the connection is denied.
+
+<p>
+<hr>
+<h3><a name="ControlsEngine">ControlsEngine</a></h3>
+<strong>Syntax:</strong> ControlsEngine <em>on|off</em><br>
+<strong>Default:</strong> ControlsEngine on<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ctrls<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ControlsEngine</code> directive enables or disables the
+<code>mod_ctrls</code> module, and thus the processing of <code>ftpdctl</code>
+requests.
+
+<p>
+<hr>
+<h3><a name="ControlsInterval">ControlsInterval</a></h3>
+<strong>Syntax:</strong> ControlsInterval <em>seconds</em><br>
+<strong>Default:</strong> ControlsInterval 10<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ctrls<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ControlsInterval</code> directives configures the interval at
+which <code>mod_ctrls</code> will check and handle pending
+<code>ftpdctl</code> action requests on the Controls socket.  <em>seconds</em>
+must be a positive number.
+
+<p>
+<hr>
+<h3><a name="ControlsLog">ControlsLog</a></h3>
+<strong>Syntax:</strong> ControlsLog <em>file</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ctrls<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ControlsLog</code> directive configures a file used for logging
+by <code>mod_ctrls</code> and possibly other Controls modules.  The
+configured <em>file</em> must be an absolute path.
+
+<p>
+<hr>
+<h3><a name="ControlsMaxClients">ControlsMaxClients</a></h3>
+<strong>Syntax:</strong> ControlsMaxClients <em>number</em><br>
+<strong>Default:</strong> ControlsMaxClients 5<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ctrls<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ControlsMaxClients</code> directive configures the maximum number
+of pending client requests that will be handled when <code>mod_ctrls</code>
+checks the socket.  <em>number</em> must be a positive number.
+
+<p>
+<hr>
+<h3><a name="ControlsSocket">ControlsSocket</a></h3>
+<strong>Syntax:</strong> ControlsSocket <em>file</em><br>
+<strong>Default:</strong> ControlsSocket var/run/proftpd.sock<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ctrls<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ControlsSocket</code> directive configures the file to be used
+as the Unix domain socket, rather than the default.  <em>file</em> must be an
+absolute path.  Note that if used, <code>ftpdctl</code>'s <code>-s</code>
+option will also need to be used.
+
+<p>
+<hr>
+<h3><a name="ControlsSocketACL">ControlsSocketACL</a></h3>
+<strong>Syntax:</strong> ControlsSocketACL <em>allow|deny user|group list</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ctrls<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ControlsSocketACL</code> directive configures an access
+<em>list</em> of <em>users</em> or <em>groups</em> who are allowed (or denied)
+access to the Unix domain server socket used for receiving action requests.
+The default behavior is to deny everyone unless an ACL allowing access has
+been explicitly configured.
+
+<p>
+If &quot;allow&quot; is used, then <em>list</em>, a comma-delimited list
+of <em>users</em> or <em>groups</em>, can use the control socket; all others
+are denied.  If &quot;deny&quot; is used, then the <em>list</em> of
+<em>users</em> or <em>groups</em> cannot use the control socket; all others
+are allowed.  A <code>ControlsSocketACL</code> directive with &quot;user&quot;
+and one using &quot;group&quot; may be used simultaneously.
+
+<p>
+<hr>
+<h3><a name="ControlsSocketOwner">ControlsSocketOwner</a></h3>
+<strong>Syntax:</strong> ControlsSocketOwner <em>user group</em><br>
+<strong>Default:</strong> ControlsSocketOwner <em>root root</em><br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ctrls<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>ControlsSocketOwner</code> directive configures the ownership of
+the Unix domain socket file created when <code>mod_ctrls</code> starts up.
+The ownership of this file (and its mode) can also be used as a form of
+access control.
+
+<p>
+<hr>
+<h1>Control Actions</h1>
+
+<p>
+<hr>
+<h3><a name="help"><code>help</code></a></h3>
+<strong>Syntax:</strong> ftpdctl help<br>
+<strong>Purpose:</strong> Display a sorted list of active controls and their descriptions
+
+<p>
+The <code>help</code> control action can be used to obtain a sorted list of all
+active control actions, and their descriptions.
+
+<p>
+<hr>
+<h3><a name="insctrl"><code>insctrl</code></a></h3>
+<strong>Syntax:</strong> ftpdctl insctrl <em>action|all [module]</em><br>
+<strong>Purpose:</strong> Enable control actions
+
+<p>
+The <code>insctrl</code> control action can be used to enable any disabled
+control action by name. The special &quot;<code>insctrl all</code>&quot; enables
+<b>all</b> disabled control actions.  Once a specific action has been enabled
+(most control actions are enabled by default) , the
+&quot;<a href="#rmctrl">rmctrl</a>&quot; control action can be used to disable
+it.
+
+<p>
+Example:
+<pre>
+  ftpdctl insctrl debug
+</pre>
+
+<p>
+<hr>
+<h3><a name="lsctrl"><code>lsctrl</code></a></h3>
+<strong>Syntax:</strong> ftpdctl lsctrl<br>
+<strong>Purpose:</strong> Display a sorted list of all active control actions
+
+<p>
+The <code>lsctrl</code> control action can be used obtain a sorted list of all
+active control actions.  The list will include the name of the action as well as
+the module that implements that action.
+
+<p>
+<hr>
+<h3><a name="rmctrl"><code>rmctrl</code></a></h3>
+<strong>Syntax:</strong> ftpdctl rmctrl <em>action|all [module]</em><br>
+<strong>Purpose:</strong> Disable control actions
+
+<p>
+The <code>rmctrl</code> control action can be used to disable any registered
+control action by name, except for the actions registered by
+<code>mod_ctrls</code>: &quot;insctrl&quot;, &quot;lsctrl&quot;, and
+&quot;rmctrl&quot;.  The exception to this is the special &quot;<code>rmctrl
+all</code>&quot;, which disables <b>all</b> actions and effectively turns
+<code>mod_ctrls</code> off.  A daemon restart is then necessary to re-enable
+actions.  Once a specific action has been disabled, the
+&quot;<a href="#insctrl">insctrl</a>&quot; control action can be used to
+re-enable it.
+
+<p>
+Example:
+<pre>
+  ftpdctl rmctrl memory
+</pre>
+This disables all actions registered under the name &quot;memory&quot;.  If
+there was such an action registered by a specific module,
+<code>mod_ctrls_common</code> for example, that the administrator wished to
+disable, but to leave the &quot;memory&quot; actions of other modules enabled:
+<pre>
+  ftpdctl rmctrl memory mod_ctrls_common.c
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+The determination of &quot;freshness&quot; is part of determining client
+credentials.  The method used by <code>mod_ctrls</code> comes from
+Stevens' <i>Advanced Programming in the Unix Environment</i>, chapter 15.
+Admittedly having kernel-provided client credentials would be <b>much</b> nicer,
+but portably obtaining them is next to impossible.  On some flavors of Unix
+it simply cannot be done.  Stevens' method is the next best thing right now.
+
+<p>
+<b>Logging</b><br>
+The <code>mod_ctrls</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>ctrls
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace ctrls:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_ctrls</code> module is distributed with ProFTPD.  To enable
+use of Controls, use the <code>--enable-ctrls</code> configure option:
+<pre>
+  $ ./configure --enable-ctrls
+  $ make
+  $ make install
+</pre>
+This option causes <code>mod_ctrls</code> to be compiled into
+<code>proftpd</code>.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2016 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>
+

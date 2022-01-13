@@ -1,0 +1,248 @@
+dnl ProFTPD - mod_auth_otp
+dnl Copyright (c) 2015-2017 TJ Saunders <tj@castaglia.org>
+dnl
+dnl This program is free software; you can redistribute it and/or modify
+dnl it under the terms of the GNU General Public License as published by
+dnl the Free Software Foundation; either version 2 of the License, or
+dnl (at your option) any later version.
+dnl
+dnl This program is distributed in the hope that it will be useful,
+dnl but WITHOUT ANY WARRANTY; without even the implied warranty of
+dnl MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+dnl GNU General Public License for more details.
+dnl
+dnl You should have received a copy of the GNU General Public License
+dnl along with this program; if not, write to the Free Software
+dnl Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA.
+dnl
+dnl Process this file with autoconf to produce a configure script.
+
+AC_INIT(./mod_auth_otp.c)
+
+AC_CANONICAL_SYSTEM
+
+ostype=`echo $build_os | sed 's/\..*$//g' | sed 's/-.*//g' | tr abcdefghijklmnopqrstuvwxyz ABCDEFGHIJKLMNOPQRSTUVWXYZ`
+
+AC_PROG_CC
+AC_PROG_CPP
+AC_AIX
+AC_ISC_POSIX
+AC_MINIX
+AC_PROG_MAKE_SET
+
+AC_HEADER_STDC
+
+AC_CHECK_HEADERS(stdlib.h unistd.h limits.h fcntl.h)
+
+UTILS_LIBS="-lsupp -lcrypto"
+
+dnl Need to support/handle the --enable-devel option, to see if coverage
+dnl is being used
+AC_ARG_ENABLE(devel,
+  [AC_HELP_STRING(
+    [--enable-devel],
+    [enable developer-only code (default=no)])
+  ],
+  [
+    if test x"$enableval" != xno ; then
+      if test `echo $enableval | grep -c coverage` = "1" ; then
+        UTILS_LIBS="--coverage $UTILS_LIBS"
+      fi
+    fi
+  ])
+
+dnl Need to support/handle the --with-includes and --with-libraries options
+AC_ARG_WITH(includes,
+  [AC_HELP_STRING(
+    [--with-includes=LIST],
+    [add additional include paths to proftpd. LIST is a colon-separated list of include paths to add e.g. --with-includes=/some/mysql/include:/my/include])
+  ],
+  [ ac_addl_includes=`echo "$withval" | sed -e 's/:/ /g'` ;
+    for ainclude in $ac_addl_includes; do
+      if test x"$ac_build_addl_includes" = x ; then
+        ac_build_addl_includes="-I$ainclude"
+      else
+        ac_build_addl_includes="-I$ainclude $ac_build_addl_includes"
+      fi
+    done
+    CPPFLAGS="$CPPFLAGS $ac_build_addl_includes"
+  ])
+
+AC_ARG_WITH(libraries,
+  [AC_HELP_STRING(
+    [--with-libraries=LIST],
+    [add additional library paths to proftpd. LIST is a colon-separated list of include paths to add e.g. --with-libraries=/some/mysql/libdir:/my/libs])
+  ],
+  [ ac_addl_libdirs=`echo "$withval" | sed -e 's/:/ /g'` ;
+    for alibdir in $ac_addl_libdirs; do
+      if test x"$ac_build_addl_libdirs" = x ; then
+        ac_build_addl_libdirs="-L$alibdir"
+      else
+        ac_build_addl_libdirs="-L$alibdir $ac_build_addl_libdirs"
+      fi
+    done
+    LDFLAGS="$LDFLAGS $ac_build_addl_libdirs"
+  ])
+
+dnl Need to support/handle the --with-modules and --with-shared options, to
+dnl see if mod_sftp will be built
+AC_ARG_WITH(modules,
+  [AC_HELP_STRING(
+    [--with-modules=LIST],
+    [add additional modules to proftpd. LIST is a colon-separated list of modules to add e.g. --with-modules=mod_readme:mod_ifsession])
+  ],
+  [
+    if test x"$withval" != x; then
+      if test x"$withval" = xyes; then
+        AC_MSG_ERROR([--with-modules parameter missing required colon-separated list of modules])
+      fi
+
+      if test x"$withval" != xno; then
+        modules_list=`echo "$withval" | sed -e 's/:/ /g'`;
+
+        for amodule in $modules_list; do
+          if test x"$amodule" = xmod_sftp ; then
+            AC_DEFINE(HAVE_SFTP, 1, [mod_sftp support enabled])
+          fi
+        done
+      fi
+    fi
+  ])
+
+AC_ARG_WITH(shared,
+  [AC_HELP_STRING(
+    [--with-shared=LIST],
+    [build DSO modules for proftpd. LIST is a colon-separated list of modules to build as DSOs e.g. --with-shared=mod_rewrite:mod_ifsession])
+  ],
+  [
+    if test x"$withval" != x; then
+      if test x"$withval" = xyes; then
+        AC_MSG_ERROR([--with-shared parameter missing required colon-separated list of modules])
+      fi
+
+      if test x"$withval" != xno; then
+        shared_modules_list=`echo "$withval" | sed -e 's/:/ /g'`;
+
+        for amodule in $shared_modules_list; do
+          if test x"$amodule" = xmod_sftp ; then
+            AC_DEFINE(HAVE_SFTP, 1, [mod_sftp support enabled])
+          fi
+        done
+      fi
+    fi
+  ])
+
+saved_libs="$LIBS"
+LIBS="$LIBS -lcrypto"
+
+AC_MSG_CHECKING([whether linking with OpenSSL functions requires -ldl])
+saved_libs="$LIBS"
+
+dnl Splice out -lsupp, since that library hasn't been built yet
+LIBS=`echo "$LIBS" | sed -e 's/-lsupp//g'`;
+LIBS="-lcrypto -ldl $LIBS"
+
+AC_TRY_LINK(
+  [
+    #include <openssl/evp.h>
+  ], [
+    SSLeay_add_all_algorithms();
+  ], [
+    AC_MSG_RESULT(yes)
+    LIBS="$saved_libs -ldl"
+    UTILS_LIBS="$UTILS_LIBS -ldl"
+  ], [
+    AC_MSG_RESULT(no)
+    LIBS="$saved_libs"
+  ]
+)
+
+AC_MSG_CHECKING([whether linking with OpenSSL functions requires -lz])
+saved_libs="$LIBS"
+
+dnl Splice out -lsupp, since that library hasn't been built yet
+LIBS=`echo "$LIBS" | sed -e 's/-lsupp//g'`;
+LIBS="-lcrypto -lz $LIBS"
+
+AC_TRY_LINK(
+  [
+    #include <openssl/evp.h>
+    #include <openssl/bio.h>
+    #include <openssl/comp.h>
+  ], [
+    BIO *bio;
+    SSLeay_add_all_algorithms();
+    bio = BIO_new(BIO_f_zlib());
+  ], [
+    AC_MSG_RESULT(yes)
+    LIBS="$saved_libs -lz"
+    UTILS_LIBS="$UTILS_LIBS -lz"
+  ], [
+    AC_MSG_RESULT(no)
+    LIBS="$saved_libs"
+  ]
+)
+
+dnl Splice out -lsupp, since that library hasn't been built yet
+LIBS=`echo "$LIBS" | sed -e 's/-lsupp//g'`;
+LIBS="-lcrypto $LIBS"
+
+AC_MSG_CHECKING([whether OpenSSL supports SHA256])
+AC_TRY_LINK(
+  [
+    #include <openssl/evp.h>
+  ],
+  [
+    const EVP_MD *md;
+    md = EVP_sha256();
+  ],
+  [
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(HAVE_SHA256_OPENSSL, 1, [OpenSSL supports SHA224/SHA256])
+    LIBS="$saved_libs"
+  ],
+  [
+    AC_MSG_RESULT(no)
+    LIBS="$saved_libs"
+  ]
+)
+
+dnl Splice out -lsupp, since that library hasn't been built yet
+LIBS=`echo "$LIBS" | sed -e 's/-lsupp//g'`;
+LIBS="-lcrypto $LIBS"
+
+AC_MSG_CHECKING([whether OpenSSL supports SHA512])
+AC_TRY_LINK(
+  [
+    #include <openssl/evp.h>
+  ],
+  [
+    const EVP_MD *md;
+    md = EVP_sha512();
+  ],
+  [
+    AC_MSG_RESULT(yes)
+    AC_DEFINE(HAVE_SHA512_OPENSSL, 1, [OpenSSL supports SHA384/SHA512])
+    LIBS="$saved_libs"
+  ],
+  [
+    AC_MSG_RESULT(no)
+    LIBS="$saved_libs"
+  ]
+)
+
+LIBS="$saved_libs"
+
+INCLUDES="$ac_build_addl_includes"
+LIBDIRS="$ac_build_addl_libdirs"
+
+AC_SUBST(INCLUDES)
+AC_SUBST(LDFLAGS)
+AC_SUBST(LIBDIRS)
+AC_SUBST(UTILS_LIBS)
+
+AC_CONFIG_HEADER(mod_auth_otp.h)
+AC_OUTPUT(
+  t/Makefile
+  Makefile
+)

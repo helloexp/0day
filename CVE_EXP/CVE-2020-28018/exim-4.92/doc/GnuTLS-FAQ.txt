@@ -1,0 +1,414 @@
+Using Exim 4.80+ with GnuTLS
+============================
+
+(1) I'm having problems building with GnuTLS 1, why?
+(2) What changed?  Why?
+(3) I'm seeing:
+    "(gnutls_handshake): A TLS packet with unexpected length was received"
+    Why?
+(4) What's the deal with MD5?  (And SHA-1?)
+(5) What happened to gnutls_require_kx / gnutls_require_mac /
+    gnutls_require_protocols?
+(6) What's the deal with tls_dh_max_bits?  What's DH?
+(7) What's a Priority String?
+(8) How do I use tls_require_ciphers?
+(9) How do I test STARTTLS support?
+
+
+
+(1): I'm having problems building with GnuTLS 1, why?
+-----------------------------------------------------
+
+GnuTLS's library interface has changed and Exim uses the more current
+interface.  Since GnuTLS is security critical code, you should probably update
+to a supported release.
+
+If updating GnuTLS is not an option, then build Exim against OpenSSL instead.
+
+If neither is an option, then you might build Exim with the rule
+"SUPPORT_TLS=yes" commented out in "Local/Makefile", so that your Exim build
+no longer has TLS support.
+
+If you need to keep TLS support, and you can't use OpenSSL, then you'll have
+to update the GnuTLS you have installed.  Sorry.
+
+We've tested the build of Exim back as far as GnuTLS 2.8.x; most development
+work is done with 2.12 and tested on 2.10 and 3.x.
+
+If you have to pick a version to upgrade to, use GnuTLS 3.x if available.  The
+GnuTLS developers took advantage of the version bump to add an error code
+return value which makes debugging some problems a lot easier.
+
+
+
+(2): What changed?  Why?
+------------------------
+
+The GnuTLS provider integration in Exim was overhauled, rewritten but with
+some copy/paste, because building Exim against more current releases of GnuTLS
+was issuing deprecation warnings from the compiler.
+
+When a library provider marks up the include files so that some function calls
+will cause the compiler/linker to emit deprecation warnings, it's time to pay
+serious attention.  A future release might not work at all.  Using the new
+APIs may mean that Exim will *stop* working with older releases of GnuTLS.
+The GnuTLS support in Exim was overhauled in Exim 4.80.  In prior releases,
+Exim hard-coded a lot of algorithms and constrained what could happen.  In
+Exim 4.79, we added to the hard-coded list just enough to let TLSv1.1 and
+TLSv1.2 be negotiated, but not actually support the mandatory algorithms of
+those protocol versions.  When Exim's GnuTLS integration was originally
+written, there was no other choice than to make Exim responsible for a lot of
+this.  In the meantime, GnuTLS has improved.
+
+With the rewrite, we started using the current API and leaving a lot more
+responsibility for TLS decisions to the library.
+
+The GnuTLS developers added "priority strings" (see Q7), which provide an
+interface exposed to the configuration file for a lot of the tuning.
+
+The GnuTLS policy is to no longer support MD5 in certificates.  Exim had
+previously been immune to this policy, but no longer.  See Q4.
+
+
+
+(3): I'm seeing "A TLS packet with unexpected length was received".  Why?
+-------------------------------------------------------------------------
+
+The most likely reason is that the client dropped the connection during
+handshake, because their library disliked some aspect of the negotiation.
+
+In GnuTLS 2, an EOF on the connection is reported with an error code for
+packets being too large, and the above is the string returned by the library
+for that error code.  In GnuTLS 3, there's a specific error code for EOF and
+the diagnostic will be less confusing.
+
+Most likely cause is an MD5 hash used in a certificate.  See Q4 below.
+Alternatively, the client dislikes the size of the Diffie-Hellman prime
+offered by the server; if lowering the value of the "tls_dh_max_bits" Exim
+option fixes the problem, this was the cause.  See Q6.
+
+
+
+(4): What's the deal with MD5?  (And SHA-1?)
+--------------------------------------------
+
+MD5 is a hash algorithm.  Hash algorithms are used to reduce a lot of data
+down to a fairly short value, which is supposed to be extremely hard to
+manipulate to get a value of someone's choosing.  Signatures, used to attest
+to identity or integrity, rely upon this manipulation being effectively
+impossible, because the signature is the result of math upon the hash result.
+Without hash algorithms, signatures would be longer than the text being
+signed.
+
+MD5 was once very popular.  It still is far too popular.  Real world attacks
+have been proven possible against MD5.  Including an attack against PKI
+(Public Key Infrastructure) certificates used for SSL/TLS.  In that attack,
+the attackers got a certificate for one identity but were able to then publish
+a certificate with the same signature but a different identity.  This
+undermines the whole purpose of having certificates.
+
+So GnuTLS stopped trusting any certificate with an MD5-based hash used in it.
+The world has been hurriedly moving away from MD5 in certificates for a while.
+If you still have such a certificate, you should move too.
+
+If you paid someone for your certificate, they should be willing to reissue
+the certificate with a different algorithm, for no extra money.  If they try
+to charge money to replace their defective product, buy from someone else
+instead.  Part of the reason for paying money on a recurring basis is to cover
+the ongoing costs of proving a trust relationship, such as providing
+revocation protocols.  This is just another of those ongoing costs you have
+already paid for.
+
+The same has happened to SHA-1: there are real-world collision attacks against
+SHA-1, so SHA-1 is mostly defunct in certificates.  GnuTLS no longer supports
+its use in TLS certificates.
+
+
+
+(5): ... gnutls_require_kx / gnutls_require_mac / gnutls_require_protocols?
+---------------------------------------------------------------------------
+
+These Exim options were used to provide fine-grained control over the TLS
+negotiation performed by GnuTLS.  They required explicit protocol knowledge
+from Exim, which vastly limited what GnuTLS could do and involved the Exim
+maintainers in decisions which aren't part of their professional areas of
+expertise.  The need for Exim to be able to do this went away when GnuTLS
+introduced Priority Strings (see Q7).
+
+If you were using these options before, then you're already an expert user and
+should be able to easily craft a priority string to accomplish your goals.
+Set the Exim "tls_require_ciphers" value accordingly.  There is a main section
+option of this name, used for Exim receiving inbound connections, and an SMTP
+driver transport option of this name, used for Exim establishing outbound
+connections.
+
+
+
+(6): What's the deal with tls_dh_max_bits?  What's DH?
+------------------------------------------------------
+
+You can avoid all of the tls_dh_max_bits issues if you leave "tls_dhparam"
+unset, so that you get one of the standard built-in primes used for DH.
+
+
+DH, Diffie-Hellman (or Diffie-Hellman-Merkle, or something naming Williamson)
+is the common name for a way for two parties to a communication stream to
+exchange some private random data so that both end up with a shared secret
+which no eavesdropper can get.  It does not provide for proof of the identity
+of either party, so on its own is subject to man-in-the-middle attacks, but is
+often combined with systems which do provide such proof, improving them by
+separating the session key (the shared secret) from the long-term identity,
+and so protecting past communications from a break of the long-term identity.
+
+To do this, the server sends to the client a very large prime number; this is
+in the clear, an attacker can see it.  This is not a problem; it's so not a
+problem, that there are standard named primes which applications can use, and
+which Exim now supports.
+
+The size of the prime number affects how difficult it is to break apart the
+shared secret and decrypt the data.  As time passes, the size required to
+provide protection against an adversary climbs: computers get more powerful,
+mathematical advances are made, and so on.
+
+Estimates of the size needed are published as recommendations by various
+groups; a good summary of sizes currently recommended, for various
+cryptographic primitives, is available at:
+
+  http://www.keylength.com/en/3/
+
+The GnuTLS folks think the ECRYPT II advice is good.  They know far more of
+such matters than the Exim folks, we just say "er, what they said".
+
+One of the new pieces of the GnuTLS API is a means for an application to ask
+it for guidance and advice on how large some numbers should be.  This is not
+entirely internal to GnuTLS, since generating the numbers is slow, an
+application might want to use a standard prime, etc.  So, in an attempt to get
+away from being involved in cryptographic policy, and to get rid of a
+hard-coded "1024" in Exim's source-code, we switched to asking GnuTLS how many
+bits should be in the prime number generated for use for Diffie-Hellman.  We
+then give this number straight back to GnuTLS when generating a DH prime.
+We can ask for various sizes, and did not expose this to the administrator but
+instead just asked for "NORMAL" protection.
+Literally:
+
+ dh_bits = gnutls_sec_param_to_pk_bits(GNUTLS_PK_DH, GNUTLS_SEC_PARAM_NORMAL);
+
+This API is only available as of GnuTLS 2.12.  Prior to that release, we stuck
+with the old value, for compatibility, so "1024" is still hard-coded.
+Reviewing the page above, you'll see that this is described as "Short-term
+protection against medium organizations, medium-term protection against small
+organizations."
+
+So if you are using an old release of GnuTLS, you can either add to
+Local/Makefile a different value of "EXIM_SERVER_DH_BITS_PRE2_12" or accept
+that your protection might not be adequate to your needs.  We advise updating
+to a more current GnuTLS release and rebuilding Exim against that.
+
+Unfortunately, some TLS libraries have the client side bound how large a DH
+prime they will accept from the server.  The larger the number, the more
+computation required to work with it and the slower that things get.  So they
+pick what they believe to be reasonable upper bounds, and then typically
+forget about it for several years.
+
+Worse, in TLS the DH negotiation happens after a ciphersuite has been chosen,
+so if the client dislikes the value then a different ciphersuite avoiding DH
+can not be negotiated!  The client typically drops the connection, resulting
+in errors to the user and errors in the Exim logs.  With GnuTLS 3, you'll see
+the EOF (End-Of-File) error message in Exim's logs, reported as being part of
+"gnutls_handshake", but with GnuTLS 2 you'll see a log message about a packet
+with an unexpected size.  Unless the client software is written intelligently
+enough to be able to adapt and reconnect forbidding DH, the client will never
+be able to negotiate TLS.
+
+This time around, we discovered that the NSS library used by various Mozilla
+products, Chrome, etc, and most particularly by the Thunderbird mail client,
+has the lowest cap.  In fact, prior to recent updates, their upper limit was
+lower than the value returned by GnuTLS for "NORMAL".  The most recent NSS
+library release raises this, but the most recent Thunderbird release still has
+the old limit.
+
+So Exim had to get involved in cryptography policy decisions again.  We added
+the "tls_dh_max_bits" global option, to set a number used in both OpenSSL and
+GnuTLS bindings for Exim.  In GnuTLS, it clamps the value returned by
+gnutls_sec_param_to_pk_bits(), so that if the returned value is larger than
+tls_dh_max_bits then tls_dh_max_bits would be used instead.
+
+Our policy decision was to default the value of tls_dh_max_bits to the maximum
+supported in the most recent Thunderbird release, and to make this an
+administrator-available option so that administrators can choose to trade off
+security versus compatibility by raising it.
+
+A future release of Exim may even let the administrator tell GnuTLS to ask for
+more or less than "NORMAL".
+
+To add to the fun, the size of the prime returned by GnuTLS when we call
+gnutls_dh_params_generate2() is not limited to be the requested size.  GnuTLS
+has a tendency to overshoot.  2237 bit primes are common when 2236 is
+requested, and higher still have been observed.  Further, there is no API to
+ask how large the prime bundled up inside the parameter is; the most we can do
+is ask how large the DH prime used in an active TLS session is.  Since we're
+not able to use GnuTLS API calls (and exporting to PKCS3 and then calling
+OpenSSL routines would be undiplomatic, plus add a library dependency), we're
+left with no way to actually know the size of the freshly generated DH prime.
+
+Thus we check if the the value returned is at least 10 more than the minimum
+we'll accept as a client (EXIM_CLIENT_DH_MIN_BITS, see below, defaults to
+1024) and if it is, we subtract 10.  Then we reluctantly deploy a strategy
+called "hope".  This is not guaranteed to be successful; in the first code
+pass on this logic, we subtracted 3, asked for 2233 bits and got 2240 in the
+first test.
+
+If you see Thunderbird clients still failing, then as a user who can see into
+Exim's spool directory, run:
+
+$ openssl dhparam -noout -text -in /path/to/spool/gnutls-params-2236 | head
+
+Ideally, the first line will read "PKCS#3 DH Parameters: (2236 bit)".  If the
+count is more than 2236, then remove the file and let Exim regenerate it, or
+generate one yourself and move it into place.  Ideally use "openssl dhparam"
+to generate it, and then wait a very long time; at least this way, the size
+will be correct.
+
+The use of "hope" as a strategy was felt to be unacceptable as a default, so
+late in the RC series for 4.80, the whole issue was side-stepped.  The primes
+used for DH are publicly revealed; moreover, there are selection criteria for
+what makes a "good" DH prime.  As it happens, there are *standard* primes
+which can be used, and are specified to be used for certain protocols.  So
+these primes were built into Exim, and by default exim now uses a 2048 bit
+prime from section 2.2 of RFC 5114.
+
+
+A TLS client does not get to choose the DH prime used, but can choose a
+minimum acceptable value.  For Exim, this is a compile-time constant called
+"EXIM_CLIENT_DH_MIN_BITS" of 1024, which can be overruled in "Local/Makefile".
+
+
+
+(7): What's a Priority String?
+------------------------------
+
+A priority string is a way for a user of GnuTLS to tell GnuTLS how it should
+make decisions about what to do in TLS; it includes which algorithms to make
+available for various roles, what compatibility trade-offs to make, which
+features to enable or disable.
+
+It is exposed to the Mail Administrator in Exim's configuration file as the
+"tls_require_ciphers" option, which exists as a main section option for use in
+Exim as a server, accepting connections, and as an option on Transports using
+the SMTP driver, for use in Exim as a client.  The main section option is
+*not* the default for the transport option, they are entirely independent.
+For both, the default value used by Exim is the string "NORMAL".  (This is not
+the same NORMAL as for DH prime bit size selection in Q6, but a different
+NORMAL.)  See Q8.
+
+The current documentation, for the most recent release of GnuTLS, is available
+online at:
+
+  http://www.gnutls.org/manual/html_node/Priority-Strings.html
+
+Beware that if you are not using the most recent GnuTLS release then this
+documentation will be wrong for you!  You should find the "info" documentation
+which came with GnuTLS to review the available options.  It's under "The TLS
+Handshake Protocol".
+
+$ pinfo --node="Priority Strings" gnutls
+
+(This author is unable to persuade the "info" command-line tool to jump
+straight to the required node, but "pinfo" works.)
+
+To trade off some security for more compatibility, you might set a value of
+"NORMAL:%COMPAT".  See the documentation for more, including lowering security
+even further for more security, forcing clients to use the server's protocol
+suite, and ways to force selection of particular algorithms.
+
+
+
+(8): How do I use tls_require_ciphers?
+--------------------------------------
+
+This is the name of two options in Exim.  One is a main section option, used
+by Exim as a server when a client initiates SSL/TLS negotiation, the other is
+an option on transports which use "driver = smtp", used when Exim initiates
+SSL/TLS as a client talking to a remote server.
+
+The option is expanded and so can take advantage of any variables which have
+been set.  This includes the IP address of the remote side, the port upon
+which a connection was accepted (when a server), and more.  Currently it does
+not have access to $tls_sni, whether as a client or as a server.
+
+This example, for the main section's option, will let the library defaults be
+permitted on the MX port, where there's probably no identity verification
+anyway, and lowers security further by increasing compatibility; but this ups
+the ante on the submission ports where the administrator might have some
+influence on the choice of clients used:
+
+tls_require_ciphers = ${if =={$received_port}{25}\
+                           {NORMAL:%COMPAT}\
+                           {SECURE128}}
+
+Note that during Exim start-up, when this option is sanity-checked, there will
+be no value of $received_port.  In the above example, the checked value will
+thus be "SECURE128".  Be careful to ensure that it always expands safely.
+
+
+
+(9): How do I test STARTTLS support?
+------------------------------------
+
+The best command-line client for debugging specifically SSL/TLS which this
+author has encountered is part of the GnuTLS suite, and is called
+"gnutls-cli".  It's best because it's the only interactive tool which lets the
+user start TLS handshake exactly when they wish, so can choose to use the
+STARTTLS command.
+
+$ gnutls-cli --starttls --crlf --port 587 mail.example.org
+
+After EHLO, to see the capabilities, enter STARTTLS, wait for the response,
+then send EOF.  Typically that's done by typing Ctrl-D at the start of a line.
+The "gnutls-cli" tool will take over, set up TLS (or fail) and by the time it
+returns to await more user input, you're using a secure connection and should
+type your second EHLO.
+
+The "--x509cafile" option may be helpful for checking certificates and
+"--priority" to pass a priority string to the client tool for configuring it.
+
+The --crlf is for strict protocol correctness, but Exim doesn't really need
+it, so "gnutls-cli -s -p 587 mail.example.org" is shorter.
+
+
+For debugging SMTP as a whole, we recommend swaks, "Swiss Army Knife SMTP", by
+John Jetmore (one of the Exim Maintainers).  This has some TLS tuning options;
+it can be found at:
+
+  http://www.jetmore.org/john/code/swaks/
+
+
+For OpenSSL, the "openssl s_client" command helps; you can either set up Exim
+with a listening port which is SSL-on-connect or tell s_client to use
+STARTTLS.
+
+For the former, use the "tls_on_connect_ports" option and the
+"daemon_smtp_ports" option.  Most clients for SSL-on-connect use the port
+which was briefly registered with IANA for this purpose, 465.  So you would
+set something like:
+
+  daemon_smtp_ports = 25 : 465 : 587
+  tls_on_connect_ports = 465
+
+To use s_client with STARTTLS support, use "-starttls smtp" on the
+command-line.  Beware that older versions of OpenSSL did not wait for the SMTP
+banner before sending EHLO, which will fall afoul of the protocol
+synchronisation checks in Exim (used to trip up pump-and-dump spammers); also
+you will not get control of the session until TLS is established.  That said,
+this tool provides more tuning hooks for adjusting how TLS will be set up than
+most.
+
+*BEWARE* that by default, s_client will take any line starting with a capital
+letter "R" to be a request to initiate TLS renegotiation with the server and
+the line will not be sent.  This may trip up "RCPT TO:<someone@example.org>"
+lines in SMTP.  SMTP is not case-sensitive, so type "rcpt to" instead.
+Alternatively, invoke s_client with the "-ign_eof" option to disable this
+R-filtering and a few other features.
+
+
+# END OF FAQ

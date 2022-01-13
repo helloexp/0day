@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_tls_redis</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_tls_redis</code></b></h2>
+</center>
+<hr>
+
+<p>
+The <code>mod_tls_redis</code> submodule is contained in the
+<code>mod_tls_redis.c</code> file, and is not compiled by default.
+Installation instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+This submodule a Redis-based implementation of an external SSL session
+cache for use by the <code>mod_tls</code> module's
+<a href="mod_tls.html#TLSSessionCache"><code>TLSSessionCache</code></a>
+directive.  The module also implements a Redis-based implementation of an
+external OCSP response cache for the
+<a href="mod_tls.html#TLSStaplingCache"><code>TLSStaplingCache</code></a>
+directive.
+
+<p>
+This product includes software developed by the OpenSSL Project for use in the OpenSSL Toolkit (http://www.openssl.org/).
+
+<p>
+This product includes cryptographic software written by Eric Young (eay@cryptsoft.com).
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<p>
+The <code>mod_tls_redis</code> module supports the &quot;redis&quot;
+string for the <em>type</em> parameter of the
+<a href="mod_tls.html#TLSSessionCache"><code>TLSSessionCache</code></a>
+configuration directive.  The <em>info</em> parameter for
+<code>mod_tls_redis</code> can be empty/blank, indicating JSON encoding of
+the cached data.  This means that the
+<code>TLSSessionCache</code> setting would look like:
+<pre>
+  # Use JSON encoding for caching data using Redis
+  TLSSessionCache redis:
+</pre>
+If Redis support has not been enabled in your ProFTPD, this configuration
+<b>cannot</b> be used.
+
+<p>
+The <code>mod_tls_redis</code> module also supports the &quot;redis&quot;
+string for the <em>type</em> parameter of the
+<a href="mod_tls.html#TLSStaplingCache"><code>TLStaplingCache</code></a>
+configuration directive, <i>e.g.</i>:
+<pre>
+  TLSStaplingCache redis:
+</pre>
+
+<p>
+<b>Examples</b><br>
+
+<p>
+<pre>
+  &lt;IfModule mod_redis.c&gt;
+    RedisEngine on
+    RedisServer <i>redis-server</i>
+  &lt;/IfModule&gt;
+
+  &lt;IfModule mod_tls.c&gt;
+    ...
+
+    &lt;IfModule mod_tls_redis.c&gt;
+      TLSSessionCache redis:
+      TLSStaplingCache redis:
+    &lt;/IfModule&gt;
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_tls_redis</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>tls.redis
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace tls.redis:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_tls_redis</code> module is distributed with the ProFTPD
+source code.  Simply follow the normal steps for using third-party modules
+in ProFTPD, being sure to include the <code>mod_tls</code> module (on which
+<code>mod_tls_redis</code> depends), <b>and</b> enabling redis support:
+<pre>
+  $ ./configure --enable-redis --with-modules=mod_tls:mod_tls_redis
+  $ make
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your <code>proftpd</code> was compiled with DSO support, you
+can use the <code>prxs</code> tool to build <code>mod_tls_redis</code> as
+a shared module:
+<pre>
+  $ prxs -c -i -d mod_tls_redis.c
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

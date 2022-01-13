@@ -1,0 +1,152 @@
+THE EXIM MAIL TRANSFER AGENT
+----------------------------
+
+Copyright (c) 2004 University of Cambridge
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+In addition, for the avoidance of any doubt, permission is granted to
+link this program with OpenSSL or any other library package and to
+(re)distribute the binaries produced as the result of such linking.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+
+UNSOLICITED EMAIL
+-----------------
+
+The use, supply or promotion of Exim for the purpose of sending bulk,
+unsolicited electronic mail is incompatible with the basic aims of the program,
+which revolve around the free provision of a service that enhances the quality
+of personal communications. The author of Exim regards indiscriminate
+mass-mailing as an antisocial, irresponsible abuse of the Internet.
+
+
+INCORPORATED CODE
+-----------------
+
+A number of pieces of external code are included in the Exim distribution.
+
+ .   Support for the cdb (Constant DataBase) lookup method is provided by code
+     contributed by Nigel Metheringham of Planet Online Ltd. which contains
+     the following statements:
+     _________________________________________________________________________
+
+     Copyright (c) 1998 Nigel Metheringham, Planet Online Ltd
+
+     This program is free software; you can redistribute it and/or modify it
+     under the terms of the GNU General Public License as published by the
+     Free Software Foundation; either version 2 of the License, or (at your
+     option) any later version.
+
+     This code implements Dan Bernstein's Constant DataBase (cdb) spec.
+     Information, the spec and sample code for cdb can be obtained from
+     http://www.pobox.com/~djb/cdb.html. This implementation borrows some code
+     from Dan Bernstein's implementation (which has no license restrictions
+     applied to it).
+     _________________________________________________________________________
+
+     The implementation is completely contained within the code of Exim. It
+     does not link against an external cdb library.
+
+ .   Client support for Microsoft's "Secure Password Authentication" is pro-
+     vided by code contributed by Marc Prud'hommeaux. Server support was
+     contributed by Tom Kistner. This includes code taken from the Samba
+     project, which is released under the Gnu GPL.
+
+
+ .   Support for calling the Cyrus "pwcheck" and "saslauthd" daemons is
+     provided by code taken from the Cyrus-SASL library and adapted by
+     Alexander S. Sabourenkov. The permission notice appears below, in
+     accordance with the conditions expressed therein.
+
+     _________________________________________________________________________
+
+     Copyright (c) 2001 Carnegie Mellon University. All rights reserved.
+
+     Redistribution and use in source and binary forms, with or without
+     modification, are permitted provided that the following conditions are
+     met:
+
+     1.   Redistributions of source code must retain the above copyright
+          notice, this list of conditions and the following disclaimer.
+
+     2.   Redistributions in binary form must reproduce the above copyright
+          notice, this list of conditions and the following disclaimer in the
+          documentation and/or other materials provided with the distribution.
+
+     3.   The name 'Carnegie Mellon University' must not be used to endorse or
+          promote products derived from this software without prior written
+          permission. For permission or any other legal details, please
+          contact
+
+            Office of Technology Transfer
+            Carnegie Mellon University
+            5000 Forbes Avenue
+            Pittsburgh, PA  15213-3890
+            (412) 268-4387, fax: (412) 268-7395
+            tech-transfer@andrew.cmu.edu
+
+     4.   Redistributions of any form whatsoever must retain the following
+          acknowledgment:
+             This product includes software developed by Computing Services at
+             Carnegie Mellon University (http://www.cmu.edu/computing/).
+
+     CARNEGIE MELLON UNIVERSITY DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+     SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+     FITNESS, IN NO EVENT SHALL CARNEGIE MELLON UNIVERSITY BE LIABLE FOR ANY
+     SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+     RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+     CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+     CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+     _________________________________________________________________________
+
+
+ .   The Exim Monitor program, which is an X-Window application, includes
+     modified versions of the Athena StripChart and TextPop widgets. This code
+     is copyright by DEC and MIT, and their permission notice appears below,
+     in accordance with the conditions expressed therein.
+
+     _________________________________________________________________________
+
+     Copyright 1987, 1988 by Digital Equipment Corporation, Maynard,
+     Massachusetts, and the Massachusetts Institute of Technology, Cambridge,
+     Massachusetts.
+
+                                All Rights Reserved
+
+     Permission to use, copy, modify, and distribute this software and its
+     documentation for any purpose and without fee is hereby granted, provided
+     that the above copyright notice appear in all copies and that both that
+     copyright notice and this permission notice appear in supporting documen-
+     tation, and that the names of Digital or MIT not be used in advertising
+     or publicity pertaining to distribution of the software without specific,
+     written prior permission.
+
+     DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
+     ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
+     DIGITAL BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
+     ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+     WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION,
+     ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
+     SOFTWARE.
+     _________________________________________________________________________
+
+
+ .   Some of the code to support the use of maildirsize files for maildir
+     deliveries is taken from the Courier Imapd source code. This code is
+     released under the GPL.
+     _________________________________________________________________________
+
+--
+Philip Hazel            University of Cambridge Computing Service,

@@ -1,0 +1,40 @@
+# Default aliases file, installed by Exim. This file contains no real aliases.
+# You should edit it to taste.
+
+
+# The following alias is required by the mail RFCs 2821 and 2822.
+# Set it to the address of a HUMAN who deals with this system's mail problems.
+
+# postmaster: someone@your.domain
+
+# It is also common to set the following alias so that if anybody replies to a
+# bounce message from this host, the reply goes to the postmaster.
+
+# mailer-daemon: postmaster
+
+
+# You should also set up an alias for messages to root, because it is not
+# usually a good idea to deliver mail as root.
+
+# root: postmaster
+
+# It is a good idea to redirect any messages sent to system accounts so that
+# they don't just get ignored. Here are some common examples:
+
+# bin: root
+# daemon: root
+# ftp: root
+# nobody: root
+# operator: root
+# uucp: root
+
+# You should check your /etc/passwd for any others.
+
+
+# Other commonly enountered aliases are:
+#
+# abuse:       the person dealing with network and mail abuse
+# hostmaster:  the person dealing with DNS problems
+# webmaster:   the person dealing with your website
+
+####

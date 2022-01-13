@@ -1,0 +1,12 @@
+# Exim: OS-specific make file for IRIX
+
+HAVE_ICONV=yes
+BASENAME_COMMAND=/sbin/basename
+HOSTNAME_COMMAND=/usr/bsd/hostname
+CFLAGS=-OPT:Olimit=1500
+LIBS=-lmld -lm
+XINCLUDE=-I/usr/include/X11
+vfork=fork
+RANLIB=@true
+
+# End

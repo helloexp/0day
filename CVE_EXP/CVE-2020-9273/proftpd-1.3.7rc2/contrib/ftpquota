@@ -1,0 +1,1105 @@
+#!/usr/bin/env perl
+# -------------------------------------------------------------------------
+# Copyright (C) 2000-2017 TJ Saunders <tj@castaglia.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA.
+# -------------------------------------------------------------------------
+
+use strict;
+
+use Fcntl qw(:flock);
+use File::Basename qw(basename);
+use Getopt::Long;
+use IO::Seekable;
+
+my $program = basename($0);
+my $verbose = 0;
+
+# These formats are highly dependent on the quota record definitions in
+# mod_quotatab.h. Should those definitions change, these format strings will
+# need to be adjusted accordingly.
+my $limit_format = "Z81I1C1I1d3L3";
+my $tally_format = "Z81I1d3L3";
+
+# These sizes are determined by the sizes of the quota_limit_t and
+# quota_tally_t structs (NOT using C's sizeof(), though -- alignment issues)
+my $limit_reclen = 126;
+my $tally_reclen = 121;
+
+# the values for these variables is similarly dependent on the actual
+# values defined in mod_quotatab.h
+my $ALL_QUOTA = 10;
+my $USER_QUOTA = 20;
+my $GROUP_QUOTA = 30;
+my $CLASS_QUOTA = 40;
+
+my $HARD_LIMIT = 1;
+my $SOFT_LIMIT = 2;
+
+my $LIMIT_TABLE = 100;
+my $TALLY_TABLE = 101;
+
+my $LIMIT_MAGIC = hex(7626);
+my $TALLY_MAGIC = hex(7644);
+
+my $default_limit_table = "./ftpquota.limittab";
+my $default_tally_table = "./ftpquota.tallytab";
+my $default_name = "";
+my $default_quota_type = $ALL_QUOTA;
+my $default_limit_type = $HARD_LIMIT;
+my $default_per_session = 0;
+my $default_bytes_in = -1.0;
+my $default_bytes_out = -1.0;
+my $default_bytes_xfer = -1.0;
+my $default_files_in = 0;
+my $default_files_out = 0;
+my $default_files_xfer = 0;
+
+my $byte_units = "byte";
+
+my %opts = ();
+GetOptions(\%opts, 'Bu=n', 'bytes-upload=n', 'Bd=n', 'bytes-download=n',
+  'Bt=n', 'bytes-xfer=n', 'Fu=n', 'files-upload=n', 'Fd=n', 'files-download=n',
+  'Ft=n', 'files-xfer', 'L|limit-type=s', 'N|name=s', 'P|per-session',
+  'Q|quota-type=s', 'help', 'table-path=s', 'units=s', 'verbose', 'type=s',
+  'add-record', 'create-table', 'delete-record', 'show-records',
+  'update-record');
+
+usage() if (defined($opts{'help'}));
+
+my ($table, $table_type);
+my %record = ();
+
+parse_options();
+
+if (defined($opts{'add-record'})) {
+  open_table();
+  wlock_table();
+  add_record();
+  unlock_table();
+  close_table();
+  exit 0;
+}
+
+if (defined($opts{'create-table'})) {
+  open_table();
+  close_table();
+  exit 0;
+}
+
+if (defined($opts{'delete-record'})) {
+  open_table();
+  wlock_table();
+  delete_record();
+  unlock_table();
+  close_table();
+  exit 0;
+}
+
+if (defined($opts{'show-records'})) {
+  open_table();
+  rlock_table();
+  print_table();
+  unlock_table();
+  close_table();
+  exit 0;
+}
+
+if (defined($opts{'update-record'})) {
+  open_table();
+  wlock_table();
+  update_record();
+  unlock_table();
+  close_table();
+  exit 0;
+}
+
+# if no operations have been specified, note this and exit
+print STDOUT "$program: no operations to perform, exiting\n";
+
+exit;
+
+# -------------------------------------------------------------------------
+sub add_record {
+  print STDOUT "$program: adding record\n" if $verbose;
+
+  my $add_quota_type;
+
+  # first, find the matching record.  Note that this option requires
+  # both --name and --quota-type
+
+  if (!defined($opts{'Q'})) {
+    print STDOUT "$program: --add-record requires --quota-type option\n";
+    exit(1);
+
+  } else {
+    $add_quota_type = get_quota_type(quota_type => $opts{'Q'});
+  }
+
+  if ($add_quota_type != $ALL_QUOTA) {
+    if (!defined($opts{'N'})) {
+      print STDOUT "$program: --add-record requires --name option\n";
+      exit(1);
+    }
+  }
+
+  # now, see if there is a matching record already in the table
+  if (find_record(name => $opts{'N'}, quota_type => $add_quota_type)) {
+    print STDOUT "$program: unable to add record: matching record already exists\n";
+    exit(1);
+  }
+
+  # move to the end of the table, and write the new record
+  set_table_position(0, SEEK_END);
+
+  my $formatted_record;
+
+  if ($table_type == $LIMIT_TABLE) {
+    $formatted_record = pack($limit_format,
+      $record{'name'}, $record{'quota_type'},
+      $record{'per_session'}, $record{'limit_type'},
+      $record{'bytes_in'}, $record{'bytes_out'}, $record{'bytes_xfer'},
+      $record{'files_in'}, $record{'files_out'}, $record{'files_xfer'});
+
+  } elsif ($table_type == $TALLY_TABLE) {
+
+    $formatted_record = pack($tally_format,
+      $record{'name'}, $record{'quota_type'},
+      $record{'bytes_in'}, $record{'bytes_out'}, $record{'bytes_xfer'},
+      $record{'files_in'}, $record{'files_out'}, $record{'files_xfer'});
+  }
+
+  write_record(record => $formatted_record);
+}
+
+# -------------------------------------------------------------------------
+sub check_table {
+  my $data;
+
+  print STDOUT "$program: checking table '$table'\n" if $verbose;
+
+  sysread TABLE, $data, 4;
+
+  # unpack what was read in
+  my ($magic) = unpack("L", $data);
+
+  if ($table_type == $LIMIT_TABLE) {
+
+    if ($magic != $LIMIT_MAGIC) {
+      print STDOUT "$program: bad header: $magic != $LIMIT_MAGIC\n" if
+        $verbose;
+      die "$program: mismatched table header, exiting\n";
+
+    } else {
+      print STDOUT "$program: table has correct header\n" if $verbose;
+    }
+
+  } elsif ($table_type == $TALLY_TABLE) {
+
+    if ($magic != $TALLY_MAGIC) {
+      print STDOUT "$program: bad header magics: $magic != $TALLY_MAGIC\n" if
+        $verbose;
+      die "$program: mismatched table header, exiting\n";
+
+    } else {
+     print STDOUT "$program: table has correct header\n" if $verbose;
+    }
+  }
+}
+
+# -------------------------------------------------------------------------
+sub close_table {
+  print STDOUT "$program: closing table '$table'\n" if $verbose;
+
+  close(TABLE);
+}
+
+# -------------------------------------------------------------------------
+sub delete_record {
+  print STDOUT "$program: deleting record\n" if $verbose;
+
+  my $delete_quota_type;
+
+  # first, find the matching record.  Note that this option requires
+  # both --name and --quota-type
+
+  if (!defined($opts{'Q'})) {
+    print STDOUT "$program: --delete-record requires --quota-type option\n";
+    exit(1);
+
+  } else {
+    $delete_quota_type = get_quota_type(quota_type => $opts{'Q'});
+  }
+
+  if ($delete_quota_type != $ALL_QUOTA) {
+    if (!defined($opts{'N'})) {
+      print STDOUT "$program: --delete-record requires --name option\n";
+      exit(1);
+    }
+  }
+
+  # now, find the matching record in the table
+  unless (find_record(name => $opts{'N'}, quota_type => $delete_quota_type)) {
+    print STDOUT "$program: unable to delete record: no match found\n";
+    exit(1);
+  }
+  rewind_record();
+
+  print STDOUT "$program: modifying table '$table'\n" if $verbose;
+
+  # first, record the current file position
+  my $position = get_table_position();
+
+  # next, advance past this record to be deleted, and read in the
+  # rest of the file
+
+  seek_record(1);
+
+  my ($nrecords, @records) = read_table();
+
+  # Rewind the previous position, and "delete" that record by simply
+  # overwriting it.  Note that this approach works for file tables --
+  # tables in other formats, such as SQL, will have a much easier time
+  # deleting a quota record.
+
+  set_table_position($position, SEEK_SET);
+
+  if ($nrecords > 0) {
+    for (my $i = 0; $i < $nrecords; $i++) {
+      write_record(record => $records[$i]);
+    }
+
+    # Truncate the table
+    truncate_table(len => get_table_position() - 4);
+
+  } else {
+
+    # Truncate the table
+    truncate_table(len => $position - 4);
+  }
+
+  # done
+  exit(0);
+}
+
+# -------------------------------------------------------------------------
+sub find_record {
+  my %args = @_;
+  my $nrecords = 0;
+ 
+  my $search_name = $args{'name'};
+  my $search_quota_type = $args{'quota_type'};
+
+  while (my $record = read_record()) {
+    $nrecords++;
+
+    my ($name, $quota_type, @junk);
+
+    # unpack the binary record structure
+    if ($table_type == $LIMIT_TABLE) {
+      ($name, $quota_type, @junk) = unpack($limit_format, $record);
+
+    } elsif ($table_type == $TALLY_TABLE) {
+      ($name, $quota_type, @junk) = unpack($tally_format, $record);
+    }
+
+    # remove any NULs from $name
+    $name =~ s/(\0*)?//;
+
+    if ($search_quota_type == $ALL_QUOTA and
+        $quota_type == $ALL_QUOTA) {
+      return $record;
+
+    } elsif ($name eq $search_name and
+             $quota_type == $search_quota_type) {
+      return $record;
+    }
+  }
+
+  return undef;
+}
+
+# -------------------------------------------------------------------------
+sub get_display_bytes {
+  my %args = @_;
+
+  my $bytes = $args{'bytes'};
+
+  if ($byte_units eq "byte") {
+    # no calculation necessary
+
+    unless ($bytes eq "unlimited" || $bytes <= 0) {
+      return sprintf "bytes:\t%.2f", $bytes;
+    } else {
+      return sprintf "bytes:\tunlimited";
+    }
+
+  } elsif ($byte_units eq "kilo") {
+    # divide by 1024.0
+    my $adj_bytes = $bytes / 1024.0;
+
+    unless ($bytes eq "unlimited" || $bytes <= 0) {
+      return sprintf "Kb:\t%.2f", $adj_bytes;
+    } else {
+      return sprintf "Kb:\tunlimited";
+    }
+
+  } elsif ($byte_units eq "mega") {
+    # divide by 1024.0 * 1024.0
+    my $adj_bytes = $bytes / (1024.0 * 1024.0);
+
+    unless ($bytes eq "unlimited" || $bytes <= 0) {
+      return sprintf "Mb:\t%.2f", $adj_bytes;
+    } else {
+      return sprintf "Mb:\tunlimited";
+    }
+
+  } elsif ($byte_units eq "giga") {
+    # divide by 1024.0 * 1024.0 * 1024.0
+    my $adj_bytes = $bytes / (1024.0 * 1024.0 * 1024.0);
+
+    unless ($bytes eq "unlimited" || $bytes <= 0) {
+      return sprintf "Gb:\t%.2f", $adj_bytes;
+    } else {
+      return sprintf "Gb:\tunlimited";
+    }
+  }
+}
+
+# -------------------------------------------------------------------------
+sub get_quota_type {
+  my %args = @_;
+
+  my $quota_type = $args{'quota_type'};
+
+  # given the command-line --quote-type option value, return the
+  # corresponding numeric value
+
+  if ($quota_type eq "all") {
+    return $ALL_QUOTA;
+
+  } elsif ($quota_type eq "user") {
+    return $USER_QUOTA;
+
+  } elsif ($quota_type eq "group") {
+    return $GROUP_QUOTA;
+
+  } elsif ($quota_type eq "class") {
+    return $CLASS_QUOTA;
+
+  } else {
+    print STDERR "$program: unknown quota type: $quota_type\n";
+    exit(1);
+  }
+}
+
+# -------------------------------------------------------------------------
+sub get_table_position {
+  return sysseek(TABLE, 0, 1);
+}
+
+# -------------------------------------------------------------------------
+sub open_table {
+
+  # if the table doesn't exist, create it if requested
+  if (defined($opts{'create-table'})) {
+    die "$program: cannot create existing table\n" if (-e $table);
+
+    print STDOUT "$program: creating new table\n" if $verbose;
+
+    open(TABLE, "> $table") or
+      die "$program: unable to create $table: $!\n";
+
+    print STDOUT "$program: writing header for new table\n" if $verbose;
+
+    # write out the identifying header for the table type
+    if ($table_type == $LIMIT_TABLE) {
+      syswrite TABLE, pack("L", $LIMIT_MAGIC);
+
+    } elsif ($table_type == $TALLY_TABLE) {
+      syswrite TABLE, pack("L", $TALLY_MAGIC);
+    }
+
+  } else {
+
+    print STDOUT "$program: opening table '$table'\n" if $verbose;
+
+    if (defined($opts{'show-records'})) {
+      open(TABLE, "< $table") or
+        die "$program: unable to open $table: $!\n";
+
+    } else {
+      open(TABLE, "+< $table") or
+        die "$program: unable to open $table: $!\n";
+    }
+
+    check_table();
+  }
+}
+
+# -------------------------------------------------------------------------
+sub parse_options {
+
+  $verbose = 1 if (defined($opts{'verbose'}));
+
+  if (defined($opts{'type'})) {
+
+    die "$program: unknown table type: $opts{'type'}\n" if
+      ($opts{'type'} ne 'limit' and $opts{'type'} ne 'tally');
+
+    if ($opts{'type'} eq 'limit') {
+      $table_type = $LIMIT_TABLE;
+      $table = $default_limit_table;
+    }
+
+    if ($opts{'type'} eq 'tally') {
+      $table_type = $TALLY_TABLE;
+      $table = $default_tally_table;
+    }
+
+  } else {
+    die "$program: missing required --type parameter\n";
+  }
+
+  $table = $opts{'table-path'} if (defined($opts{'table-path'}));
+
+  if (defined($opts{'N'})) {
+    $record{'name'} = $opts{'N'};
+
+    # make sure the name is not too long
+    die "$program: name is too long, must be less than 80 characters\n"
+      if (length($record{'name'}) >= 80);
+
+  } else {
+    $record{'name'} = $default_name;
+  }
+
+  if (defined($opts{'P'})) {
+    $record{'per_session'} = 1;
+
+  } else {
+    $record{'per_session'} = $default_per_session;
+  }
+
+  if (defined($opts{'Q'})) {
+    if ($opts{'Q'} eq "all") {
+      $record{'quota_type'} = $ALL_QUOTA;
+
+    } elsif ($opts{'Q'} eq "user") {
+      $record{'quota_type'} = $USER_QUOTA;
+
+      # it's an error if there's no -N option present as well
+      unless (defined($opts{'N'})) {
+        print STDOUT "$program: quota type \"user\" requires --name option\n";
+        exit(1);
+      }
+
+    } elsif ($opts{'Q'} eq "group") {
+      $record{'quota_type'} = $GROUP_QUOTA;
+
+      # it's an error if there's no -N option present as well
+      unless (defined($opts{'N'})) {
+        print STDOUT "$program: quota type \"group\" requires --name option\n";
+        exit(1);
+      }
+
+    } elsif ($opts{'Q'} eq "class") {
+      $record{'quota_type'} = $CLASS_QUOTA;
+
+      # it's an error if there's no -N option present as well
+      unless (defined($opts{'N'})) {
+        print STDOUT "$program: quota type \"class\" requires --name option\n";
+        exit(1);
+      }
+
+    } else {
+      print STDERR "$program: unknown quota type: $opts{'Q'}\n";
+      exit(1);
+    }
+
+  } else {
+    $record{'quota_type'} = $ALL_QUOTA;
+  }
+
+  if (defined($opts{'L'})) {
+    if ($opts{'L'} eq "hard") {
+      $record{'limit_type'} = $HARD_LIMIT;
+
+    } elsif ($opts{'L'} eq "soft") {
+      $record{'limit_type'} = $SOFT_LIMIT;
+ 
+    } else {
+      print STDERR "$program: unknown limit type: $opts{'L'}\n";
+      exit(1);
+    }
+
+  } else {
+    $record{'limit_type'} = $HARD_LIMIT;
+  }
+
+  # process the --units option, if present
+  if (defined($opts{'units'})) {
+
+    if ($opts{'units'} eq "B" or $opts{'units'} eq "byte") {
+      $byte_units = "byte";
+
+    } elsif ($opts{'units'} eq "Kb" or $opts{'units'} eq "kilo") {
+      $byte_units = "kilo";
+
+    } elsif ($opts{'units'} eq "Mb" or $opts{'units'} eq "mega") {
+      $byte_units = "mega";
+
+    } elsif ($opts{'units'} eq "Gb" or $opts{'units'} eq "giga") {
+      $byte_units = "giga";
+
+    } else {
+      print STDERR "$program: unknown unit type: $opts{'units'}\n";
+      exit(1);
+    }
+  }
+
+  if (defined($opts{'Bu'}) || defined($opts{'bytes-upload'})) {
+    if (defined($opts{'Bu'}) && defined($opts{'bytes-upload'})) {
+      print STDOUT "$program: do not use both --Bu and --bytes-upload options\n";
+      exit(1);
+    }
+
+    $record{'bytes_in'} = $opts{'Bu'} if (defined($opts{'Bu'}));
+    $record{'bytes_in'} = $opts{'bytes-upload'} if
+      (defined($opts{'bytes-upload'}));
+
+    if ($record{'bytes_in'} <= 0.0) {
+      print STDERR "$program: notice: upload bytes value '", $record{'bytes_in'}, "' means 'unlimited'\n";
+    }
+
+    if ($record{'bytes_in'} != $default_bytes_in) {
+      if ($byte_units eq "kilo") {
+        $record{'bytes_in'} = $record{'bytes_in'} * 1024.0;
+
+      } elsif ($byte_units eq "mega") {
+        $record{'bytes_in'} = $record{'bytes_in'} * 1024.0 * 1024.0;
+
+      } elsif ($byte_units eq "giga") {
+        $record{'bytes_in'} = $record{'bytes_in'} * 1024.0 * 1024.0 * 1024.0;
+      }
+    }
+
+  } else {
+
+    $record{'bytes_in'} = $default_bytes_in if ($table_type == $LIMIT_TABLE);
+    $record{'bytes_in'} = 0.0 if ($table_type == $TALLY_TABLE);
+  }
+
+  if (defined($opts{'Bd'}) || defined($opts{'bytes-download'})) {
+    if (defined($opts{'Bd'}) && defined($opts{'bytes-download'})) {
+      print STDOUT "$program: do not use both --Bd and --bytes-download options\n";
+      exit(1);
+    }
+
+    $record{'bytes_out'} = $opts{'Bd'} if (defined($opts{'Bd'}));
+    $record{'bytes_out'} = $opts{'bytes-download'} if
+      (defined($opts{'bytes-download'}));
+
+    if ($record{'bytes_out'} <= 0.0) {
+      print STDERR "$program: notice: download bytes value '", $record{'bytes_out'}, "' means 'unlimited'\n";
+    }
+
+    if ($record{'bytes_out'} != $default_bytes_out) {
+      if ($byte_units eq "kilo") {
+        $record{'bytes_out'} = $record{'bytes_out'} * 1024.0;
+
+      } elsif ($byte_units eq "mega") {
+        $record{'bytes_out'} = $record{'bytes_out'} * 1024.0 * 1024.0;
+
+      } elsif ($byte_units eq "giga") {
+        $record{'bytes_out'} = $record{'bytes_out'} * 1024.0 * 1024.0 * 1024.0;
+      }
+    }
+
+  } else {
+
+    $record{'bytes_out'} = $default_bytes_out if ($table_type == $LIMIT_TABLE);
+    $record{'bytes_out'} = 0.0 if ($table_type == $TALLY_TABLE);
+  }
+
+  if (defined($opts{'Bx'}) || defined($opts{'bytes-xfer'})) {
+    if (defined($opts{'Bx'}) && defined($opts{'bytes-xfer'})) {
+      print STDOUT "$program: do not use both --Bx and --bytes-xfer options\n";
+      exit(1);
+    }
+
+    $record{'bytes_xfer'} = $opts{'Bx'} if (defined($opts{'Bx'}));
+    $record{'bytes_xfer'} = $opts{'bytes-xfer'} if
+      (defined($opts{'bytes-xfer'}));
+
+    if ($record{'bytes_xfer'} <= 0.0) {
+      print STDERR "$program: notice: transfer bytes value '", $record{'bytes_xfer'}, "' means 'unlimited'\n";
+    }
+
+    if ($record{'bytes_xfer'} != $default_bytes_xfer) {
+      if ($byte_units eq "kilo") {
+        $record{'bytes_xfer'} = $record{'bytes_xfer'} * 1024.0;
+
+      } elsif ($byte_units eq "mega") {
+        $record{'bytes_xfer'} = $record{'bytes_xfer'} * 1024.0 * 1024.0;
+
+      } elsif ($byte_units eq "giga") {
+        $record{'bytes_xfer'} =
+          $record{'bytes_xfer'} * 1024.0 * 1024.0 * 1024.0;
+      }
+    }
+
+  } else {
+
+    $record{'bytes_xfer'} = $default_bytes_xfer if
+      ($table_type == $LIMIT_TABLE);
+    $record{'bytes_xfer'} = 0.0 if ($table_type == $TALLY_TABLE);
+  }
+
+  if (defined($opts{'Fu'}) || defined($opts{'files-upload'})) {
+    if (defined($opts{'Fu'}) && defined($opts{'files-upload'})) {
+      print STDOUT "$program: do not use both --Fu and --files-upload options\n";
+      exit(1);
+    }
+
+    $record{'files_in'} = $opts{'Fu'} if (defined($opts{'Fu'}));
+    $record{'files_in'} = $opts{'files-upload'} if
+      (defined($opts{'files-upload'}));
+
+    if ($record{'files_in'} <= 0) {
+      print STDERR "$program: notice: upload files value '", $record{'files_in'}, "' means 'unlimited'\n";
+    }
+
+  } else {
+
+    $record{'files_in'} = $default_files_in if ($table_type == $LIMIT_TABLE);
+    $record{'files_in'} = 0 if ($table_type == $TALLY_TABLE);
+  }
+
+  if (defined($opts{'Fd'}) || defined($opts{'files-download'})) {
+    if (defined($opts{'Fd'}) && defined($opts{'files-download'})) {
+      print STDOUT "$program: do not use both --Fd and --files-download options\n";
+      exit(1);
+    }
+
+    $record{'files_out'} = $opts{'Fd'} if (defined($opts{'Fd'}));
+    $record{'files_out'} = $opts{'files-download'} if
+      (defined($opts{'files-download'}));
+
+    if ($record{'files_out'} <= 0) {
+      print STDERR "$program: notice: download files value '", $record{'files_out'}, "' means 'unlimited'\n";
+    }
+
+  } else {
+
+    $record{'files_out'} = $default_files_out if ($table_type == $LIMIT_TABLE);
+    $record{'files_out'} = 0 if ($table_type == $TALLY_TABLE);
+  }
+
+  if (defined($opts{'Fx'}) || defined($opts{'files-xfer'})) {
+    if (defined($opts{'Fx'}) && defined($opts{'files-xfer'})) {
+      print STDOUT "$program: do not use both --Fx and --files-xfer options\n";
+      exit(1);
+    }
+
+    $record{'files_xfer'} = $opts{'Fx'} if (defined($opts{'Fx'}));
+    $record{'files_xfer'} = $opts{'files-xfer'} if
+      (defined($opts{'files-xfer'}));
+
+    if ($record{'files_xfer'} <= 0) {
+      print STDERR "$program: notice: transfer files value '", $record{'files_xfer'}, "' means 'unlimited'\n";
+    }
+
+  } else {
+
+    $record{'files_xfer'} = $default_files_xfer if
+      ($table_type == $LIMIT_TABLE);
+    $record{'files_xfer'} = 0 if ($table_type == $TALLY_TABLE);
+  }
+}
+
+# -------------------------------------------------------------------------
+sub print_record {
+  my %args = @_;
+
+  my $record = $args{'record'};
+
+  my ($name, $quota_type, $per_session, $limit_type, $bytes_in, $bytes_out,
+    $bytes_xfer, $files_in, $files_out, $files_xfer);
+
+  if ($table_type == $LIMIT_TABLE) {
+    ($name, $quota_type, $per_session, $limit_type, $bytes_in, $bytes_out,
+     $bytes_xfer, $files_in, $files_out, $files_xfer) = unpack($limit_format,
+     $record);
+
+  } elsif ($table_type == $TALLY_TABLE) {
+
+    ($name, $quota_type, $bytes_in, $bytes_out, $bytes_xfer,
+     $files_in, $files_out, $files_xfer) = unpack($tally_format, $record);
+  }
+
+
+  # make the symbolic values legible
+  $quota_type = "All" if ($quota_type == $ALL_QUOTA);
+  $quota_type = "User" if ($quota_type == $USER_QUOTA);
+  $quota_type = "Group" if ($quota_type == $GROUP_QUOTA);
+  $quota_type = "Class" if ($quota_type == $CLASS_QUOTA);
+
+  if ($table_type == $LIMIT_TABLE) {
+    $limit_type = "Hard" if ($limit_type == $HARD_LIMIT);
+    $limit_type = "Soft" if ($limit_type == $SOFT_LIMIT);
+
+    if ($per_session eq 1) {
+      $per_session = "True";
+
+    } else {
+      $per_session = "False";
+    }
+  }
+
+  # print "unlimited" if quota is unlimited, but only for limit tables
+  if ($table_type == $LIMIT_TABLE) {
+    $bytes_in = "unlimited" if ($bytes_in <= 0.0);
+    $bytes_out = "unlimited" if ($bytes_out <= 0.0);
+    $bytes_xfer = "unlimited" if ($bytes_xfer <= 0.0);
+
+    $files_in = "unlimited" if ($files_in <= 0);
+    $files_out = "unlimited" if ($files_out <= 0);
+    $files_xfer = "unlimited" if ($files_xfer <= 0);
+  }
+
+  print STDOUT "-------------------------------------------\n";
+  print STDOUT "  Name: $name\n";
+  print STDOUT "  Quota Type: $quota_type\n";
+
+  if ($table_type == $LIMIT_TABLE) {
+    print STDOUT "  Per Session: $per_session\n";
+    print STDOUT "  Limit Type: $limit_type\n";
+  }
+
+  print STDOUT "    Uploaded ", get_display_bytes('bytes' => $bytes_in), "\n";
+  print STDOUT "    Downloaded ", get_display_bytes('bytes' => $bytes_out),
+    "\n";
+  print STDOUT "    Transferred ", get_display_bytes('bytes' => $bytes_xfer),
+    "\n";
+
+  print STDOUT "    Uploaded files:\t$files_in\n";
+  print STDOUT "    Downloaded files:\t$files_out\n";
+  print STDOUT "    Transferred files:\t$files_xfer\n";
+}
+
+# -------------------------------------------------------------------------
+sub print_table {
+  my $have_records = 0;
+
+  while (my $record = read_record()) {
+    $have_records = 1;
+    print_record(record => $record);
+  }
+  print STDOUT "$program: (empty table)\n" unless ($have_records);
+
+  # done
+  exit(0);
+}
+
+# -------------------------------------------------------------------------
+sub read_record {
+  my $record;
+  my $bread;
+
+  if ($table_type == $LIMIT_TABLE) {
+    $bread = sysread TABLE, $record, $limit_reclen;
+
+  } elsif ($table_type == $TALLY_TABLE) {
+    $bread = sysread TABLE, $record, $tally_reclen;
+  }
+
+  if ($bread) {
+    return $record;
+
+  } else {
+    return undef;
+  }
+}
+
+# -------------------------------------------------------------------------
+sub read_table {
+  my @records = ();
+  my $nrecords_read = 0;
+
+  # read from TABLE
+  while (my $record = read_record()) {
+    $nrecords_read++;
+    push(@records, $record);
+  }
+
+  return ($nrecords_read, @records);
+}
+
+# -------------------------------------------------------------------------
+sub rewind_record {
+  if ($table_type == $LIMIT_TABLE) {
+    sysseek TABLE, -$limit_reclen, 1;
+
+  } elsif ($table_type == $TALLY_TABLE) {
+    sysseek TABLE, -$tally_reclen, 1;
+  }
+}
+
+# -------------------------------------------------------------------------
+sub rlock_table {
+  print STDOUT "$program: read-locking table '$table'\n" if $verbose;
+
+  flock(TABLE, LOCK_SH);
+}
+
+# -------------------------------------------------------------------------
+sub seek_record {
+  my ($n) = @_;
+
+  if ($table_type == $LIMIT_TABLE) {
+    sysseek TABLE, $limit_reclen, $n;
+  
+  } elsif ($table_type == $TALLY_TABLE) {
+    sysseek TABLE, $tally_reclen, $n;
+  }
+}
+
+# -------------------------------------------------------------------------
+sub set_table_position {
+  my ($position, $whence) = @_;
+
+  my $result = sysseek(TABLE, $position, $whence);
+
+  print STDOUT "$program: set table position to $result\n" if $verbose;
+
+  return $result;
+}
+
+# -------------------------------------------------------------------------
+sub truncate_table {
+  my %args = @_;
+
+  my $length = $args{'len'};
+
+  # don't forget about the header (4 bytes)
+  truncate TABLE, $length + 4;
+}
+
+# -------------------------------------------------------------------------
+sub unlock_table {
+  print STDOUT "$program: unlocking table '$table'\n" if $verbose;
+
+  flock(TABLE, LOCK_UN);
+}
+
+# -------------------------------------------------------------------------
+sub update_record {
+  my $current_record;
+  my $search_quota_type;
+
+  # first, find the matching record.  Note that this option requires
+  # both --name and --quota-type
+
+  if (!defined($opts{'Q'})) {
+    print STDOUT "$program: --update-record requires --quota-type option\n";
+    exit(1);
+
+  } else {
+    $search_quota_type = get_quota_type(quota_type => $opts{'Q'});
+  }
+
+  if ($search_quota_type != $ALL_QUOTA) {
+    if (!defined($opts{'N'})) {
+      print STDOUT "$program: --update-record requires --name option\n";
+      exit(1);
+    }
+  }
+
+  # now, find the matching record in the table
+  open_table();
+  unless ($current_record = find_record(name => $opts{'N'},
+      quota_type => $search_quota_type)) {
+    print STDOUT "$program: unable to update record: no match found\n";
+    exit(1);
+  }
+  rewind_record();
+
+  print STDOUT "$program: updating table '$table'\n" if $verbose;
+
+  # now, adjust the current record with the updated values in the requested
+  # record
+
+  my ($name, $quota_type, $per_session, $limit_type, @junk);
+
+  if ($table_type == $LIMIT_TABLE) { 
+    ($name, $quota_type, $per_session, $limit_type,
+      @junk) = unpack($limit_format, $current_record);
+
+  } elsif ($table_type == $TALLY_TABLE) {
+
+    ($name, $quota_type, @junk) = unpack($tally_format, $current_record);
+  }
+
+  my $formatted_record;
+
+  if ($table_type == $LIMIT_TABLE) {
+    $formatted_record = pack($limit_format, $name, $quota_type,
+      $record{'per_session'}, $record{'limit_type'},
+      $record{'bytes_in'}, $record{'bytes_out'}, $record{'bytes_xfer'},
+      $record{'files_in'}, $record{'files_out'}, $record{'files_xfer'});
+
+  } elsif ($table_type == $TALLY_TABLE) {
+
+    $formatted_record = pack($tally_format, $name, $quota_type,
+      $record{'bytes_in'}, $record{'bytes_out'}, $record{'bytes_xfer'},
+      $record{'files_in'}, $record{'files_out'}, $record{'files_xfer'});
+  }
+
+  write_record(record => $formatted_record);
+
+  # done
+  exit(0);
+}
+
+# -------------------------------------------------------------------------
+sub wlock_table {
+  print STDOUT "$program: write-locking table '$table'\n" if $verbose;
+
+  flock(TABLE, LOCK_EX);
+}
+
+# -------------------------------------------------------------------------
+sub write_record {
+  my %args = @_;
+  my $record = $args{'record'};
+
+  print STDOUT "$program: writing record\n" if $verbose;
+
+  die "$program: error writing table: $!\n" unless
+    syswrite TABLE, $record;
+}
+
+# -------------------------------------------------------------------------
+sub usage {
+
+  print STDOUT <<END_OF_USAGE;
+
+usage: $program [options]
+
+ The following options describe the type of operation to be performed:
+
+  --add-record         Create a new record with the specified limits.  Any
+                       limits left unspecified with have their default 
+                       values.  This option requires the --name and 
+                       --quota-type options.
+
+  --create-table       Create the table if not present.  Used to initialize
+                       a table.  The default limit table path is
+                       "$default_limit_table".  The default tally table path is
+                       "$default_tally_table".
+
+  --delete-record      Deletes a quota record from the table.  This option
+                       requires the --name and --quote-type options.
+
+  --show-records       Prints out all of the quota records in the table in
+                       a legible format.
+
+  --update-record      Updates a quota record with the specified limits.  Any
+                       limits left unspecified will be updated with their
+                       default value.  This option requires the --name and
+                       --quota-type options.
+
+ The following option describes the type of table on which to operate:
+
+  --type               Specifies a table type to use.  The allowable options
+                       are: "limit" or "tally".  This is required.
+
+ The following options are used to specify specific quota limits:
+
+  --Bu                 Specifies the limit of the number of bytes that may be
+  --bytes-upload       uploaded.  Defaults to -1 (unlimited).  Note that any
+                       value less than or equal to zero is treated as
+                       "unlimited".
+
+  --Bd                 Specifies the limit of the number of bytes that may be
+  --bytes-download     downloaded.  Defaults to -1 (unlimited).  Note that any
+                       value less than or equal to zero is treated as
+                       "unlimited".
+
+  --Bx                 Specifies the limit of the number of bytes that may be
+  --bytes-xfer         transferred.  Note that this total includes uploads,
+                       downloads, AND directory listings.  Defaults to
+                       -1 (unlimited).  Note that any value value less than or
+                       equal to zero is treated as "unlimited".
+
+  --Fu                 Specifies the limit of the number of files that may be
+  --files-upload       uploaded.  Defaults to -1 (unlimited).  Note that any
+                       value less than or equal to zero is treated as
+                       "unlimited".
+
+  --Fd                 Specifies the limit of the number of files that may be
+  --files-download     downloaded.  Defaults to -1 (unlimited).  Note that any
+                       value less than or equal to zero is treated as
+                       "unlimited".
+
+  --Fx                 Specifies the limit of the number of files that may be
+  --files-xfer         transferred, including uploads and downloads.  Defaults
+                       to -1 (unlimited).  Note that any value less than or
+                       equal to zero is treated as "unlimited".
+
+  -L                   Specifies the type of limit, "hard" or "soft", of
+  --limit-type         the bytes limits.  If "hard", any uploaded files that
+                       push the bytes used counter past the limit will be
+                       automatically deleted; if "soft", those extra bytes
+                       will be allowed, but future uploads will be denied.
+                       This option only makes sense if --type is "limit".
+
+  -N                   Specifies a name for the quota record.  This name
+  --name               will be the user/login name, group name, or class
+                       name, depending on the quota type.  This option
+                       is ignored if the quota type specified is "all".
+
+  -P
+  --per-session        Specifies that the quota limit is to be applied only
+                       to each session, rather than persisting across
+                       sessions.  By default, quotas are persistent.
+
+  -Q                   Specifies a "quota type" for this record, where
+  --quota-type         the type means to which category of FTP users this
+                       quota will apply.  The quota type must be one of:
+                       "user", "group", "class", or "all".
+
+ The following options are miscellaneous:
+
+  --help               Displays this message.
+
+  --table-path         Specifies the path to a quota table file to use.
+
+  --units              Specifies whether to treats bytes as is, in kilobytes,
+                       megabytes, or gigabytes.  Allowable options are:
+                       "B" or "byte", "Kb" or "kilo", "Mb" or "mega",
+                       and "Gb" or "giga".  Defaults to "byte".
+
+  --verbose            Toggles more verbose information about the doings of
+                       the tool as it works.
+
+END_OF_USAGE
+
+  exit 0;
+}
+
+# -------------------------------------------------------------------------
+

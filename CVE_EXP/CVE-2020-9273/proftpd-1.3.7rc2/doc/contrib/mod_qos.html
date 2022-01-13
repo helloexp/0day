@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_qos</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_qos</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_qos</code> module can be used to set the Differentiated
+Services field (<a href="http://www.faqs.org/rfcs/rfc2474.html">RFC2474</a>)
+of IP packet headers.  This can dramatically aid in the handling of these
+packets in the network, depending on the network QoS configuration.
+
+<p>
+This module is contained in the <code>mod_qos</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_qos</code> is distributed with
+the ProFTPD source code.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#QoSOptions">QoSOptions</a>
+</ul>
+
+<hr>
+<h3><a name="QoSOptions">QoSOptions</a></h3>
+<strong>Syntax:</strong> QoSOptions <em>&quot;ctrlqos&quot; value|&quot;dataqos&quot; value</em><br>
+<strong>Default:</strong> <em>None</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code><br>
+<strong>Module:</strong> mod_qos<br>
+<strong>Compatibility:</strong> 1.3.4rc1 and later
+
+<p>
+The <code>QoSOptions</code> directive configures the QoS bits to use for
+the control and/or data connections.
+
+<p>
+The possible values to use are:
+<ul>
+  <li>cs0
+  <li>cs1
+  <li>cs2
+  <li>cs3
+  <li>cs4
+  <li>cs5
+  <li>cs6
+  <li>cs7
+  <li>af11
+  <li>af12
+  <li>af13
+  <li>af21
+  <li>af22
+  <li>af23
+  <li>af31
+  <li>af32
+  <li>af33
+  <li>af41
+  <li>af42
+  <li>af43
+</ul>
+See <a href="http://www.faqs.org/rfcs/rfc2474.html">RFC2474</a> for a better
+discussion of these values.
+
+<p>
+<b>Note</b> that while the following values are also supported, their use is
+deprecated, and can have adverse effects on TCP congestion control:
+<ul>
+  <li>lowcost
+  <li>lowdelay
+  <li>mincost
+  <li>reliability
+  <li>throughput
+</ul>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+For including <code>mod_qos</code> as a statically linked module in your
+<code>proftpd</code>, use:
+<pre>
+  $ ./configure --with-modules=mod_qos
+</pre>
+Alternatively, <code>mod_qos</code> could be built as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_qos
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your <code>proftpd</code> was compiled with DSO support, you
+can use the <code>prxs</code> tool to build <code>mod_qos</code> as a shared
+module:
+<pre>
+  $ prxs -c -i -d mod_qos.c
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2010-2013 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

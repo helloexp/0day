@@ -1,0 +1,29 @@
+# Exim: OS-specific make file for Darwin (Mac OS X).
+
+CC=cc
+
+BASENAME_COMMAND=look_for_it
+CHOWN_COMMAND=/usr/sbin/chown
+CHMOD_COMMAND=/bin/chmod
+
+HAVE_SA_LEN=YES
+
+# Removed -DBIND_8_COMPAT for 4.61
+# CFLAGS=-O -no-cpp-precomp -DBIND_8_COMPAT
+
+CFLAGS=-O -no-cpp-precomp
+LIBRESOLV=-lresolv
+
+USE_DB = yes
+DBMLIB =
+
+X11=/usr/X11R6
+XINCLUDE=-I$(X11)/include
+XLFLAGS=-L$(X11)/lib
+X11_LD_LIB=$(X11)/lib
+
+EXIWHAT_PS_ARG=ax
+EXIWHAT_EGREP_ARG='/exim( |$$)'
+EXIWHAT_KILL_SIGNAL=-USR1
+
+# End

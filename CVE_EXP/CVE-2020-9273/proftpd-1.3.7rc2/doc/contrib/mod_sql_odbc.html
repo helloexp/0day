@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_sql_odbc</title>
+</head>
+
+<body bgcolor=white>
+
+<hr><br>
+<center>
+<h2><b>ProFTPD module <code>mod_sql_odbc</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+ODBC means <b>O</b>pen <b>D</b>ata<b>b</b>ase <b>C</b>onnectivity, and defines
+a standard way of connecting to a database server such as MySQL, Postgres,
+SQL Server, Oracle, <i>etc</i>.  Many of the these databases also provide
+their own native APIs for connectivity, in addition to supporting ODBC.  Other
+databases provide ODBC support, but no support for native connectivity.
+
+<p>
+The ProFTPD distribution includes the <code>mod_sql_mysql</code> module for
+talking to a MySQL database using the native MySQL API, and a
+<code>mod_sql_postgres</code> for connecting to Postgres databases using the
+native Postgres API.  However, there was no support for databases other
+than these -- until now.  The purpose of the <code>mod_sql_odbc</code> module
+is to allow ProFTPD's <code>mod_sql</code> module to connect to <b>any</b>
+database that supports ODBC.  This module also allows proftpd to work with
+databases that may already provide APIs for native connectivity, but for
+which a specific <code>mod_sql</code> has not yet been developed.
+
+<p>
+This module is contained in the <code>mod_sql_odbc.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_sql_odbc</code> is distributed with
+ProFTPD.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#SQLODBCVersion">SQLODBCVersion</a>
+</ul>
+
+<hr>
+<h3><a name="SQLODBCVersion">SQLODBCVersion</a></h3>
+<strong>Syntax:</strong> SQLODBCVersion <em>version</em><br>
+<strong>Default:</strong> SQLODBCVersion ODBCv3<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql_odbc<br>
+<strong>Compatibility:</strong> 1.3.6rc2 and later
+
+<p>
+The <code>SQLODBCVersion</code> directive configures the ODBC API
+<em>version</em> that the ODBC driver should use/expect.  The default is
+"ODBCv3", <i>i.e.</i> ODBC version 3.  Some drivers may have issues with the
+default version; this can manifest as errors similar to the following in your
+<code>SQLLogFile</code>:
+<pre>
+  message: '[unixODBC][Driver Manager]Driver does not support the requested version'
+</pre>
+When this happens, you might try using an older version of ODBC, via:
+<pre>
+  SQLODBCVersion ODBCv2
+</pre>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_sql_odbc</code> relies on one of the two following libraries
+for ODBC support:
+<pre>
+  <a href="http://www.iodbc.org">http://www.iodbc.org</a>
+  <a href="http://www.unixodbc.org">http://www.unixodbc.org</a>
+</pre>
+One of these ODBC libraries must be installed prior to using
+<code>mod_sql_odbc</code>.
+
+<p>
+Follow the usual steps for using contrib modules in ProFTPD, making sure to
+list <code>mod_sql</code>.  Note that you will need to use the
+<code>LIBS</code> environment variable for indicating which ODBC library
+to link against.
+
+<p>
+For example, if you wish to use the unixODBC library, you would use:
+<pre>
+  $ ./configure LIBS=-lodbc --with-modules=mod_sql:mod_sql_odbc ...
+  $ make
+  $ make install
+</pre>
+On the other hand, for using the iODBC library, the invocation is slightly
+different, specifying a different library name:
+<pre>
+  $ ./configure LIBS=-liodbc --with-modules=mod_sql:mod_sql_odbc ...
+  $ make
+  $ make install
+</pre>
+
+<p>
+You may need to specify the location of the ODBC header and library files in
+your <code>configure</code> command, <i>e.g.</i>:
+<pre>
+  $ ./configure \
+    LD_LIBRARY_PATH=/usr/local/odbc/lib \
+    LDFLAGS=-L/usr/local/odbc/lib \
+    LIBS=-lodbc \
+    --with-modules=mod_sql:mod_sql_odbc \
+    --with-includes=/usr/local/odbc/include \
+    --with-libraries=/usr/local/odbc/lib
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+<i>Note</i>: some of the following information is taken from:
+<pre>
+  <a href="http://www.mysql.com/products/myodbc/manual.html#Introduction_to_ODBC">http://www.mysql.com/products/myodbc/manual.html#Introduction_to_ODBC</a>
+</pre>
+
+<p>
+<b>What is ODBC?</b><br>
+ODBC (<b>O</b>pen <b>D</b>ata <b>B</b>ase <b>C</b>onnectivity) provides a way
+for client programs to access a wide range of databases or data sources.
+
+<p>
+ODBC is a standardized API, developed according to the specifications of the
+SQL Access Group, that allows one to connect to SQL databases. It defines a
+set of function calls, error codes and data types that can be used to develop
+database-independent applications.  ODBC is usually used when database
+independence, or simultaneous access to different data sources, is required.
+
+<p>
+For more information about ODBC, refer to:
+<pre>
+  http://www.microsoft.com/data/odbc/
+</pre>
+
+<p>
+<b>When should <code>mod_sql_odbc</code> be used?</b><br>
+There are two cases where a site might need to use the <code>mod_sql_odbc</code>
+module: when the site's database does not provide a native connectivity API
+(<i>e.g.</i> FrontBase), and when the site's database does not have a
+corresponding <code>mod_sql_<i>db</i></code> module for it.  For example,
+ProFTPD does not have a <code>mod_sql_oracle</code> module.  Using
+<code>mod_sql_odbc</code> and an Oracle-provided ODBC driver would allow
+a site to have <code>proftpd</code> communicate with their Oracle database.
+
+<p>
+<b>How does ODBC work?</b><br>
+An ODBC <i>driver</i> is a dynamically loadable library that knows how to
+talk to a specific database.  Many databases come bundled with an ODBC
+driver.  The following lists where to find ODBC drivers for the popular
+MySQL and Postgres databases:
+<dl>
+  <dt>MySQL ODBC Driver (MyODBC)</dt>
+  <dd><a href="http://www.mysql.com/products/myodbc/">http://www.mysql.com/products/myodbc/</a></dd>
+
+  <p>
+  <dt>Postgres ODBC Driver (psqlODBC)</dt>
+  <dd><a href="https://odbc.postgresql.org/">https://odbc.postgresql.org/</a></dd>
+</dl>
+
+<p>
+The ODBC <i>driver manager</i> is a library that manages communication between
+the ODBC-aware application and ODBC drivers. Its main functionality includes:  
+<ul>
+  <li>resolving Data Source Names (DSN) 
+  <li>loading and unloading of the drivers 
+  <li>processing ODBC function calls or passing them to the driver 
+</ul>
+The following lists some commonly used driver managers:  
+<dl>
+  <dt>iODBC ODBC Driver Manager for Unix</dt>
+  <dd><a href="http://www.iodbc.org">http://www.iodbc.org</a></dd>
+
+  <p>
+  <dt>unixODBC Driver Manager for Unix</dt>
+  <dd><a href="http://www.unixodbc.org">http://www.unixodbc.org</a></dd>
+
+  <p>
+  <dt>Microsoft Windows ODBC Driver Manager</dt>
+  <dd><a href="http://www.microsoft.com/data/">http://www.microsoft.com/data/</a></dd>
+</dl>
+
+<p>
+<b>Environment Variables</b><br>
+There are two environment variables that both the iODBC and unixODBC libraries
+use: <code>LD_LIBRARY_PATH</code> and <code>ODBCINI</code>.  The
+<code>ODBCINI</code> environment variable specifies the configuration file
+used by the library; this file specifies the driver to use, and any database
+connection information that driver may need.The <code>LD_LIBRARY_PATH</code>
+environment variable is used to tell the Driver Manager where it may find
+the driver libraries.  Note that on a Linux system, if the
+<code>/etc/ld.so.conf</code> contains the directory where the ODBC driver
+libraries live (and <code>/sbin/ldconfig</code> has been run), use of
+the <code>LD_LIBRARY_PATH</code> setting may not be necessary.
+
+<p>
+<b>Configuring ODBC</b><br>
+The hard part about using the iODBC or unixODBC Unix driver managers is
+their configuration.  Often in ODBC documentation you will mention of DSNs,
+or Data Source Names.  A data source identifies a path to data that can include
+a network library, server, database, and other attributes. To connect to a data
+source, the driver manager checks for specific connection information.  This
+specific connection information is recorded in a file usually called
+&quot;odbc.ini&quot;.
+
+<p>
+Example iODBC <code>odbc.ini</code> file:
+<pre>
+  [ODBC Data Sources]
+  mysql = MySQL ODBC Connector (MyODBC)
+
+  [mysql]
+  Driver = /usr/local/iodbc/lib/libmyodbc3.so
+  Description = MySQL Driver
+  Server = localhost
+  Database = proftpd
+  Port = 3306
+  Socket = /tmp/mysql.sock
+</pre>
+
+<p>
+Example unixODBC <code>odbc.ini</code> file:
+<pre>
+  [mysql]
+  Description = MySQL
+  Driver = mysql
+  Server = localhost
+  Database = proftpd
+  Port = 3306
+  Socket = /tmp/mysql.sock
+</pre>
+
+More details on the contents of <code>odbc.ini</code> files, and the different
+meanings of configuration options, can be found in the respective driver
+manager documentation.
+
+<p>
+<b>Configuring <code>mod_sql_odbc</code></b><br>
+For the most part, <code>mod_sql_odbc</code> requires little configuration.
+It relies on the ODBC driver managers, which in turn use the above
+environment variables.  This means that <code>ODBCINI</code> and
+<code>LD_LIBRARY_PATH</code> can be set in the environment, before starting
+<code>proftpd</code>, and <code>mod_sql_odbc</code> would then work.  The
+one required bit of information is the
+<a href="mod_sql.html#SQLConnectInfo"><code>SQLConnectInfo</code></a> directive.
+This directive needs to contain the name of the stanza in your
+<code>odbc.ini</code> file which holds the configuration.  Using the example
+<code>odbc.ini</code> files above, you would need the following in your
+<code>proftpd.conf</code>:
+<pre>
+  # Tells mod_sql to use mod_sql_odbc
+  SQLBackend odbc
+
+  # Tells mod_sql_odbc which odbc.ini stanza to use
+  SQLConnectInfo mysql
+</pre>
+
+<p>
+Starting with proftpd 1.2.10rc1, it is possible to use the <code>SetEnv</code>
+configuration directives to set the environment variables directly in
+the <code>proftpd.conf</code> file, which makes configuration more
+centralized.
+
+<p>
+Example configuration using <code>SetEnv</code>:
+<pre>
+  &lt;IfModule mod_sql_odbc.c&gt;
+    SetEnv LD_LIBRARY_PATH <i>/path/to/odbc/lib</i>
+    SetEnv ODBCINI <i>/path/to/</i><code>odbc.ini</code>
+  &lt;/IfModule&gt;
+</pre>
+Please contact the author directly with any questions or comments.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2003-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

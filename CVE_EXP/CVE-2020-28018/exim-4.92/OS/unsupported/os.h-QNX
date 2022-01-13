@@ -1,0 +1,24 @@
+/* Exim: OS-specific C header file for QNX */
+/* Modified for QNX 6.2.0 with diffs from Samuli Tuomola. */
+
+#include <sys/select.h>
+
+/* This include is wrapped in an ifdef so as to be skipped for QNXRTP, which
+doesn't have/need this header file. From Karsten P. Hoffmann. */
+
+#ifdef __QNX__
+#include <unix.h>
+#endif
+
+#undef HAVE_STATFS
+#undef HAVE_VFS_H
+#undef HAVE_SYS_MOUNT_H
+
+#define NO_SYSEXITS
+
+extern int h_errno;
+
+/* default is non-const */
+#define ICONV_ARG2_TYPE const char **
+
+/* End */

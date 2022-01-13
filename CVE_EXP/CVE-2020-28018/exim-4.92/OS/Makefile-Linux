@@ -1,0 +1,36 @@
+# Exim: OS-specific make file for Linux. This is for modern Linuxes,
+# which use libc6.
+#
+# For Linux, we assume GNU Make; at time of writing, the only extension
+# used is ?= which is actually portable to other maintained Make variants,
+# just is not POSIX.
+
+HAVE_ICONV=yes
+
+BASENAME_COMMAND=look_for_it
+CHOWN_COMMAND=look_for_it
+CHGRP_COMMAND=look_for_it
+CHMOD_COMMAND=look_for_it
+
+# Preserve CFLAGS and CFLAGS_DYNAMIC from the caller/environment
+CFLAGS ?= -O -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
+CFLAGS_DYNAMIC ?= -shared -rdynamic
+
+DBMLIB = -ldb
+USE_DB = yes
+
+LIBS = -lnsl -lcrypt -lm
+LIBRESOLV = -lresolv
+
+X11=/usr/X11R6
+XINCLUDE=-I$(X11)/include
+XLFLAGS=-L$(X11)/lib
+X11_LD_LIB=$(X11)/lib
+
+EXIWHAT_PS_ARG=ax
+EXIWHAT_EGREP_ARG='/exim( |$$)'
+EXIWHAT_MULTIKILL_CMD=killall
+EXIWHAT_MULTIKILL_ARG=exim
+EXIWHAT_KILL_SIGNAL=-USR1
+
+# End

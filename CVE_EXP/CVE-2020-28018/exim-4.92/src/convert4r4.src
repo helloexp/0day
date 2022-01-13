@@ -1,0 +1,2527 @@
+#! PERL_COMMAND
+
+# This is a Perl script that reads an Exim run-time configuration file for
+# Exim 3. It makes what changes it can for Exim 4, and also output commentary
+# on what it has done, and on things it cannot do.
+
+# It is assumed that the input is a valid Exim 3 configuration file.
+
+use warnings;
+BEGIN { pop @INC if $INC[-1] eq '.' };
+
+use Getopt::Long;
+use File::Basename;
+
+GetOptions(
+    'version' => sub {
+        print basename($0) . ": $0\n",
+            "build: EXIM_RELEASE_VERSIONEXIM_VARIANT_VERSION\n",
+            "perl(runtime): $^V\n";
+            exit 0;
+    },
+);
+
+# These are lists of main options which are abolished in Exim 4.
+# The first contains options that are used to construct new options.
+
+@skipped_options = (
+"auth_hosts",
+"auth_over_tls_hosts",
+"errors_address",
+"headers_check_syntax",
+"headers_checks_fail",
+"headers_sender_verify",
+"headers_sender_verify_errmsg",
+"host_accept_relay",
+"host_auth_accept_relay",
+"host_reject_recipients",
+"local_domains",
+"local_domains_include_host",
+"local_domains_include_host_literals",
+"log_all_parents",
+"log_arguments",
+"log_incoming_port",
+"log_interface",
+"log_level",
+"log_received_sender",
+"log_received_recipients",
+"log_rewrites",
+"log_sender_on_delivery",
+"log_smtp_confirmation",
+"log_smtp_connections",
+"log_smtp_syntax_errors",
+"log_subject",
+"log_queue_run_level",
+"rbl_domains",
+"rbl_hosts",
+"rbl_reject_recipients",
+"receiver_verify",
+"receiver_verify_addresses",
+"receiver_verify_hosts",
+"receiver_verify_senders",
+"recipients_reject_except",
+"recipients_reject_except_senders",
+"relay_domains",
+"relay_domains_include_local_mx",
+"sender_address_relay",
+"sender_address_relay_hosts",
+"sender_reject_recipients",
+"sender_verify",
+"sender_verify_hosts_callback",
+"sender_verify_callback_domains",
+"sender_verify_callback_timeout",
+"sender_verify_hosts",
+"smtp_etrn_hosts",
+"smtp_expn_hosts",
+"smtp_verify",
+"tls_host_accept_relay",
+"tls_hosts",
+"tls_log_cipher",
+"tls_log_peerdn",
+"tls_verify_ciphers"
+);
+
+# The second contains options that are completely abolished and have
+# no equivalent.
+
+@abolished_options = (
+"always_bcc",
+"debug_level",
+"helo_strict_syntax",
+"kill_ip_options",
+"log_ip_options",
+"log_refused_recipients",
+"message_size_limit_count_recipients",
+"rbl_log_headers",
+"rbl_log_rcpt_count",
+"receiver_try_verify",
+"refuse_ip_options",
+"relay_match_host_or_sender",
+"sender_try_verify",
+"sender_verify_batch",
+"sender_verify_fixup",
+"sender_verify_reject",
+"sender_verify_max_retry_rate",
+);
+
+# This is a list of options that are not otherwise handled, but which
+# contain domain or host lists that have to be processed so that any
+# regular expressions are marked "not for expansion".
+
+@list_options = (
+"dns_again_means_nonexist",
+"hold_domains",
+"hosts_treat_as_local",
+"percent_hack_domains",
+"queue_smtp_domains",
+"helo_accept_junk_hosts",
+"host_lookup",
+"ignore_fromline_hosts",
+"rfc1413_hosts",
+"sender_unqualified_hosts",
+"smtp_reserve_hosts",
+"tls_advertise_hosts",
+"tls_verify_hosts",
+);
+
+
+
+##################################################
+#          Output problem rubric once            #
+##################################################
+
+sub rubric {
+return if $rubric_output;
+$rubric_output = 1;
+print STDERR "\n" .
+"** The following comments describe problems that have been encountered\n" .
+"   while converting an Exim 3 runtime file for Exim 4. More detail can\n" .
+"   be found in the file doc/Exim4.upgrade.\n";
+}
+
+
+##################################################
+#             Analyse one line                   #
+##################################################
+
+sub checkline{
+my($line) = $_[0];
+
+return "comment" if $line =~ /^\s*(#|$)/;
+return "end"     if $line =~ /^\s*end\s*$/i;
+
+# Macros are recognized only in the first section of the file.
+
+return "macro" if $prefix eq "" && $line =~ /^\s*[A-Z]/;
+
+# In retry and rewrite sections, the type is always "other"
+
+return "other" if $prefix eq "=retry" || $prefix eq "=rewrite";
+
+# Pick out the name at the start and the rest of the line (into global
+# variables) and return whether the start of a driver or not.
+
+($hide,$name,$rest) = $line =~ /^\s*(hide\s+|)([a-z0-9_]+)\s*(.*?)\s*$/;
+
+# If $rest begins with a colon, this is a driver name
+
+return "driver" if $rest =~ /^:/;
+
+# If $rest begins with an = the value of the option is given explicitly;
+# remove the = from the start. Turn "yes"/"no" into "true"/"false".
+
+if ($rest =~ /^=/)
+  {
+  $rest =~ s/^=\s*//;
+  $rest = "true" if $rest eq "yes";
+  $rest = "false" if $rest eq "no";
+  }
+
+# Otherwise we have a boolean option. Set up a "true"/"false" value.
+
+else
+  {
+  if ($name =~ /^not?_/)     # Recognize "no_" or "not_"
+    {
+    $rest = "false";
+    $name =~ s/^not?_//;
+    }
+  else
+    {
+    $rest = "true";
+    }
+  }
+
+return "option";
+}
+
+
+
+##################################################
+#       Negate a list of things                  #
+##################################################
+
+# Can be tricky, because there may be comment lines in the list.
+# Also, lists may have different delimiters.
+
+sub negate {
+my($list) = $_[0];
+my($delim) = ":";
+my($leadin) = "";
+
+return $list if ! defined $list;
+
+($list) = $list =~ /^"?(.*?)"?\s*$/s;      # Remove surrounding quotes
+$list =~ s/\\\s*\n\s*//g;                  # Remove continuation markers
+
+if ($list =~ /^(\s*<(\S)\s*)(.*)/s)
+  {
+  $leadin = $1;
+  $delim = $2;
+  $list = $3;
+  }
+
+$list =~ s/^\s+//;
+$list =~ s/\Q$delim$delim/>%%%%</g;
+@split = split /\s*\Q$delim\E\s*/s, $list;
+
+foreach $item (@split)
+  {
+  $item =~ s/>%%%%</$delim$delim/g;
+
+  if ($item =~ /^\s*#/)
+    {
+    $item =~ s/((?:^\s*#[^\n]*\n)+\s*)/$1! /mg;
+    $item =~ s/!\s*!//sg;
+    }
+  else
+    {
+    if ($item =~ /^\s*!(.*)/)
+      { $item = $1; }
+    else
+      { $item = "! " . $item; }
+    }
+  }
+
+$" = " $delim \\\n    ";
+$leadin .= " " if $leadin !~ /(^|\s)$/;
+return "$leadin@split";
+}
+
+
+
+##################################################
+#   Prevent regex expansion in a list of things  #
+##################################################
+
+# Can be tricky, because there may be comment lines in the list.
+# Also, lists may have different delimiters.
+
+sub no_expand_regex {
+my($list) = $_[0];
+my($delim) = ":";
+my($leadin) = "";
+
+return $list if ! defined $list;
+
+$delim = $_[1] if (defined $_[1]);
+
+my($is_route_list) = $delim eq ";";
+
+($list) = $list =~ /^"?(.*?)"?\s*$/s;      # Remove surrounding quotes
+$list =~ s/\\\s*\n\s*//g;                  # Remove continuation markers
+
+if ($list =~ /^(\s*<(\S)\s*)(.*)/s)
+  {
+  $leadin = $1;
+  $delim = $2;
+  $list = $3;
+  }
+
+$list =~ s/^\s+//;
+$list =~ s/\Q$delim$delim/>%%%%</g;
+@split = split /\s*\Q$delim\E\s*/s, $list;
+
+my($changed) = 0;
+foreach $item (@split)
+  {
+  $item =~ s/>%%%%</$delim$delim/g;
+  if ($item =~ /^\^/)
+    {
+    # Fudge for route_list items
+
+    if ($is_route_list)
+      {
+      $item = "\\N$item";      # Only one item ...
+      }
+    else
+      {
+      $item = "\\N$item\\N";
+      }
+    $changed = 1;
+    }
+  }
+print STDOUT
+  "#!!# Regular expressions enclosed in \\N...\\N to avoid expansion\n"
+    if $changed;
+
+$" = " $delim \\\n    ";
+$leadin .= " " if $leadin !~ /(^|\s)$/;
+return "$leadin@split";
+}
+
+
+
+##################################################
+#      Sort out lookups in an address list       #
+##################################################
+
+# Can be tricky, because there may be comment lines in the list.
+# Also, lists may have different delimiters.
+
+sub sort_address_list {
+my($list) = $_[0];
+my($name) = $_[1];
+my($delim) = ":";
+my($leadin) = "";
+my($quoted) = 0;
+
+return $list if ! defined $list;
+
+if ($list =~ /^"(.*?)"\s*$/s)            # Remove surrounding quotes
+  {
+  $list = $1;
+  $quoted = 1;
+  }
+
+$list =~ s/\\\s*\n\s*//g;                  # Remove continuation markers
+
+if ($list =~ /^(\s*<(\S)\s*)(.*)/s)
+  {
+  $leadin = $1;
+  $delim = $2;
+  $list = $3;
+  }
+
+$list =~ s/^\s+//;
+$list =~ s/\Q$delim$delim/>%%%%</g;
+@split = split /\s*\Q$delim\E\s*/s, $list;
+
+foreach $item (@split)
+  {
+  $item =~ s/>%%%%</$delim$delim/g;
+  if ($item =~ /^\s*(?:partial-)?(\w+;.*)$/)
+    {
+    my($lookup) = $1;
+    if ($lookup =~ /^lsearch|^dbm|^cdb|^nis[^p]/)
+      {
+      &rubric();
+      print STDERR "\n" .
+"** The Exim 3 \"$name\" option specifies an address\n" .
+"   list that includes the item\n\n" .
+"     $item\n\n" .
+"   In Exim 4 address lists, single-key lookups without a local part just\n" .
+"   look up the complete address. They don't also try the domain, as\n" .
+"   happened in Exim 3. The item has been rewritten as two items to make\n" .
+"   it behave in the same way as Exim 3, but you should check to see if\n" .
+"   this is actually what you want.\n";
+
+      $item = "*\@$item $delim $lookup";
+      }
+    }
+  }
+
+$" = " $delim \\\n    ";
+$leadin .= " " if $leadin !~ /(^|\s)$/;
+
+return $quoted? "\"$leadin@split\"" : "$leadin@split";
+}
+
+
+
+##################################################
+#       Quote a string against expansion         #
+##################################################
+
+# Used for setting up new "domains" options
+
+sub expquote {
+my($s) = $_[0];
+$s =~ s/\$/\\\$/sg;
+$s =~ s/\\(?!\s*\n)/\\\\/sg;
+return $s;
+}
+
+
+
+##################################################
+#          Dequote an option string              #
+##################################################
+
+# If the original list is not quoted, do nothing.
+# If it is quoted, just get rid of the quotes.
+
+sub unquote {
+my($s) = $_[0];
+$s =~ s/^"(.*)"$/$1/s;
+return $s;
+}
+
+
+##################################################
+#      Quote/dequote an option string            #
+##################################################
+
+# If the original list is not quoted, quote it against expansion.
+# If it is quoted, just get rid of the quotes. Also, indent any
+# continuations.
+
+sub acl_quote {
+my($s) = $_[0];
+$s = ($s =~ /^"(.*)"$/s)? $1 : &expquote($s);
+$s =~ s/\n/\n  /g;
+$s =~ s/\n\s{11,}/\n           /g;
+return $s;
+}
+
+
+##################################################
+#       Handle abolished driver options          #
+##################################################
+
+sub abolished {
+my($hash) = shift @_;
+my($name) = shift @_;
+for $abolished (@_)
+  {
+  if (defined $$hash{$abolished})
+    {
+    &rubric();
+    print STDERR "\n" .
+"** $name used the \"$abolished\" option, which no\n".
+"   longer exists. The option has been removed.\n";
+    print STDOUT "#!!# $abolished option removed\n";
+    delete $$hash{$abolished};
+    }
+  }
+}
+
+
+
+##################################################
+#        Handle renamed driver options           #
+##################################################
+
+sub renamed {
+my($hash,$old,$new) = @_;
+if (defined $$hash{$old})
+  {
+  print STDOUT "#!!# $old renamed $new\n";
+  $$hash{$new} = $$hash{$old};
+  delete $$hash{$old};
+  }
+}
+
+
+
+##################################################
+#      Comment on user names in require_files    #
+##################################################
+
+sub check_require {
+my($string, $name) = @_;
+
+$string =~ s/::/[[[]]]/g;
+my(@list) = split /:/, $string;
+my($item);
+
+for $item (@list)
+  {
+  if ($item =~ /^\s*[\w,]+\s*$/)
+    {
+    &rubric();
+    $item =~ s/^\s*//;
+    $item =~ s/\s*$//;
+    print STDERR "\n" .
+"** A setting of require_files in the $name contains\n" .
+"   what appears to be a user name ('$item'). The ability to check files\n" .
+"   as a specific user is done differently in Exim 4. In fact, because the\n" .
+"   routers run as root, you may not need this at all.\n"
+    }
+  }
+}
+
+
+##################################################
+#        Handle current and home directory       #
+##################################################
+
+sub handle_current_and_home_directory {
+my($hash,$driver,$name) = @_;
+
+for ("current_directory", "home_directory")
+  {
+  if (defined $$hash{$_} && $$hash{$_} eq "check_local_user")
+    {
+    my($article) = (substr($driver, 0, 1) eq "a")? "an" : "a";
+    &rubric();
+    print STDERR "\n" .
+"** The Exim 3 configuration contains $article '$driver' director called\n" .
+"   '$name', which set '$_' to the special value\n" .
+"   'check_local_user'. This facility has been abolished in Exim 4 because\n" .
+"   it is no longer necessary. The setting has therefore been omitted. See\n" .
+"   note X.\n";
+    delete $$hash{$_};
+    }
+  else
+    {
+    &renamed($hash, $_, "transport_$_");
+    }
+  }
+}
+
+
+
+##################################################
+#    Handle batch/bsmtp for appendfile/pipe      #
+##################################################
+
+sub handle_batch_and_bsmtp{
+my($hash) = @_;
+
+if (defined $$hash{"bsmtp"})
+  {
+  if ($$hash{"bsmtp"} ne "none")
+    {
+    $$hash{"use_bsmtp"} = "true";
+    $$hash{"message_prefix"} = "\"HELO \$primary_host_name\\n\""
+      if defined $$hash{"bsmtp_helo"} && $$hash{"bsmtp_helo"} eq "true";
+    }
+
+  if ($$hash{"bsmtp"} eq "one")
+    {
+    delete $$hash{"batch"};
+    }
+  else
+    {
+    $$hash{"batch"} = $$hash{"bsmtp"};
+    }
+
+  delete $$hash{"bsmtp"};
+  delete $$hash{"bsmtp_helo"};
+  }
+
+if (defined $$hash{"batch"} && $$hash{"batch"} ne "none")
+  {
+  $$hash{"batch_max"} = "100" if !defined $$hash{"batch_max"};
+  $$hash{"batch_id"} = "\$domain" if $$hash{"batch"} eq "domain";
+  }
+else
+  {
+  $$hash{"batch_max"} = "1" if defined $$hash{"batch_max"};
+  }
+delete $$hash{"batch"};
+}
+
+
+
+##################################################
+#              Output one option                 #
+##################################################
+
+sub outopt {
+my($hash, $key, $no_expand) = @_;
+my($data) = $$hash{$key};
+
+print STDOUT "hide " if defined $$hash{"$key-hide"};
+
+# Output booleans in the form that doesn't use "="
+
+if ($data eq "true")
+  {
+  print STDOUT "$key\n";
+  }
+elsif ($data eq "false")
+  {
+  print STDOUT "no_$key\n";
+  }
+else
+  {
+  if ($no_expand)
+    {
+    printf STDOUT ("$key = %s\n", &no_expand_regex($data));
+    }
+  else
+    {
+    print STDOUT "$key = $data\n";
+    }
+  }
+}
+
+
+
+##################################################
+#       Output the options for one driver        #
+##################################################
+
+# Put the "driver" option first
+
+sub outdriver {
+my($hash) = $_[0];
+print STDOUT "  driver = $$hash{'driver'}\n";
+foreach $key (sort keys %$hash)
+  {
+  next if $key eq "driver" || $key =~ /-hide$/;
+  print STDOUT "  ";
+  &outopt($hash, $key, 0);
+  }
+}
+
+
+
+##################################################
+#      Output a rewrite or a retry line          #
+##################################################
+
+# These lines start with patterns which are now always expanded. If the
+# pattern is a regex, arrange for it not to expand.
+
+sub print_no_expand {
+my($s) = $_[0];
+if ($s =~ /^\^/)
+  {
+  if (!$escape_output)
+    {
+    &rubric();
+    print STDERR "\n" .
+"** You have a retry or rewrite pattern that is a regular expression. Because\n" .
+"   these patterns are now always expanded, you need to be sure that the\n" .
+"   special characters in the regex are not interpreted by the expander.\n" .
+"   \\N has been inserted at the start of the regex to prevent the rest of\n" .
+"   it from being expanded.\n";
+    $escape_output = 1;
+    }
+  print STDOUT "\\N";
+  }
+print STDOUT "$s\n";
+}
+
+
+
+##################################################
+#          Test a boolean main option            #
+##################################################
+
+# This just saves a lot of typing
+
+sub bool {
+return defined $main{$_[0]} && $main{$_[0]} eq "true";
+}
+
+
+
+##################################################
+#                  Main program                  #
+##################################################
+
+print STDERR "Runtime configuration file converter for Exim release 4.\n";
+
+$transport_start = $director_start = $router_start = $retry_start
+  = $rewrite_start = $auth_start = 999999;
+
+$macro_output = "";
+$rubric_output = 0;
+$errmsg_output = 0;
+$key_output = 0;
+$unk_output = 0;
+$escape_output = 0;
+$add_no_more = 0;
+$add_caseful_local_part = 0;
+$done_dns_check_names = 0;
+
+$queue_only_load_was_present = 0;
+$deliver_queue_load_max_was_present = 0;
+
+# Read the entire file into an array
+
+chomp(@c = <STDIN>);
+$clen = scalar @c;
+
+# Remove the standard comment that appears at the end of the default
+
+if ($clen > 0 && $c[$clen-1] =~ /^#\s*End of Exim configuration file\s*/i)
+  {
+  pop @c;
+  $clen--;
+  }
+
+# The first pass over the input fishes out all the options settings in the
+# main, transport, director, and router sections, and places their values in
+# associative arrays. It also notes the starting position of all the sections.
+
+$prefix = "";
+%main = ();
+$hash = \%main;
+
+for ($i = 0; $i < $clen; $i++)
+  {
+  # Change references to +allow_unknown and +warn_unknown into +include_unknown
+
+  if ($c[$i] =~ /\+(?:allow|warn)_unknown/)
+    {
+    if (!$unk_output)
+      {
+      &rubric();
+      print STDERR "\n" .
+"** You have used '+allow_unknown' or '+warn_unknown' in a configuration\n" .
+"   option. This has been converted to '+include_unknown', but the action\n" .
+"   is different in Exim 4, so you should review all the relevant options.\n";
+      $unk_output = 1;
+      }
+    $c[$i] =~ s/\+(?:allow|warn)_unknown/+include_unknown/g;
+    }
+
+  # Any reference to $errmsg_recipient is changed to $bounce_recipient
+
+  if ($c[$i] =~ /\$errmsg_recipient/)
+    {
+    if (!$errmsg_output)
+      {
+      &rubric();
+      print STDERR "\n" .
+"** References to \$errmsg_recipient have been changed to \$bounce_recipient\n";
+      $errmsg_output = 1;
+      }
+    $c[$i] =~ s/\$errmsg_recipient/\$bounce_recipient/g;
+    }
+
+
+  # Analyse the type of line
+
+  $type = &checkline($c[$i]);
+  next if $type eq "comment";
+
+  # Output a warning if $key is used
+
+  if ($c[$i] =~ /\$key/ && !$key_output)
+    {
+    &rubric();
+    print STDERR "\n" .
+"** You have used '\$key' in a configuration option. This variable does not\n" .
+"   exist in Exim 4. Instead, the value you need for your lookup will be\n" .
+"   in one of the other variables such as '\$domain' or '\$host'. You will\n" .
+"   need to edit the new configuration to sort this out.\n";
+    $key_output = 1;
+    }
+
+  # Save macro definitions so we can output them first; must handle
+  # continuations.
+
+  if ($type eq "macro")
+    {
+    $macro_output .= "$c[$i++]\n" while $c[$i] =~ /\\\s*$|^\s*#/;
+    $macro_output .= "$c[$i]\n";
+    }
+
+  # Handle end of section
+
+  elsif ($type eq "end")
+    {
+    if ($prefix eq "=rewrite")
+      {
+      $prefix = "a.";
+      $auth_start = $i + 1;
+      last;
+      }
+    elsif ($prefix eq "=retry")
+      {
+      $prefix = "=rewrite";
+      $rewrite_start = $i + 1;
+      }
+    elsif ($prefix eq "r.")
+      {
+      $prefix = "=retry";
+      $retry_start = $i + 1;
+      }
+    elsif ($prefix eq "d.")
+      {
+      $prefix = "r.";
+      $router_start = $i + 1;
+      }
+    elsif ($prefix eq "t.")
+      {
+      $prefix = "d.";
+      $director_start = $i + 1;
+      }
+    elsif ($prefix eq "")
+      {
+      $prefix = "t.";
+      $transport_start = $i + 1;
+      }
+    }
+
+  # Handle start of a new director, router or transport driver
+
+  elsif ($type eq "driver" && $prefix !~ /^=/)
+    {
+    $hash = {};
+    if (defined $driverlist{"$prefix$name"})
+      {
+      die "*** There are two drivers with the name \"$name\"\n";
+      }
+    $driverlist{"$prefix$name"} = $hash;
+    $first_director = $name if !defined $first_director && $prefix eq "d.";
+    }
+
+  # Handle definition of an option; we must pull in any continuation
+  # strings, and save the value in the current hash. Note if the option
+  # is hidden.
+
+  elsif ($type eq "option")
+    {
+    my($nextline) = "";
+
+    while ($i < $clen - 1 && ($rest =~ /\\\s*$/s || $nextline =~ /^\s*#/))
+      {
+      $nextline = $c[++$i];
+      $rest .= "\n$nextline";
+      }
+
+    $$hash{$name} = $rest;
+    $$hash{"$name-hide"} = 1 if $hide ne "";
+    }
+  }
+
+
+# Generate the new configuration. Start with a warning rubric.
+
+print STDOUT "#!!# This file is output from the convert4r4 script, which tries\n";
+print STDOUT "#!!# to convert Exim 3 configurations into Exim 4 configurations.\n";
+print STDOUT "#!!# However, it is not perfect, especially with non-simple\n";
+print STDOUT "#!!# configurations. You must check it before running it.\n";
+print STDOUT "\n\n";
+
+# Output the macro definitions
+
+if ($macro_output ne "")
+  {
+  print STDOUT "#!!# All macro definitions have been gathered here to ensure\n";
+  print STDOUT "#!!# they precede any references to them.\n\n";
+  print STDOUT "$macro_output\n";
+  }
+
+# Output some default pointers to ACLs for RCPT and DATA time. If no Exim 3
+# options that apply are set, non-restricting ACLs are generated.
+
+print STDOUT "#!!# These options specify the Access Control Lists (ACLs) that\n";
+print STDOUT "#!!# are used for incoming SMTP messages - after the RCPT and DATA\n";
+print STDOUT "#!!# commands, respectively.\n\n";
+
+print STDOUT "acl_smtp_rcpt = check_recipient\n";
+print STDOUT "acl_smtp_data = check_message\n\n";
+
+if (defined $main{"auth_over_tls_hosts"})
+  {
+  print STDOUT "#!!# This option specifies the Access Control List (ACL) that\n";
+  print STDOUT "#!!# is used after an AUTH command.\n\n";
+  print STDOUT "acl_smtp_auth = check_auth\n\n";
+  }
+
+if (&bool("smtp_verify") ||
+    defined $main{"smtp_etrn_hosts"} ||
+    defined $main{"smtp_expn_hosts"})
+  {
+  print STDOUT "#!!# These options specify the Access Control Lists (ACLs) that\n";
+  print STDOUT "#!!# are used to control the ETRN, EXPN, and VRFY commands.\n";
+  print STDOUT "#!!# Where no ACL is defined, the command is locked out.\n\n";
+
+  print STDOUT "acl_smtp_etrn = check_etrn\n" if defined $main{"smtp_etrn_hosts"};
+  print STDOUT "acl_smtp_expn = check_expn\n" if defined $main{"smtp_expn_hosts"};
+  print STDOUT "acl_smtp_vrfy = check_vrfy\n" if &bool("smtp_verify");
+  print STDOUT "\n";
+  }
+
+# If local_domains was set, get its value; otherwise set to "@". Add into it
+# appropriate magic for local_domains_include_host[_literals].
+
+$local_domains = (defined $main{"local_domains"})? $main{"local_domains"} : "@";
+
+$ldsep = ":";
+if ($local_domains =~ /^\s*<(.)\s*(.*)/s)
+  {
+  $ldsep = $1;
+  $local_domains = $2;
+  }
+
+$local_domains = "\@[] $ldsep " . $local_domains
+  if defined $main{"local_domains_include_host_literals"} &&
+     $main{"local_domains_include_host_literals"} eq "true";
+
+$local_domains = "\@ $ldsep " . $local_domains
+  if defined $main{"local_domains_include_host"} &&
+     $main{"local_domains_include_host"} eq "true";
+
+$local_domains = "<$ldsep " . $local_domains if $ldsep ne ":";
+
+# Output a domain list setting for these domains, provided something is defined
+
+if ($local_domains !~ /^\s*$/)
+  {
+  print STDOUT "#!!# This setting defines a named domain list called\n";
+  print STDOUT "#!!# local_domains, created from the old options that\n";
+  print STDOUT "#!!# referred to local domains. It will be referenced\n";
+  print STDOUT "#!!# later on by the syntax \"+local_domains\".\n";
+  print STDOUT "#!!# Other domain and host lists may follow.\n\n";
+
+  printf STDOUT ("domainlist local_domains = %s\n\n",
+    &no_expand_regex($local_domains));
+  }
+
+$relay_domains = (defined $main{"relay_domains"})? $main{"relay_domains"} : "";
+
+$ldsep = ":";
+if ($relay_domains =~ /^\s*<(.)\s*(.*)/s)
+  {
+  $ldsep = $1;
+  }
+
+if (defined $main{"relay_domains_include_local_mx"})
+  {
+  $relay_domains .= ($relay_domains =~ /^\s*$/)? "\@mx_any" :
+    " $ldsep \@mx_any";
+  }
+
+printf STDOUT ("domainlist relay_domains = %s\n",
+  &no_expand_regex($relay_domains))
+    if $relay_domains !~ /^\s*$/;
+
+
+# If ignore_errmsg_errors is set, we are going to force 0s as the value
+# for ignore_errmsg_errors_after, so arrange to skip any other value.
+
+push @skipped_options, "ignore_errmsg_errors_after"
+   if &bool("ignore_errmsg_errors");
+
+
+# If rbl_domains is set, split it up and generate six lists:
+#   rbl_warn_domains, rbl_warn_domains_skiprelay
+#   rbl_reject_domains, rbl_reject_domains_skiprelay
+#   rbl_accept_domains, rbl_accept_domains_skiprelay
+
+if (defined $main{"rbl_domains"})
+  {
+  my($s) = &unquote($main{"rbl_domains"});
+  $s =~ s/\s*\\\s*\n\s*/ /g;
+  my(@list) = split /\s*:\s*/, $s;
+
+  foreach $d (@list)
+    {
+    my(@sublist) = split /\//, $d;
+    my($name) = shift @sublist;
+    my($warn) = 0;
+    if (defined $main{"rbl_reject_recipients"})
+      {
+      $warn = $main{"rbl_reject_recipients"} ne "true";
+      }
+
+    foreach $o (@sublist)
+      {
+      $warn = 1 if $o eq "warn";
+      $warn = 0 if $o eq "reject";
+      $warn = 2 if $o eq "accept";
+      $skiprelay = 1 if $o eq "skiprelay";
+      }
+
+    if ($skiprelay)
+      {
+      if ($warn == 0)
+        {
+        $rbl_reject_skiprelay .= ((defined $rbl_reject_skiprelay)? ":":"").$name;
+        }
+      elsif ($warn == 1)
+        {
+        $rbl_warn_skiprelay .= ((defined $rbl_warn_skiprelay)? ":":"").$name;
+        }
+      elsif ($warn == 2)
+        {
+        $rbl_accept_skiprelay .= ((defined $rbl_accept_skiprelay)? ":":"").$name;
+        }
+      }
+    else
+      {
+      if ($warn == 0)
+        {
+        $rbl_reject_domains .= ((defined $rbl_reject_domains)? ":":"").$name;
+        }
+      elsif ($warn == 1)
+        {
+        $rbl_warn_domains .= ((defined $rbl_warn_domains)? ":":"").$name;
+        }
+      elsif ($warn == 2)
+        {
+        $rbl_accept_domains .= ((defined $rbl_accept_domains)? ":":"").$name;
+        }
+      }
+    }
+  }
+
+
+# Output host list settings
+
+printf STDOUT ("hostlist auth_hosts = %s\n",
+  &no_expand_regex($main{"auth_hosts"}))
+    if defined $main{"auth_hosts"};
+printf STDOUT ("hostlist rbl_hosts = %s\n",
+  &no_expand_regex($main{"rbl_hosts"}))
+    if defined $main{"rbl_hosts"};
+printf STDOUT ("hostlist relay_hosts = %s\n",
+  &no_expand_regex($main{"host_accept_relay"}))
+    if defined $main{"host_accept_relay"};
+printf STDOUT ("hostlist auth_relay_hosts = %s\n",
+  &no_expand_regex($main{"host_auth_accept_relay"}))
+    if defined $main{"host_auth_accept_relay"};
+
+printf STDOUT ("hostlist auth_over_tls_hosts = %s\n",
+  &no_expand_regex($main{"auth_over_tls_hosts"}))
+    if defined $main{"auth_over_tls_hosts"};
+printf STDOUT ("hostlist tls_hosts = %s\n",
+  &no_expand_regex($main{"tls_hosts"}))
+    if defined $main{"tls_hosts"};
+printf STDOUT ("hostlist tls_relay_hosts = %s\n",
+  &no_expand_regex($main{"tls_host_accept_relay"}))
+    if defined $main{"tls_host_accept_relay"};
+
+print STDOUT "\n";
+
+
+# Convert various logging options
+
+$log_selector = "";
+$sep = " \\\n             ";
+
+if (defined $main{"log_level"})
+  {
+  my($level) = $main{"log_level"};
+  $log_selector .= "$sep -retry_defer$sep -skip_delivery" if $level < 5;
+  $log_selector .= "$sep -lost_incoming_connection$sep -smtp_syntax_error" .
+                   "$sep -delay_delivery" if $level < 4;
+  $log_selector .= "$sep -size_reject" if $level < 2;
+  }
+
+$log_selector .= "$sep -queue_run"
+  if defined $main{"log_queue_run_level"} &&
+     defined $main{"log_level"} &&
+     $main{"log_queue_run_level"} > $main{"log_level"};
+
+$log_selector .= "$sep +address_rewrite"       if &bool("log_rewrites");
+$log_selector .= "$sep +all_parents"           if &bool("log_all_parents");
+$log_selector .= "$sep +arguments"             if &bool("log_arguments");
+$log_selector .= "$sep +incoming_port"         if &bool("log_incoming_port");
+$log_selector .= "$sep +incoming_interface"    if &bool("log_interface");
+$log_selector .= "$sep +received_sender"       if &bool("log_received_sender");
+$log_selector .= "$sep +received_recipients"   if &bool("log_received_recipients");
+$log_selector .= "$sep +sender_on_delivery"    if &bool("log_sender_on_delivery");
+$log_selector .= "$sep +smtp_confirmation"     if &bool("log_smtp_confirmation");
+$log_selector .= "$sep +smtp_connection"       if &bool("log_smtp_connections");
+$log_selector .= "$sep +smtp_syntax_error"     if &bool("log_smtp_syntax_errors");
+$log_selector .= "$sep +subject"               if &bool("log_subject");
+$log_selector .= "$sep +tls_cipher"            if &bool("tls_log_cipher");
+$log_selector .= "$sep +tls_peerdn"            if &bool("tls_log_peerdn");
+
+
+if ($log_selector ne "")
+  {
+  print STDOUT "#!!# All previous logging options are combined into a single\n"
+             . "#!!# option in Exim 4. This setting is an approximation to\n"
+             . "#!!# the previous state - some logging has changed.\n\n";
+  print STDOUT "log_selector = $log_selector\n\n";
+  }
+
+# If deliver_load_max is set, replace it with queue_only_load (taking the
+# lower value if both set) and also set deliver_queue_load_max if it is
+# not already set. When scanning for output, deliver_load_max is skipped.
+
+if (defined $main{"deliver_load_max"})
+  {
+  &rubric();
+  print STDERR "\n" .
+"** deliver_load_max is abolished in Exim 4.\n";
+
+  if (defined $main{"queue_only_load"})
+    {
+    $queue_only_load_was_present = 1;
+    if ($main{"queue_only_load"} < $main{"deliver_load_max"})
+      {
+      print STDERR
+"   As queue_only_load was set lower, deliver_load_max is just removed.\n";
+      }
+    else
+      {
+      print STDERR
+"   As queue_only_load was set higher, it's value has been replaced by\n" .
+"   the value of deliver_load_max.\n";
+      $main{"queue_only_load"} = $main{"deliver_load_max"};
+      }
+    }
+  else
+    {
+    print STDERR
+"   queue_only_load has been set to the load value.\n";
+    $main{"queue_only_load"} = $main{"deliver_load_max"};
+    }
+
+  if (!defined $main{"deliver_queue_load_max"})
+    {
+    print STDERR
+"   deliver_queue_load_max has been set to the value of queue_only_load.\n";
+    $main{"deliver_queue_load_max"} = $main{"queue_only_load"};
+    }
+  else
+    {
+    $deliver_queue_load_max_was_present = 1;
+    }
+  }
+
+
+# Now we scan through the various parts of the file again, making changes
+# as necessary.
+
+# -------- The main configuration --------
+
+$prefix = "";
+MainLine: for ($i = 0; $i < $clen; $i++)
+  {
+  my($nextline) = "";
+  $type = &checkline($c[$i]);
+  last if $type eq "end";
+
+  if ($type eq "macro")
+    {
+    $i++ while $c[$i] =~ /\\\s*$|^\s*#/;
+    next;
+    }
+
+  if ($type eq "comment") { print STDOUT "$c[$i]\n"; next; }
+
+  # Collect any continuation lines for an option setting
+
+  while ($rest =~ /\\\s*$/s || $nextline =~ /^\s*#/)
+    {
+    $nextline = $c[++$i];
+    $rest .= "\n$nextline";
+    }
+
+  $rest =~ s/^=\s*//;
+
+  # Deal with main options that are skipped (they are used in other
+  # options in other places).
+
+  for $skipped (@skipped_options)
+    {
+    next MainLine if $name eq $skipped;
+    }
+
+  # Deal with main options that are totally abolished
+
+  for $abolished (@abolished_options)
+    {
+    if ($name eq $abolished)
+      {
+      &rubric();
+      print STDERR "\n" .
+"** The $name option no longer exists, and has no equivalent\n" .
+"   in Exim 4.\n";
+      next MainLine;
+      }
+    }
+
+  # There is a special case for rbl_warn_header
+
+  if ($name eq "rbl_warn_header")
+    {
+    &rubric();
+    print STDERR "\n" .
+"** The $name option no longer exists. In Exim 4 you can achieve the\n" .
+"   effect by adding a suitable \"message\" statement in the ACL.\n";
+    }
+
+  # There is a special case for sender_reject and host_reject
+
+  elsif ($name eq "sender_reject" || $name eq "host_reject")
+    {
+    &rubric();
+    print STDERR "\n" .
+"** The $name option no longer exists. Its data has been used in\n" .
+"   an Access Control List as if it were in ${name}_recipients.\n";
+    }
+
+  # And a special message for prohibition_message
+
+  elsif ($name eq "prohibition_message")
+    {
+    &rubric();
+    print STDERR "\n" .
+"** The prohibition_message option no longer exists. The facility is\n" .
+"   provided in a different way in Exim 4, via the \"message\" keyword\n" .
+"   in Access Control Lists. It isn't possible to do an automatic conversion,\n" .
+"   so the value of prohibition_message has been ignored. You will have to\n" .
+"   modify the ACLs if you want to reinstate the feature.\n";
+    }
+
+  # auth_always_advertise gets converted to auth_advertise_hosts
+
+  elsif ($name eq "auth_always_advertise")
+    {
+    print STDOUT "#!!# auth_always_advertise converted to auth_advertise_hosts\n";
+    if (&bool("auth_always_advertise"))
+      {
+      print STDOUT "auth_advertise_hosts = *\n";
+      }
+    else
+      {
+      $sep = "";
+      print STDOUT "auth_advertise_hosts =";
+      if (defined $main{"auth_hosts"})
+        {
+        print STDOUT "$sep +auth_hosts";
+        $sep = " :";
+        }
+      if (defined $main{"host_accept_relay"})
+        {
+        print STDOUT "$sep !+relay_hosts";
+        $sep = " :";
+        }
+      if (defined $main{"host_auth_accept_relay"})
+        {
+        print STDOUT "$sep +auth_relay_hosts";
+        }
+      print STDOUT "\n";
+      }
+    }
+
+  # Deal with main options that have to be rewritten
+
+  elsif ($name eq "accept_timeout")
+    {
+    print STDOUT "#!!# accept_timeout renamed receive_timeout\n";
+    print STDOUT "receive_timeout = $rest\n";
+    }
+
+  elsif ($name eq "collapse_source_routes")
+    {
+    print STDOUT "#!!# collapse_source_routes removed\n";
+    print STDOUT "#!!# It has been a no-op since 3.10.\n";
+    }
+
+  elsif ($name eq "daemon_smtp_service")
+    {
+    print STDOUT "#!!# daemon_smtp_service renamed daemon_smtp_port\n";
+    print STDOUT "daemon_smtp_port = $rest\n";
+    }
+
+  elsif ($name eq "dns_check_names" || $name eq "dns_check_names_pattern")
+    {
+    if (!$done_dns_check_names)
+      {
+      if (&bool("dns_check_names"))
+        {
+        if (defined $main{"dns_check_names_pattern"})
+          {
+          &outopt(\%main, "dns_check_names_pattern", 0);
+          }
+        }
+
+      else
+        {
+        print STDOUT "#!!# dns_check_names has been abolished\n";
+        print STDOUT "#!!# setting dns_check_pattern empty to turn off check\n";
+        print STDOUT "dns_check_names_pattern =\n";
+        }
+
+      $done_dns_check_names = 1;
+      }
+    }
+
+  elsif ($name eq "deliver_load_max")
+    {
+    print STDOUT "deliver_queue_load_max = $main{'deliver_queue_load_max'}\n"
+      if !$deliver_queue_load_max_was_present;
+    print STDOUT "queue_only_load = $main{'queue_only_load'}\n"
+      if !$queue_only_load_was_present;
+    }
+
+  elsif ($name eq "errmsg_file")
+    {
+    print STDOUT "#!!# errmsg_file renamed bounce_message_file\n";
+    print STDOUT "bounce_message_file = $rest\n";
+    }
+
+  elsif ($name eq "errmsg_text")
+    {
+    print STDOUT "#!!# errmsg_text renamed bounce_message_text\n";
+    print STDOUT "bounce_message_text = $rest\n";
+    }
+
+  elsif ($name eq "forbid_domain_literals")
+    {
+    print STDOUT "#!!# forbid_domain_literals replaced by allow_domain_literals\n";
+    print STDOUT "allow_domain_literals = ",
+          &bool("forbid_domain_literals")? "false" : "true", "\n";
+    }
+
+  elsif ($name eq "freeze_tell_mailmaster")
+    {
+    print STDOUT "#!!# freeze_tell_mailmaster replaced by freeze_tell\n";
+    if (&bool("freeze_tell_mailmaster"))
+      {
+      print STDOUT "freeze_tell = ",
+        ((defined $main{"errors_address"})?
+          $main{"errors_address"} : "postmaster"), "\n";
+      }
+    else
+      {
+      print STDOUT "#!!# freeze_tell is unset by default\n";
+      }
+    }
+
+  elsif ($name eq "helo_verify")
+    {
+    print STDOUT "#!!# helo_verify renamed helo_verify_hosts\n";
+    printf STDOUT ("helo_verify_hosts = %s\n", &no_expand_regex($rest));
+    }
+
+  elsif ($name eq "ignore_errmsg_errors")
+    {
+    print STDOUT "ignore_bounce_errors_after = 0s\n";
+    }
+
+  elsif ($name eq "ignore_errmsg_errors_after")
+    {
+    print STDOUT "#!!# ignore_errmsg_errors_after renamed ignore_bounce_errors_after\n";
+    print STDOUT "ignore_bounce_errors_after = $rest\n";
+    }
+
+  elsif ($name eq "ipv4_address_lookup" || $name eq "dns_ipv4_lookup")
+    {
+    print STDOUT "#!!# $name changed to dns_ipv4_lookup\n"
+      if $name eq "ipv4_address_lookup";
+    print STDOUT "#!!# dns_ipv4_lookup is now a domain list\n";
+    if (&bool($name))
+      {
+      print STDOUT "dns_ipv4_lookup = *\n";
+      }
+    else
+      {
+      print STDOUT "#!!# default for dns_ipv4_lookup is unset\n";
+      }
+    }
+
+  elsif ($name eq "locally_caseless")
+    {
+    print STDOUT "#!!# locally_caseless removed\n";
+    print STDOUT "#!!# caseful_local_part will be added to ex-directors\n";
+    $add_caseful_local_part = 1;
+    }
+
+  elsif ($name eq "message_filter_directory2_transport")
+    {
+    print STDOUT "#!!# message_filter_directory2_transport removed\n";
+    }
+
+  elsif ($name =~ /^message_filter(.*)/)
+    {
+    print STDOUT "#!!# $name renamed system_filter$1\n";
+    print STDOUT "system_filter$1 = $rest\n";
+    }
+
+  elsif ($name eq "queue_remote_domains")
+    {
+    print STDOUT "#!!# queue_remote_domains renamed queue_domains\n";
+    printf STDOUT ("queue_domains = %s\n", &no_expand_regex($rest));
+    }
+
+  elsif ($name eq "receiver_unqualified_hosts")
+    {
+    print STDOUT "#!!# receiver_unqualified_hosts renamed recipient_unqualified_hosts\n";
+    printf STDOUT ("recipient_unqualified_hosts = %s\n",
+      &no_expand_regex($rest));
+    }
+
+  elsif ($name eq "remote_sort")
+    {
+    print STDOUT "#!!# remote_sort renamed remote_sort_domains\n";
+    printf STDOUT ("remote_sort_domains = %s\n", &no_expand_regex($rest));
+    }
+
+  elsif ($name eq "security")
+    {
+    if ($rest eq "unprivileged")
+      {
+      print STDOUT "#!!# security=unprivileged changed to deliver_drop_privilege\n";
+      print STDOUT "deliver_drop_privilege\n";
+      }
+    else
+      {
+      &rubric();
+      print STDERR "\n" .
+"** The 'security' option no longer exists.\n";
+      }
+    }
+
+  elsif ($name eq "timestamps_utc")
+    {
+    print STDOUT "#!!# timestamps_utc changed to use timezone\n";
+    print STDOUT "timezone = utc\n";
+    }
+
+  elsif ($name eq "untrusted_set_sender")
+    {
+    print STDOUT "#!!# untrusted_set_sender is now a list of what can be set\n";
+    print STDOUT "#!!# The default is an empty list.\n";
+    if (&bool("untrusted_set_sender"))
+      {
+      print STDOUT "untrusted_set_sender = *\n";
+      }
+    }
+
+  elsif ($name eq "warnmsg_file")
+    {
+    print STDOUT "#!!# warnmsg_file renamed warn_message_file\n";
+    print STDOUT "warn_message_file = $rest\n";
+    }
+
+  # Remaining options just get copied unless they are one of those that's
+  # a list where any regular expressions have to be escaped.
+
+  else
+    {
+    my($no_expand) = 0;
+    foreach $o (@list_options)
+      {
+      if ($name eq $o)
+        {
+        $no_expand = 1;
+        last;
+        }
+      }
+    &outopt(\%main, $name, $no_expand);
+    }
+  }
+
+
+# -------- The ACL configuration --------
+
+print STDOUT "\n";
+print STDOUT "#!!#######################################################!!#\n";
+print STDOUT "#!!# This new section of the configuration contains ACLs #!!#\n";
+print STDOUT "#!!# (Access Control Lists) derived from the Exim 3      #!!#\n";
+print STDOUT "#!!# policy control options.                             #!!#\n";
+print STDOUT "#!!#######################################################!!#\n";
+
+print STDOUT "\n";
+print STDOUT "#!!# These ACLs are crudely constructed from Exim 3 options.\n";
+print STDOUT "#!!# They are almost certainly not optimal. You should study\n";
+print STDOUT "#!!# them and rewrite as necessary.\n";
+
+print STDOUT "\nbegin acl\n\n";
+
+
+# Output an ACL for use after the RCPT command. This combines all the previous
+# policy checking options.
+
+print STDOUT "#!!# ACL that is used after the RCPT command\n";
+print STDOUT "check_recipient:\n";
+
+print STDOUT "  # Exim 3 had no checking on -bs messages, so for compatibility\n";
+print STDOUT "  # we accept if the source is local SMTP (i.e. not over TCP/IP).\n";
+print STDOUT "  # We do this by testing for an empty sending host field.\n";
+print STDOUT "  accept  hosts = :\n";
+
+if (defined $main{"tls_verify_ciphers"})
+  {
+  print STDOUT "  deny    ";
+  print STDOUT "hosts = $main{'tls_verify_hosts'}\n         "
+    if defined $main{"tls_verify_hosts"};
+  print STDOUT " encrypted = *\n         ";
+  print STDOUT "!encrypted = $main{'tls_verify_ciphers'}\n";
+  }
+
+print STDOUT "  deny    hosts = +auth_hosts\n" .
+             "          message = authentication required\n" .
+             "         !authenticated = *\n"
+  if defined $main{"auth_hosts"};
+
+print STDOUT "  deny    hosts = +tls_hosts\n" .
+             "          message = encryption required\n" .
+             "         !encrypted = *\n"
+  if defined $main{"tls_hosts"};
+
+printf STDOUT ("  accept  recipients = %s\n",
+  &acl_quote(&sort_address_list($main{"recipients_reject_except"},
+    "recipients_reject_except")))
+      if defined $main{"recipients_reject_except"};
+
+printf STDOUT ("  accept  senders = %s\n",
+  &acl_quote(&sort_address_list($main{"recipients_reject_except_senders"},
+    "recipients_reject_except_senders")))
+      if defined $main{"recipients_reject_except_senders"};
+
+printf STDOUT ("  deny    hosts = %s\n", &acl_quote($main{"host_reject"}))
+  if defined $main{"host_reject"};
+
+printf STDOUT ("  deny    hosts = %s\n",
+  &acl_quote($main{"host_reject_recipients"}))
+    if defined $main{"host_reject_recipients"};
+
+if (defined $main{"rbl_domains"})
+  {
+  my($msg) = "message = host is listed in \$dnslist_domain\n          ";
+  my($hlist) = (defined $main{"rbl_hosts"})?
+    "hosts = +rbl_hosts\n          " : "";
+
+  print STDOUT "  accept  ${hlist}dnslists = $rbl_accept_domains\n"
+    if defined $rbl_accept_domains;
+  print STDOUT "  deny    ${hlist}${msg}dnslists = $rbl_reject_domains\n"
+    if defined $rbl_reject_domains;
+  print STDOUT "  warn    ${hlist}" .
+    "message = X-Warning: \$sender_host_address is listed at \$dnslist_domain\n" .
+    "          dnslists = $rbl_warn_domains\n"
+      if defined $rbl_warn_domains;
+
+  if (defined $main{"host_accept_relay"})
+    {
+    $hlist .= "hosts = !+relay_hosts\n          ";
+    print STDOUT "  accept  ${hlist}dnslists = $rbl_accept_skiprelay\n"
+      if defined $rbl_accept_skiprelay;
+    print STDOUT "  deny    ${hlist}${msg}dnslists = $rbl_reject_skiprelay\n"
+      if defined $rbl_reject_skiprelay;
+    print STDOUT "  warn    ${hlist}" .
+      "message = X-Warning: \$sender_host_address is listed at \$dnslist_domain\n" .
+      "          dnslists = $rbl_warn_skiprelay\n"
+        if defined $rbl_warn_skiprelay;
+    }
+  }
+
+printf STDOUT ("  deny    senders = %s\n",
+  &acl_quote(&sort_address_list($main{"sender_reject"}, "sender_reject")))
+    if defined $main{"sender_reject"};
+
+printf STDOUT ("  deny    senders = %s\n",
+  &acl_quote(&sort_address_list($main{"sender_reject_recipients"},
+    "sender_reject_recipients")))
+      if defined $main{"sender_reject_recipients"};
+
+if (&bool("sender_verify"))
+  {
+  if (defined $main{"sender_verify_hosts_callback"} &&
+      defined $main{"sender_verify_callback_domains"})
+    {
+    printf STDOUT ("  deny    hosts = %s\n",
+      &acl_quote($main{"sender_verify_hosts_callback"}));
+    printf STDOUT ("          sender_domains = %s\n",
+      &acl_quote($main{"sender_verify_callback_domains"}));
+    print  STDOUT  "         !verify = sender/callout";
+    print  STDOUT  "=$main{\"sender_verify_callback_timeout\"}"
+      if defined $main{"sender_verify_callback_timeout"};
+    print  STDOUT  "\n";
+    }
+
+  if (defined $main{"sender_verify_hosts"})
+    {
+    printf STDOUT ("  deny    hosts = %s\n",
+      &acl_quote($main{"sender_verify_hosts"}));
+    print  STDOUT  "         !verify = sender\n";
+    }
+  else
+    {
+    print STDOUT "  require verify = sender\n";
+    }
+  }
+
+if (&bool("receiver_verify"))
+  {
+  print  STDOUT  "  deny    message = unrouteable address\n";
+  printf STDOUT ("          recipients = %s\n",
+    &acl_quote(&sort_address_list($main{"receiver_verify_addresses"},
+      "receiver_verify_addresses")))
+        if defined $main{"receiver_verify_addresses"};
+  printf STDOUT ("          hosts = %s\n",
+    &acl_quote($main{"receiver_verify_hosts"}))
+      if defined $main{"receiver_verify_hosts"};
+  printf STDOUT ("          senders = %s\n",
+    &acl_quote(&sort_address_list($main{"receiver_verify_senders"},
+      "receiver_verify_senders")))
+        if defined $main{"receiver_verify_senders"};
+  print  STDOUT  "         !verify = recipient\n";
+  }
+
+print STDOUT "  accept  domains = +local_domains\n"
+  if $local_domains !~ /^\s*$/;
+
+print STDOUT "  accept  domains = +relay_domains\n"
+  if $relay_domains !~ /^\s*$/;
+
+if (defined $main{"host_accept_relay"})
+  {
+  if (defined $main{"sender_address_relay"})
+    {
+    if (defined $main{"sender_address_relay_hosts"})
+      {
+      printf STDOUT ("  accept  hosts = %s\n",
+        &acl_quote($main{"sender_address_relay_hosts"}));
+      print  STDOUT  "          endpass\n";
+      print  STDOUT  "          message = invalid sender\n";
+      printf STDOUT ("          senders = %s\n",
+        &acl_quote(&sort_address_list($main{"sender_address_relay"},
+          "sender_address_relay")));
+      print  STDOUT  "  accept  hosts = +relay_hosts\n";
+      }
+    else
+      {
+      print  STDOUT  "  accept  hosts = +relay_hosts\n";
+      print  STDOUT  "          endpass\n";
+      print  STDOUT  "          message = invalid sender\n";
+      printf STDOUT ("          senders = %s\n",
+        &acl_quote(&sort_address_list($main{"sender_address_relay"},
+          "sender_address_relay")));
+      }
+    }
+  else
+    {
+    print STDOUT "  accept  hosts = +relay_hosts\n";
+    }
+  }
+
+print STDOUT "  accept  hosts = +auth_relay_hosts\n" .
+             "          endpass\n" .
+             "          message = authentication required\n" .
+             "          authenticated = *\n"
+  if defined $main{"host_auth_accept_relay"};
+
+print STDOUT "  accept  hosts = +tls_relay_hosts\n" .
+             "          endpass\n" .
+             "          message = encryption required\n" .
+             "          encrypted = *\n"
+  if defined $main{"tls_host_accept_relay"};
+
+print STDOUT "  deny    message = relay not permitted\n\n";
+
+
+# Output an ACL for use after the DATA command. This is concerned with
+# header checking.
+
+print STDOUT "#!!# ACL that is used after the DATA command\n";
+print STDOUT "check_message:\n";
+
+# Default for headers_checks_fail is true
+
+if (!defined $main{"headers_checks_fail"} ||
+    $main{"headers_checks_fail"} eq "true")
+  {
+  print STDOUT "  require verify = header_syntax\n"
+    if &bool("headers_check_syntax");
+  print STDOUT "  require verify = header_sender\n"
+    if &bool("headers_sender_verify");
+  print STDOUT "  accept  senders = !:\n  require verify = header_sender\n"
+    if &bool("headers_sender_verify_errmsg");
+  }
+else
+  {
+  print STDOUT "  warn    !verify = header_syntax\n"
+    if &bool("headers_check_syntax");
+  print STDOUT "  warn    !verify = header_sender\n"
+    if &bool("headers_sender_verify");
+  print STDOUT "  accept  senders = !:\n  warn    !verify = header_sender\n"
+    if &bool("headers_sender_verify_errmsg");
+  }
+
+print STDOUT "  accept\n\n";
+
+
+# Output an ACL for AUTH if required
+
+if (defined $main{"auth_over_tls_hosts"})
+  {
+  print STDOUT "#!!# ACL that is used after the AUTH command\n" .
+               "check_auth:\n" .
+               "  accept  hosts = +auth_over_tls_hosts\n" .
+               "          endpass\n" .
+               "          message = STARTTLS required before AUTH\n" .
+               "          encrypted = *\n" .
+               "  accept\n";
+  }
+
+
+# Output ACLs for ETRN, EXPN, and VRFY if required
+
+if (defined $main{"smtp_etrn_hosts"})
+  {
+  print STDOUT "#!!# ACL that is used after the ETRN command\n" .
+               "check_etrn:\n";
+  print STDOUT "  deny    hosts = +auth_hosts\n" .
+               "          message = authentication required\n" .
+               "         !authenticated = *\n"
+    if defined $main{"auth_hosts"};
+  print STDOUT "  accept  hosts = $main{\"smtp_etrn_hosts\"}\n\n";
+  }
+
+if (defined $main{"smtp_expn_hosts"})
+  {
+  print STDOUT "#!!# ACL that is used after the EXPN command\n" .
+               "check_expn:\n";
+  print STDOUT "  deny    hosts = +auth_hosts\n" .
+               "          message = authentication required\n" .
+               "         !authenticated = *\n"
+    if defined $main{"auth_hosts"};
+  print STDOUT "  accept  hosts = $main{\"smtp_expn_hosts\"}\n\n";
+  }
+
+if (&bool("smtp_verify"))
+  {
+  print STDOUT "#!!# ACL that is used after the VRFY command\n" .
+               "check_vrfy:\n";
+  print STDOUT "  deny    hosts = +auth_hosts\n" .
+               "          message = authentication required\n" .
+               "         !authenticated = *\n"
+    if defined $main{"auth_hosts"};
+  print STDOUT "  accept\n\n";
+  }
+
+# -------- The authenticators --------
+
+$started = 0;
+for ($i = $auth_start; $i < $clen; $i++)
+  {
+  if (!$started)
+    {
+    if ($c[$i] !~ /^\s*(#|$)/)
+      {
+      print STDOUT "\nbegin authenticators\n\n";
+      $started = 1;
+      }
+    }
+  print STDOUT "$c[$i]\n";
+  }
+
+
+# -------- Rewrite section --------
+
+$started = 0;
+for ($i = $rewrite_start; $i < $clen && $i < $auth_start - 1; $i++)
+  {
+  if (!$started)
+    {
+    if ($c[$i] !~ /^\s*(#|$)/)
+      {
+      print STDOUT "\nbegin rewrite\n\n";
+      $started = 1;
+      }
+    }
+  &print_no_expand($c[$i]);
+  }
+
+
+# -------- The routers configuration --------
+
+# The new routers configuration is created out of the old directors and routers
+# configuration. We put the old routers first, adding a "domains" option to
+# any that don't have one, to make them select the domains that do not match
+# the original local_domains. The routers get modified as necessary, and the
+# final one has "no_more" set, unless it has conditions. In that case we have
+# to add an extra router to be sure of failing all non-local addresses that
+# fall through. We do this also if there are no routers at all. The old
+# directors follow, modified as required.
+
+$prefix = "r.";
+undef @comments;
+
+print STDOUT "\n";
+print STDOUT "#!!#######################################################!!#\n";
+print STDOUT "#!!# Here follow routers created from the old routers,   #!!#\n";
+print STDOUT "#!!# for handling non-local domains.                     #!!#\n";
+print STDOUT "#!!#######################################################!!#\n";
+
+print STDOUT "\nbegin routers\n\n";
+
+for ($i = $router_start; $i < $clen; $i++)
+  {
+  $type = &checkline($c[$i]);
+  last if $type eq "end";
+
+  if ($type eq "comment") { push(@comments, "$c[$i]\n"); next; }
+
+  # When we hit the start of a driver, modify its options as necessary,
+  # and then output it from the stored option settings, having first output
+  # and previous comments.
+
+  if ($type eq "driver")
+    {
+    print STDOUT shift @comments while scalar(@comments) > 0;
+
+    $hash = $driverlist{"$prefix$name"};
+    $driver = $$hash{"driver"};
+    print STDOUT "$name:\n";
+
+    $add_no_more =
+      ! defined $$hash{"domains"} &&
+      ! defined $$hash{"local_parts"} &&
+      ! defined $$hash{"senders"} &&
+      ! defined $$hash{"condition"} &&
+      ! defined $$hash{"require_files"} &&
+      (!defined $$hash{"verify_only"} || $$hash{"verify_only"} eq "false") &&
+      (!defined $$hash{"verify"} || $$hash{"verify"} eq "true");
+
+    # Create a "domains" setting if there isn't one, unless local domains
+    # was explicitly empty.
+
+    $$hash{"domains"} = "! +local_domains"
+      if !defined $$hash{"domains"} && $local_domains !~ /^\s*$/;
+
+    # If the router had a local_parts setting, add caseful_local_part
+
+    $$hash{"caseful_local_part"} = "true" if defined $$hash{"local_parts"};
+
+    # If the router has "self=local" set, change it to "self=pass", and
+    # set pass_router to the router that was the first director. Change the
+    # obsolete self settings of "fail_hard" and "fail_soft" to "fail" and
+    # "pass".
+
+    if (defined $$hash{"self"})
+      {
+      if ($$hash{"self"} eq "local")
+        {
+        $$hash{"self"} = "pass";
+        $$hash{"pass_router"} = $first_director;
+        }
+      elsif ($$hash{"self"} eq "fail_hard")
+        {
+        $$hash{"self"} = "fail";
+        }
+      elsif ($$hash{"self"} eq "fail_soft")
+        {
+        $$hash{"self"} = "pass";
+        }
+      }
+
+    # If the router had a require_files setting, check it for user names
+    # and colons that are part of expansion items
+
+    if (defined $$hash{"require_files"})
+      {
+      &check_require($$hash{"require_files"}, "'$name' router");
+      if (($$hash{"require_files"} =~ s/(\$\{\w+):/$1::/g) > 0 ||
+          ($$hash{"require_files"} =~ s/ldap:/ldap::/g) > 0)
+        {
+        &rubric();
+        print STDERR "\n" .
+"*** A setting of require_files in the $name router contains\n" .
+"    a colon in what appears to be an expansion item. In Exim 3, the\n" .
+"    whole string was expanded before splitting the list, but in Exim 4\n" .
+"    each item is expanded separately, so colons that are not list\n" .
+"    item separators have to be doubled. One or more such colons in this\n" .
+"    list have been doubled as a precaution. Please check the result.\n";
+        }
+      }
+
+    # If the router had a "senders" setting, munge the address list
+
+    $$hash{"senders"} = &sort_address_list($$hash{"senders"}, "senders")
+      if defined $$hash{"senders"};
+
+    # ---- Changes to domainlist router ----
+
+    if ($driver eq "domainlist")
+      {
+      &abolished($hash, "A domainlist router",
+        "modemask", "owners", "owngroups",
+        "qualify_single", "search_parents");
+
+      # The name has changed
+
+      $$hash{"driver"} = "manualroute";
+
+      # Turn "route_file", "route_query" and "route_queries" into lookups for
+      # route_data.
+
+      if (defined $$hash{"route_file"})
+        {
+        $$hash{"route_data"} = "\${lookup\{\$domain\}$$hash{'search_type'}" .
+                         "\{$$hash{'route_file'}\}\}";
+        }
+      elsif (defined $$hash{"route_query"})
+        {
+        $$hash{"route_data"} = "\${lookup $$hash{'search_type'}" .
+                               "\{" . &unquote($$hash{'route_query'}) . "\}\}";
+        }
+      elsif (defined $$hash{"route_queries"})
+        {
+        $endkets = 0;
+        $$hash{"route_data"} = "";
+        $route_queries = $$hash{'route_queries'};
+        $route_queries =~ s/^"(.*)"$/$1/s;
+        $route_queries =~ s/::/++colons++/g;
+        @qq = split(/:/, $route_queries);
+
+        foreach $q (@qq)
+          {
+          $q =~ s/\+\+colons\+\+/:/g;
+          $q =~ s/^\s+//;
+          $q =~ s/\s+$//;
+          if ($endkets > 0)
+            {
+            $$hash{"route_data"} .= "\\\n    {";
+            $endkets++;
+            }
+          $$hash{"route_data"} .= "\${lookup $$hash{'search_type'} \{$q\}\{\$value\}";
+          $endkets++;
+          }
+
+        $$hash{"route_data"} .= "}" x $endkets;
+        }
+
+      delete $$hash{"route_file"};
+      delete $$hash{"route_query"};
+      delete $$hash{"route_queries"};
+      delete $$hash{"search_type"};
+
+      # But we can't allow both route_data and route_list
+
+      if (defined $$hash{"route_data"} && defined $$hash{"route_list"})
+        {
+        &rubric();
+        print STDERR "\n" .
+"** An Exim 3 'domainlist' router called '$name' contained a 'route_list'\n" .
+"   option as well as a setting of 'route_file', 'route_query', or\n" .
+"   'route_queries'. The latter has been turned into a 'route_data' setting,\n".
+"   but in Exim 4 you can't have both 'route_data' and 'route_list'. You'll\n" .
+"   have to rewrite this router; in the meantime, 'route_list' has been\n" .
+"   omitted.\n";
+        print STDOUT "#!!# route_list option removed\n";
+        delete $$hash{"route_list"};
+        }
+
+      # Change bydns_a into bydns in a route_list; also bydns_mx, but that
+      # works differently.
+
+      if (defined $$hash{"route_list"})
+        {
+        $$hash{"route_list"} =~ s/bydns_a/bydns/g;
+        if ($$hash{"route_list"} =~ /bydns_mx/)
+          {
+          $$hash{"route_list"} =~ s/bydns_mx/bydns/g;
+          &rubric();
+          print STDERR "\n" .
+"*** An Exim 3 'domainlist' router called '$name' contained a 'route_list'\n" .
+"    option which used 'bydns_mx'. This feature no longer exists in Exim 4.\n" .
+"    It has been changed to 'bydns', but it won't have the same effect,\n" .
+"    because it will look for A rather than MX records. Use the 'dnslookup'\n" .
+"    router to do MX lookups - if you want to override the hosts found from\n" .
+"    MX records, you should route to a special 'smtp' transport which has\n" .
+"    both 'hosts' and 'hosts_override' set.\n";
+          }
+        }
+
+      # Arrange to not expand regex
+
+      $$hash{"route_list"} = &no_expand_regex($$hash{"route_list"}, ";")
+        if (defined $$hash{"route_list"})
+      }
+
+
+    # ---- Changes to iplookup router ----
+
+    elsif ($driver eq "iplookup")
+      {
+      &renamed($hash, "service", "port");
+      }
+
+
+    # ---- Changes to lookuphost router ----
+
+    elsif ($driver eq "lookuphost")
+      {
+      $$hash{"driver"} = "dnslookup";
+
+      if (defined $$hash{"gethostbyname"})
+        {
+        &rubric();
+        print STDERR "\n" .
+"** An Exim 3 'lookuphost' router called '$name' used the 'gethostbyname'\n" .
+"   option, which no longer exists. You will have to rewrite it.\n";
+        print STDOUT "#!!# gethostbyname option removed\n";
+        delete $$hash{"gethostbyname"};
+        }
+
+      $$hash{"mx_domains"} = &no_expand_regex($$hash{"mx_domains"})
+        if defined $$hash{"mx_domains"};
+      }
+
+
+    # ---- Changes to the queryprogram router ----
+
+    elsif ($driver eq "queryprogram")
+      {
+      &rubric();
+      print STDERR "\n" .
+"** The configuration contains a 'queryprogram' router. Please note that\n" .
+"   the specification for the text that is returned by the program run\n" .
+"   by this router has changed in Exim 4. You will need to modify your\n" .
+"   program.\n";
+
+      if (!defined $$hash{'command_user'})
+        {
+        &rubric();
+        print STDERR "\n" .
+"** The 'queryprogram' router called '$name' does not have a setting for\n" .
+"   the 'command_user' option. This is mandatory in Exim 4. A setting of\n" .
+"   'nobody' has been created.\n";
+        $$hash{"command_user"} = "nobody";
+        }
+      }
+
+
+    # -------------------------------------
+
+    # Output the router's option settings
+
+    &outdriver($hash);
+    next;
+    }
+
+  # Skip past any continuation lines for an option setting
+  while ($c[$i] =~ /\\\s*$/s && $i < $clen - 1)
+    {
+    $i++;
+    $i++ while ($c[$i] =~ /^\s*#/);
+    }
+  }
+
+# Add "no_more" to the final driver from the old routers, provided it had no
+# conditions. Otherwise, or if there were no routers, make up one to fail all
+# non-local domains.
+
+if ($add_no_more)
+  {
+  print STDOUT "  no_more\n";
+  print STDOUT shift @comments while scalar(@comments) > 0;
+  }
+else
+  {
+  print STDOUT shift @comments while scalar(@comments) > 0;
+  print STDOUT "\n#!!# This new router is put here to fail all domains that\n";
+  print STDOUT "#!!# were not in local_domains in the Exim 3 configuration.\n\n";
+  print STDOUT "fail_remote_domains:\n";
+  print STDOUT "  driver = redirect\n";
+  print STDOUT "  domains = ! +local_domains\n";
+  print STDOUT "  allow_fail\n";
+  print STDOUT "  data = :fail: unrouteable mail domain \"\$domain\"\n\n";
+  }
+
+# Now copy the directors, making appropriate changes
+
+print STDOUT "\n";
+print STDOUT "#!!#######################################################!!#\n";
+print STDOUT "#!!# Here follow routers created from the old directors, #!!#\n";
+print STDOUT "#!!# for handling local domains.                         #!!#\n";
+print STDOUT "#!!#######################################################!!#\n";
+
+$prefix = "d.";
+for ($i = $director_start; $i < $clen; $i++)
+  {
+  $type = &checkline($c[$i]);
+  last if $type eq "end";
+
+  if ($type eq "comment") { print STDOUT "$c[$i]\n"; next; }
+
+  undef $second_router;
+
+  if ($type eq "driver")
+    {
+    $hash = $driverlist{"$prefix$name"};
+    $driver = $$hash{"driver"};
+    print STDOUT "$name:\n";
+
+    $$hash{"caseful_local_part"} = "true" if $add_caseful_local_part;
+
+    if (defined $$hash{"local_parts"} &&
+        (defined $$hash{"prefix"} || defined $hash{"suffix"}))
+      {
+      &rubric();
+      print STDERR "\n" .
+"** The Exim 3 configuration contains a director called '$name' which has\n" .
+"   'local_parts' set, together with either or both of 'prefix' and 'suffix'\n".
+"   This combination has a different effect in Exim 4, where the affix\n" .
+"   is removed *before* 'local_parts' is tested. You will probably need\n" .
+"   to make changes to this driver.\n";
+      }
+
+    &renamed($hash, "prefix", "local_part_prefix");
+    &renamed($hash, "prefix_optional", "local_part_prefix_optional");
+    &renamed($hash, "suffix", "local_part_suffix");
+    &renamed($hash, "suffix_optional", "local_part_suffix_optional");
+    &renamed($hash, "new_director", "redirect_router");
+
+    &handle_current_and_home_directory($hash, $driver, $name);
+
+    # If the director had a require_files setting, check it for user names
+    # and colons that are part of expansion items
+
+    if (defined $$hash{"require_files"})
+      {
+      &check_require($$hash{"require_files"}, "'$name' director");
+      if (($$hash{"require_files"} =~ s/(\$\{\w+):/$1::/g) > 0 ||
+          ($$hash{"require_files"} =~ s/ldap:/ldap::/g) > 0)
+        {
+        &rubric();
+        print STDERR "\n" .
+"*** A setting of require_files in the $name director contains\n" .
+"    a colon in what appears to be an expansion item. In Exim 3, the\n" .
+"    whole string was expanded before splitting the list, but in Exim 4\n" .
+"    each item is expanded separately, so colons that are not list\n" .
+"    item separators have to be doubled. One or more such colons in this\n" .
+"    list have been doubled as a precaution. Please check the result.\n";
+        }
+      }
+
+    # If the director had a "senders" setting, munge the address list
+
+    $$hash{"senders"} = &sort_address_list($$hash{"senders"}, "senders")
+      if defined $$hash{"senders"};
+
+    # ---- Changes to aliasfile director ----
+
+    if ($driver eq "aliasfile")
+      {
+      &abolished($hash, "An aliasfile director",
+        "directory2_transport", "freeze_missing_include",
+        "modemask", "owners", "owngroups");
+
+      $$hash{"driver"} = "redirect";
+
+      $key = "\$local_part";
+      $key = "\$local_part\@\$domain"
+        if defined $$hash{"include_domain"} &&
+          $$hash{"include_domain"} eq "true";
+      delete $$hash{"include_domain"};
+
+      if (defined $$hash{"forbid_special"} && $$hash{"forbid_special"} eq "true")
+        {
+        $$hash{"forbid_blackhole"} = "true";
+        }
+      else
+        {
+        $$hash{"allow_defer"} = "true";
+        $$hash{"allow_fail"} = "true";
+        }
+      delete $$hash{"forbid_special"};
+
+      # Deal with "file", "query", or "queries"
+
+      if (defined $$hash{"file"})
+        {
+        $$hash{"data"} =
+          "\$\{lookup\{$key\}$$hash{'search_type'}\{$$hash{'file'}\}\}";
+        if (defined $$hash{"optional"} && $$hash{"optional"} eq "true")
+          {
+          $$hash{"data"} =
+            "\$\{if exists\{$$hash{'file'}\}\{$$hash{'data'}\}\}";
+          }
+        delete $$hash{"optional"};
+        }
+      elsif (defined $$hash{"query"})
+        {
+        &abolished($hash, "An aliasfile director", "optional");
+        $$hash{"data"} = "\${lookup $$hash{'search_type'} " .
+                         "\{" . &unquote($$hash{'query'}) . "\}\}";
+        }
+      else   # Must be queries
+        {
+        &abolished($hash, "An aliasfile director", "optional");
+        $endkets = 0;
+        $$hash{"data"} = "";
+        $queries = $$hash{'queries'};
+        $queries =~ s/^"(.*)"$/$1/s;
+        $queries =~ s/::/++colons++/g;
+        @qq = split(/:/, $queries);
+
+        foreach $q (@qq)
+          {
+          $q =~ s/\+\+colons\+\+/:/g;
+          $q =~ s/^\s+//;
+          $q =~ s/\s+$//;
+          if ($endkets > 0)
+            {
+            $$hash{"data"} .= "\\\n    {";
+            $endkets++;
+            }
+          $$hash{"data"} .= "\${lookup $$hash{'search_type'} \{$q\}\{\$value\}";
+          $endkets++;
+          }
+
+        $$hash{"data"} .= "}" x $endkets;
+        }
+
+      $$hash{"data"} = "\${expand:$$hash{'data'}\}"
+        if (defined $$hash{"expand"} && $$hash{"expand"} eq "true");
+
+      delete $$hash{"expand"};
+      delete $$hash{"file"};
+      delete $$hash{"query"};
+      delete $$hash{"queries"};
+      delete $$hash{"search_type"};
+
+      # Turn aliasfile + transport into accept + condition
+
+      if (defined $$hash{'transport'})
+        {
+        &rubric();
+        if (!defined $$hash{'condition'})
+          {
+          print STDERR "\n" .
+"** The Exim 3 configuration contains an aliasfile director called '$name',\n".
+"   which has 'transport' set. This has been turned into an 'accept' router\n".
+"   with a 'condition' setting, but should be carefully checked.\n";
+          $$hash{'driver'} = "accept";
+          $$hash{'condition'} =
+            "\$\{if eq \{\}\{$$hash{'data'}\}\{no\}\{yes\}\}";
+          delete $$hash{'data'};
+          delete $$hash{'allow_defer'};
+          delete $$hash{'allow_fail'};
+          }
+        else
+          {
+          print STDERR "\n" .
+"** The Exim 3 configuration contains an aliasfile director called '$name',\n".
+"   which has 'transport' set. This cannot be turned into an 'accept' router\n".
+"   with a 'condition' setting, because there is already a 'condition'\n" .
+"   setting. It has been left as 'redirect' with a transport, which is\n" .
+"   invalid - you must sort this one out.\n";
+          }
+        }
+      }
+
+
+    # ---- Changes to forwardfile director ----
+
+    elsif ($driver eq "forwardfile")
+      {
+      &abolished($hash, "A forwardfile director",
+        "check_group", "directory2_transport",
+        "freeze_missing_include", "match_directory",
+        "seteuid");
+
+      &renamed($hash, "filter", "allow_filter");
+
+      $$hash{"driver"} = "redirect";
+      $$hash{"check_local_user"} = "true"
+        if !defined $$hash{"check_local_user"};
+
+      if (defined $$hash{"forbid_pipe"} && $$hash{"forbid_pipe"} eq "true")
+        {
+        print STDOUT "#!!# forbid_filter_run added because forbid_pipe is set\n";
+        $$hash{"forbid_filter_run"} = "true";
+        }
+
+      if (defined $$hash{'allow_system_actions'} &&
+          $$hash{'allow_system_actions'} eq 'true')
+        {
+        $$hash{'allow_freeze'} = "true";
+        }
+      delete $$hash{'allow_system_actions'};
+
+      # If file_directory is defined, use it to qualify relative paths; if not,
+      # and check_local_user is defined, use $home. Remove file_directory from
+      # the output.
+
+      $dir = "";
+      if (defined $$hash{"file_directory"})
+        {
+        $dir = $$hash{"file_directory"} . "/";
+        delete $$hash{"file_directory"};
+        }
+      elsif ($$hash{"check_local_user"} eq "true")
+        {
+        $dir = "\$home/";
+        }
+
+      # If it begins with an upper case letter, guess that this is really
+      # a macro.
+
+      if (defined $$hash{"file"} && $$hash{"file"} !~ /^[\/A-Z]/)
+        {
+        $$hash{"file"} = $dir . $$hash{"file"};
+        }
+      }
+
+
+    # ---- Changes to localuser director ----
+
+    elsif ($driver eq "localuser")
+      {
+      &abolished($hash, "A localuser director", "match_directory");
+      $$hash{"driver"} = "accept";
+      $$hash{"check_local_user"} = "true";
+      }
+
+
+    # ---- Changes to smartuser director ----
+
+    elsif ($driver eq "smartuser")
+      {
+      &abolished($hash, "A smartuser director", "panic_expansion_fail");
+
+      $transport = $$hash{"transport"};
+      $new_address = $$hash{"new_address"};
+
+      if (defined $transport && defined $new_address)
+        {
+        &rubric();
+        print STDERR "\n" .
+"** The Exim 3 configuration contains a smartuser director called '$name',\n".
+"   which has both 'transport' and 'new_address' set. This has been turned\n".
+"   into two routers for Exim 4. However, if the new address contains a\n" .
+"   reference to \$local_part, this won't work correctly. In any case, you\n".
+"   may be able to make it tidier by rewriting.\n";
+        $$hash{"driver"} = "redirect";
+        $$hash{"data"} = $new_address;
+        $$hash{"redirect_router"} = "${name}_part2";
+
+        $second_router = "\n".
+          "#!!# This router is invented to go with the previous one because\n".
+          "#!!# in Exim 4 you can't have a change of address and a transport\n".
+          "#!!# setting in the same router as you could in Exim 3.\n\n" .
+          "${name}_part2:\n".
+          "  driver = accept\n".
+          "  condition = \$\{if eq\{\$local_part@\$domain\}" .
+          "\{$new_address\}\{yes\}\{no\}\}\n".
+          "  transport = $$hash{'transport'}\n";
+
+        delete $$hash{"new_address"};
+        delete $$hash{"transport"};
+        }
+      elsif (defined $new_address)
+        {
+        $$hash{"driver"} = "redirect";
+        $$hash{"data"} = $new_address;
+        $$hash{"allow_defer"} = "true";
+        $$hash{"allow_fail"} = "true";
+        delete $$hash{"new_address"};
+        }
+      else     # Includes the case of neither set (verify_only)
+        {
+        $$hash{"driver"} = "accept";
+        if (defined $$hash{"rewrite"})
+          {
+          &rubric();
+          print STDERR "\n" .
+"** The Exim 3 configuration contains a setting of the 'rewrite' option on\n".
+"   a smartuser director called '$name', but this director does not have\n".
+"   a setting of 'new_address', so 'rewrite' has no effect. The director\n".
+"   has been turned into an 'accept' router, and 'rewrite' has been discarded.";
+          delete $$hash{"rewrite"};
+          }
+        }
+      }
+
+
+    # -------------------------------------
+
+    # For ex-directors that don't have check_local_user set, add
+    # retry_use_local_part to imitate what Exim 3 would have done.
+
+    $$hash{"retry_use_local_part"} = "true"
+      if (!defined $$hash{"check_local_user"} ||
+          $$hash{"check_local_user"} eq "false") ;
+
+    # Output the router's option settings
+
+    &outdriver($hash);
+
+    # Output an auxiliary router if one is needed
+
+    print STDOUT $second_router if defined $second_router;
+
+    next;
+    }
+
+  # Skip past any continuation lines for an option setting
+  while ($c[$i] =~ /\\\s*$/s)
+    {
+    $i++;
+    $i++ while ($c[$i] =~ /^\s*#/);
+    }
+  }
+
+
+
+# -------- The transports configuration --------
+
+$started = 0;
+$prefix = "t.";
+for ($i = $transport_start; $i < $clen; $i++)
+  {
+  $type = &checkline($c[$i]);
+  last if $type eq "end";
+
+  if ($type eq "comment") { print STDOUT "$c[$i]\n"; next; }
+
+  if (!$started)
+    {
+    print STDOUT "begin transports\n\n";
+    $started = 1;
+    }
+
+  if ($type eq "driver")
+    {
+    $hash = $driverlist{"$prefix$name"};
+    $driver = $$hash{"driver"};
+    print STDOUT "$name:\n";
+
+    # ---- Changes to the appendfile transport ----
+
+    if ($driver eq "appendfile")
+      {
+      &renamed($hash, "prefix", "message_prefix");
+      &renamed($hash, "suffix", "message_suffix");
+      &abolished($hash, "An appendfile transport",
+        "require_lockfile");
+      &handle_batch_and_bsmtp($hash);
+      if (defined $$hash{"from_hack"} && $$hash{"from_hack"} eq "false")
+        {
+        print STDOUT "#!!# no_from_hack replaced by check_string\n";
+        $$hash{"check_string"} = "";
+        }
+      delete $$hash{"from_hack"};
+      }
+
+    # ---- Changes to the lmtp transport ----
+
+    elsif ($driver eq "lmtp")
+      {
+      if (defined $$hash{"batch"} && $$hash{"batch"} ne "none")
+        {
+        $$hash{"batch_max"} = "100" if !defined $$hash{"batch_max"};
+        $$hash{"batch_id"} = "\$domain" if $$hash{"batch"} eq "domain";
+        }
+      else
+        {
+        $$hash{"batch_max"} = "1" if defined $$hash{"batch_max"};
+        }
+      delete $$hash{"batch"};
+      }
+
+    # ---- Changes to the pipe transport ----
+
+    elsif ($driver eq "pipe")
+      {
+      &renamed($hash, "prefix", "message_prefix");
+      &renamed($hash, "suffix", "message_suffix");
+      &handle_batch_and_bsmtp($hash);
+      if (defined $$hash{"from_hack"} && $$hash{"from_hack"} eq "false")
+        {
+        print STDOUT "#!!# no_from_hack replaced by check_string\n";
+        $$hash{"check_string"} = "";
+        }
+      delete $$hash{"from_hack"};
+      }
+
+    # ---- Changes to the smtp transport ----
+
+    elsif ($driver eq "smtp")
+      {
+      &abolished($hash, "An smtp transport", "mx_domains");
+      &renamed($hash, "service", "port");
+      &renamed($hash, "tls_verify_ciphers", "tls_require_ciphers");
+      &renamed($hash, "authenticate_hosts", "hosts_try_auth");
+
+      if (defined $$hash{"batch_max"})
+        {
+        print STDOUT "#!!# batch_max renamed connection_max_messages\n";
+        $$hash{"connection_max_messages"} = $$hash{"batch_max"};
+        delete $$hash{"batch_max"};
+        }
+
+      foreach $o ("hosts_try_auth", "hosts_avoid_tls", "hosts_require_tls",
+                  "mx_domains", "serialize_hosts")
+        {
+        $$hash{$o} = &no_expand_regex($$hash{$o}) if defined $$hash{$o};
+        }
+      }
+
+    &outdriver($driverlist{"$prefix$name"});
+    next;
+    }
+
+  # Skip past any continuation lines for an option setting
+  while ($c[$i] =~ /\\\s*$/s)
+    {
+    $i++;
+    $i++ while ($c[$i] =~ /^\s*#/);
+    }
+  }
+
+
+# -------- The retry configuration --------
+
+$started = 0;
+for ($i = $retry_start; $i < $clen && $i < $rewrite_start - 1; $i++)
+  {
+  if (!$started)
+    {
+    if ($c[$i] !~ /^\s*(#|$)/)
+      {
+      print STDOUT "\nbegin retry\n\n";
+      $started = 1;
+      }
+    }
+  &print_no_expand($c[$i]);
+  }
+
+print STDOUT "\n# End of Exim 4 configuration\n";
+
+print STDERR "\n*******************************************************\n";
+print STDERR   "***** Please review the generated file carefully. *****\n";
+print STDERR   "*******************************************************\n\n";
+
+# End of convert4r4
+

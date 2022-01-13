@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Release Versioning</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Release Versioning</b></h2></center>
+<hr>
+
+<p>
+The names of ProFTPD releases, which indicate the version of ProFTPD, can
+be a little confusing to users new to the software.  This document is a brief
+guide to the naming conventions used for ProFTPD release versions.
+
+<p><b>Release Candidates</b><br>
+Every development/release cycle of the ProFTPD software begins with series of
+<i>release candidates</i> (RCs), <i>e.g.</i> <code>proftpd-1.3.2rc1</code>.
+The "rc1" suffix in this example indicates that this is the first release
+candidate of the 1.3.2 development/release cycle.  A suffix of "rc2" would
+be used for the second release candidate, and so on.  The first release
+candidate (RC1) is where most of the new features of that development/release
+cycle tend to be added, including new core APIs, new modules, deprecated
+configuration directives are removed, <i>etc</i>.  Subsequent release
+candidates tend to focus on stabilizing the new code and fixing bugs.  There
+can be few or many release candidates, depending on the number of new features
+added and bugs encountered.
+
+<p><b>Stable Release and Maintenance Branch</b><br>
+Once the code base is considered stable, and the frequency of new bug reports
+has slowed down, then the "stable" release is cut.  A "stable" release has
+<b>no suffix</b> in the name, <i>e.g.</i> <code>proftpd-1.3.2</code>.  At the
+same time, the code is branched, creating a maintenance branch for that
+development/release cycle.  The trunk continues on to become the basis for the
+next development/release cycle.  At any given time, the ProFTPD Project team
+supports the most recent maintenance branch, and the current trunk.  When a new
+maintenance branch is created, the previous maintenance branch is no longer
+supported.  Thus when the 1.3.2 maintenance branch was created, the 1.3.1
+series of releases became unsupported.
+
+<p><b>Maintenance Releases</b><br>
+During any given development/release cycle, bugs will be reported against
+older versions of ProFTPD.  The fixes for those bugs will be developed
+using the current version of ProFTPD.  If the bug is deemed to be serious
+enough, then the fix will be <i>backported</i> to the active maintenance
+branch as well.  Serious bugs include security vulnerabilities, major bugs
+not found during the previous development/release cycle, and new translations.
+Thus there will continue to be releases for a given cycle after the "stable"
+release; these <i>maintenance releases</i> come from the maintenance branch.
+Maintenance release names use letters, rather than numbers, in the suffix
+portion of the release name/version.  The first maintenance release will be
+"a" (<i>e.g.</i> <code>proftpd-1.3.2a</code>), the second will be "b", and so
+on.
+
+<p>
+Using the 1.3.2 development/release cycle as an example, then, the releases
+for the cycle are:
+<ul>
+  <li>proftpd-1.3.2rc1
+  <li>proftpd-1.3.2rc2
+  <li>proftpd-1.3.2rc3
+  <li>proftpd-1.3.2rc4
+  <li>proftpd-1.3.2
+  <li>proftpd-1.3.2a
+  <li>proftpd-1.3.2b
+  <li>proftpd-1.3.2c
+  <li>proftpd-1.3.2d
+  <li>proftpd-1.3.2e
+</ul>
+
+<p><b>Checking the Version</b><br>
+If you are not sure of the version of ProFTPD you are running, the best way
+to check is to use the -V command-line option for <code>proftpd</code>.
+The -V option shows the various build-time options used for your
+<code>proftpd</code>; the version information is at the very beginning of that
+output:
+<pre>
+  $ proftpd -V
+  Compile-time Settings:
+    Version: 1.3.2rc1 (devel)
+</pre>
+The above shows that the <code>proftpd</code> version on the machine is
+the first release candidate of the 1.3.2 development/release cycle.  The
+portion of the version in parentheses, <i>i.e.</i> "(devel)" in the example
+above, is a <i>version label</i>.  Version labels are intended to make it
+very clear which type of release that <code>proftpd</code> executable comes
+from, rather than having to figure it out based on the suffix of the version
+name.  Release candidates always use a "devel" version label.
+
+<p>
+If you are running a stable release, then you would see:
+<pre>
+  $ proftpd -V
+  Compile-time Settings:
+    Version: 1.3.2 (stable)
+</pre>
+The version label for stable releases is always "stable", obviously.
+
+For completeness, here is what the -V output for a maintenance release
+looks like:
+<pre>
+  $ proftpd -V
+  Compile-time Settings:
+    Version: 1.3.2a (maint)
+</pre>
+The version label for a maintenance is "maint".
+
+<p>
+Finally, for developers and users who use the latest and greatest code from
+the master branch on GitHub, you will see something like:
+<pre>
+  $ proftpd -V
+  Compile-time Settings:
+    Version: 1.3.6rc1 (git)
+</pre>
+All code obtained from GitHub reports a version label of "git".
+
+<p><a name="FAQ"><b>Frequently Asked Questions</b>
+
+<p>
+<font color=red>Question</font>: When you say that older maintenance branches
+are no longer supported, what exactly does that mean?<br>
+<font color=blue>Answer</font>: Support, in this case, refers to whether the
+ProFTPD Project team will provide patches for a bug that can be applied
+cleanly that version of the source code.  Bugs can (and indeed <i>should</i>)
+be reported against that version, but the fixes will be applied in the
+newer, supported versions of ProFTPD instead of in the unsupported branches.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

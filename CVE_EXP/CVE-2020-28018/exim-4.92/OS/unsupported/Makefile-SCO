@@ -1,0 +1,28 @@
+# Exim: OS-specific make file for SCO
+
+# It was reported that some versions of gcc (e.g. 2.8.1) require this to be
+# CFLAGS=-melf
+
+CFLAGS=-b elf
+
+RANLIB=@true
+DBMLIB=-lndbm
+ERRNO_QUOTA=0
+LIBS=-lsocket -lm
+HAVE_ICONV=yes
+
+X11=/usr/lib/X11
+XINCLUDE=-I/usr/include/X11
+XLFLAGS=-L/usr/lib -L$(X11)/lib
+X11_LD_LIB=$(X11)/lib
+
+# Changes from Frank Bernhardt (30/09/04)
+
+BASENAME_COMMAND=/bin/basename
+CHOWN_COMMAND=/bin/chown
+CHGRP_COMMAND=/bin/chgrp
+CHMOD_COMMAND=/bin/chmod
+HOSTNAME_COMMAND=/usr/bin/hostname
+TOUCH_COMMAND=/bin/touch
+
+# End

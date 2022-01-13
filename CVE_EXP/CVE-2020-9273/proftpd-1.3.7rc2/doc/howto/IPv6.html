@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: IPv6</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: IPv6</b></h2></center>
+<hr>
+
+<p>
+ProFTPD has support for IPv6 connections enabled by default.  To disable IPv6
+functionality at build time, use the proper <code>configure</code> option,
+<i>e.g.</i>:
+<pre>
+  $ ./configure --disable-ipv6 ...
+</pre>
+To disable IPv6 support at <i>runtime</i>, use the <a href="../modules/mod_core.html#UseIPv6"><code>UseIPv6</code></a> directive in your <code>proftpd.conf</code>:
+<pre>
+  # Disable IPv6 support
+  UseIPv6 off
+</pre>
+The <a href="../modules/mod_core.html#DefaultAddress"><code>DefaultAddress</code></a>, <a href="../modules/mod_core.html#MasqueradeAddress"><code>MasqueradeAddress</code></a>, and <a href="../modules/mod_core.html#VirtualHost"><code>&lt;VirtualHost&gt;</code></a> directives can take both IP addresses and DNS names as
+parameters.  If IP addresses are used, either IPv4 or IPv6, they work as one
+expects.  Things are more involved when a DNS name is given as a parameter.
+
+<p>
+It is possible for a DNS name to have multiple IP addresses, both <code>A</code>
+(IPv4) and <code>AAAA</code> (IPv6) records.  Thus <code>DefaultAddress</code>
+and <code>&lt;VirtualHost&gt;</code> will resolve a DNS name to its addresses;
+if multiple addresses are found, they will be added automatically.
+<pre>
+  &lt;VirtualHost localhost&gt;
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+on an IPv6-enabled host, would be treated as:
+<pre>
+  &lt;VirtualHost 127.0.0.1 ::1&gt;
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+<b>Note</b> that <code>MasqueradeAddress</code> does <i>not</i> resolve a DNS
+name to all possible addresses.  ProFTPD can only <em>masquerade</em> as one
+address, and so, if given a DNS name, <code>MasqueradeAddress</code> will use
+the <i>first</i> IP address returned by the DNS lookup.
+
+<p>
+<b>Known Issues</b><br>
+
+<p>
+<i>Wildcard Sockets</i><br>
+Various Unix platforms handle wildcard sockets differently with regard to IPv6
+address.  For example, on Mac OSX, one must configure a virtual host to listen
+for <i>both</i> the IPv4 and IPv6 wildcard addresses in order to accept both
+IPv4 and IPv6 connections:
+<pre>
+  # Listen for all IPv4 AND all IPv6 connections
+  &lt;VirtualHost 0.0.0.0 ::&gt;
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+
+<p>
+However, on Solaris, binding to an IPv6 address will accept both IPv4 and IPv6
+connections to that address automatically.  On BSD systems, the behavior
+is affected by the <code>net.inet6.ip6.v6only</code> <code>sysctl</code>
+setting; on Linux, it is the <code>net.ipv6.bindv6only</code>
+<code>sysctl</code> setting.
+
+<p>
+Note that the above are issues only if <a href="../modules/mod_core.html#SocketBindTight"><code>SocketBindTight</code></a> is <em>not</em> enabled, <i>i.e.</i>
+if wildcard sockets are used.
+
+<p>
+<i>Broken Implementations</i><br>
+HP-UX 11i has a broken <code>getaddrinfo(2)</code> implementation.  To fix
+this, a patch from HP-UX is needed.  See these <a href="http://docs.hp.com/hpux/onlinedocs/T1306-90004/T1306-90004.html">release notes</a> for IPv6 on HP-UX
+11i.  Alternatively, you can use ProFTPD's fallback implementation by building
+ProFTPD with the <code>--builtin-getaddrinfo</code> compile option.
+
+<p>
+<i>Badly Parsed DNS names</i><br>
+Certain DNS names may be handled improperly when IPv6 support is enabled,
+<i>e.g.</i>:
+<pre>
+  Allow from .ee
+</pre>
+Attempting to start up ProFTPD with a configuration that contains the above
+line <em>will</em> fail, with the following error being reported:
+<pre>
+  getaddrinfo '.ee' error: Name or service not known
+  Fatal: Allow: bad ACL definition: '.ee': Success on line 13 of '/path/to/proftpd.conf'
+</pre>
+The issue is that ProFTPD's ACL parser has to guess, for a given string,
+whether the string is for an IP address (either IPv4 or IPv6) or a DNS name,
+which may or may not contain explicit or implicit glob characters.  One of the
+tests that the ACL parser uses is to see if the string contains any characters
+that <i>cannot</i> appear in an IPv4 or IPv6 address.  If the string has any
+non-IP address characters, it is treated as a DNS name string, otherwise, it is
+an IP address string.
+
+<p>
+The range of characters which can appear in an IP address string is:
+<pre>
+  0123456789ABCDEFabcdef.:
+</pre>
+The string ".ee" contains all characters that are legal in an IP address string;
+hence why the ACL parser is trying to resolve that IP address, and failing.  As
+a counterexample, ".us" works.
+
+<p>
+One way of working around this issue is to explicitly put glob characters in
+the string, so that the ACL parser can determine more easily that it is a DNS
+glob, <i>e.g.</i>:
+<pre>
+  Allow from *.ee
+</pre>
+Note that this issue <b>only</b> applies if IPv6 support is enabled.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

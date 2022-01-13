@@ -1,0 +1,17 @@
+# Exim: OS-specific make file for OpenUNIX
+
+CC=/usr/bin/cc
+CFLAGS=-O -I/usr/local/include
+LFLAGS=-L/usr/local/lib
+
+LIBS=-lsocket -lnsl -lelf -lgen -lresolv -lm
+EXTRALIBS_EXIMON=-lICE -lSM
+
+RANLIB=@true
+ERRNO_QUOTA=0
+
+X11=/usr/lib/X11
+XINCLUDE=-I/usr/include/X11
+XLFLAGS=-L/usr/lib -L$(X11)/lib
+
+# End

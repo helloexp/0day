@@ -1,0 +1,12 @@
+argz.h
+autom4te.cache
+config.log
+config.h
+config.status
+libtool
+Makefile
+stamp-h1
+.deps
+.libs
+*.lo
+*.la

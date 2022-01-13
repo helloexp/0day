@@ -1,0 +1,340 @@
+#! /bin/sh
+LC_ALL=C
+export LC_ALL
+
+# Shell script to build Makefile in a build directory. It must be called
+# from inside the directory. It does its own checking of when to rebuild; it
+# just got too horrendous to get it right in "make", because of the optionally
+# existing configuration files.
+#
+# Copyright (c) The Exim Maintainers 1995 - 2018
+
+
+# First off, get the OS type, and check that there is a make file for it.
+
+ostype=`../scripts/os-type -generic` || exit 1
+
+if [ ! -r ../OS/Makefile-$ostype ] ; then
+  echo ""
+  echo "*** Sorry - operating system $ostype is not supported"
+  echo "*** See OS/Makefile-* for supported systems" 1>&2
+  echo ""
+  exit 1
+fi
+
+# We also need the architecture type, in order to test for any architecture-
+# specific configuration files.
+
+archtype=`../scripts/arch-type` || exit 1
+
+# Now test for either the non-existence of Makefile, or for any of its
+# components being newer. Note that the "newer" script gives the right
+# answer (for our purposes) when the first file is non-existent.
+
+editme=../Local/Makefile
+rebuild=yes
+
+if [ -f Makefile ] ; then
+  rebuild=no
+  if ../scripts/newer $editme Makefile || \
+     ../scripts/newer $editme-$ostype Makefile || \
+     ../scripts/newer $editme-$archtype Makefile || \
+     ../scripts/newer $editme-$ostype-$archtype Makefile || \
+     ../scripts/newer ../scripts/Configure-Makefile Makefile || \
+     ../scripts/newer ../OS/Makefile-Base Makefile || \
+     ../scripts/newer ../OS/Makefile-Default Makefile
+  then
+    rebuild=yes
+  fi
+fi
+
+# If the "build" variable is set it means that a build name was explicitly
+# given. Arrange to pick up a build-specific configuration file.
+
+if [ "X$build" != "X" ] ; then
+  mfb=Local/Makefile-$build
+  if ../scripts/newer $editme-$build Makefile ; then
+    rebuild=yes
+  fi
+else
+  mfb=
+fi
+
+
+# If Makefile is up-to-date, no need to rebuild it.
+
+if [ $rebuild = no ] ; then
+  echo "\`Makefile' is up to date."
+  echo " "
+  exit
+fi
+
+# Makefile needs to be rebuilt in the current directory by joining
+# the generic default makefile, the OS base makefile, and then local
+# generic, OS-specific, architecture-specific, and OS+architecture-specific
+# makefiles, if they exist. These files all contain macro definitions, with
+# later definitions overriding earlier ones. Make a temporary file first, in
+# case things go wrong. A second temporary is needed for sorting out the
+# default Perl stuff. Use short macro names to save typing.
+
+mf=Makefile
+mft=$mf-t
+mftt=$mf-tt
+mftepcp=$mf-tepcp
+mftepcp2=$mf-tepcp2
+
+look_mf=lookups/Makefile
+look_mf_pre=${look_mf}.predynamic
+look_mf_post=${look_mf}.postdynamic
+
+# Ensure the temporary does not exist and start the new one by setting
+# the OSTYPE and ARCHTYPE variables.
+
+rm -f $mft $mftt $mftepcp $mftepcp2 $look_mf-t
+(echo "OSTYPE=$ostype"; echo "ARCHTYPE=$archtype"; echo "") > $mft || exit 1
+
+# Now concatenate the files to the temporary file. Copy the files using sed to
+# remove comments, blank lines, and trailing white space.
+
+# BEWARE: a tab character is needed in the sed command below. It has had
+# a nasty tendency to get lost in the past, causing a problem if a tab has
+# actually been present in one of the files. Use a variable to hold a space
+# and a tab to keep the tab in one place.
+
+st='	 '
+
+for f in OS/Makefile-Default \
+         OS/Makefile-$ostype \
+         Local/Makefile \
+         Local/Makefile-$ostype \
+         Local/Makefile-$archtype \
+         Local/Makefile-$ostype-$archtype \
+         $mfb
+do   if test -r ../$f
+     then   echo "# From $f"
+            sed "/^#/d;/^[$st]*\$/d;s/[$st]*\$//" ../$f || exit 1
+            echo "# End of $f"
+            echo ""
+     fi
+done \
+     | sed 's/^TMPDIR=/EXIM_&/' \
+     >> $mft || exit 1
+
+# handle PKG_CONFIG_PATH because we need it in our env, and we want to handle
+# wildcards; note that this logic means all setting _appends_ values, never
+# replacing; if that's a problem, we can revisit.
+sed -n "s/^[$st]*PKG_CONFIG_PATH[$st]*[+]*=[$st]*//p" $mft | \
+  sed "s/[$st]*\$//" >> $mftepcp
+if test -s ./$mftepcp
+then
+  # expand any wildcards and strip spaces, to make it a real PATH-like variable
+  ( IFS=":${IFS-$st}"; for P in `cat ./$mftepcp`; do echo "$P"; done ) | xargs | sed "s/[$st]/:/g" >./$mftepcp2
+  sed "s/^/PKG_CONFIG_PATH='/" < ./$mftepcp2 | sed "s/\$/'/" > ./$mftepcp
+  . ./$mftepcp
+  export PKG_CONFIG_PATH
+  egrep -v "^[$st]*PKG_CONFIG_PATH[$st]*=" ./$mft > ./$mftt
+  rm -f ./$mft
+  (
+    echo "# Collapsed PKG_CONFIG_PATH in build-prep:"
+    sed "s/'//g" ./$mftepcp
+    echo "# End of collapsed PKG_CONFIG_PATH"
+    echo ""
+    cat ./$mftt
+  ) > ./$mft
+  rm -f ./$mftt
+fi
+rm -f ./$mftepcp ./$mftepcp2
+
+# handle pkg-config
+# beware portability of extended regexps with sed.
+egrep "^[$st]*(AUTH|LOOKUP)_[A-Z0-9_]*[$st]*=[$st]*" $mft | \
+  sed "s/[$st]*=/='/" | \
+  sed "s/\$/'/" > $mftt
+egrep "^[$st]*((USE_(OPENSSL|GNUTLS)_PC)|SUPPORT_TLS|USE_GNUTLS|PCRE_CONFIG|AVOID_GNUTLS_PKCS11)[$st]*=[$st]*" $mft | \
+  sed "s/[$st]*=/='/" | \
+  sed "s/\$/'/" >> $mftt
+if test -s $mftt
+then
+  (
+  echo "# pkg-config fixups"
+  . ./$mftt
+  for var in `cut -d = -f 1 < $mftt`; do
+    case $var in
+
+      USE_*_PC)
+        eval "pc_value=\"\$$var\""
+        need_this=''
+        need_core=''
+        if [ ".$SUPPORT_TLS" = "." ]; then
+          # no TLS, not referencing
+          true
+        elif [ ".$var" = ".USE_GNUTLS_PC" ] && [ ".$USE_GNUTLS" != "." ]; then
+          need_this=t
+          need_core="gnutls-special"
+        elif [ ".$var" = ".USE_OPENSSL_PC" ] && [ ".$USE_GNUTLS" = "." ]; then
+          need_this=t
+          need_core=t
+        fi
+        if [ ".$need_this" != "." ]; then
+          tls_include=`pkg-config --cflags $pc_value`
+          if [ $? -ne 0 ]; then
+            echo >&2 "*** Missing pkg-config for package $pc_value (for Exim $var build option)"
+            exit 1
+          fi
+          tls_libs=`pkg-config --libs $pc_value`
+          echo "TLS_INCLUDE=$tls_include"
+          echo "TLS_LIBS=$tls_libs"
+          # With hash.h pulling crypto into the core, we need to also handle that
+          if [ ".$need_this" = ".t" ]; then
+            echo "CFLAGS += $tls_include"
+            echo "LDFLAGS += $tls_libs"
+          elif [ ".$need_this" = ".gnutls-special" ]; then
+            if pkg-config --atleast-version=2.10 gnutls ; then
+              echo "CFLAGS += $tls_include"
+              echo "LDFLAGS += $tls_libs"
+            else
+              echo "CFLAGS += `libgcrypt-config --cflags`"
+              echo "LDFLAGS += `libgcrypt-config --libs`"
+            fi
+          fi
+        fi
+        ;;
+
+      *_PC)
+        eval "pc_value=\"\$$var\""
+        base=`echo $var | sed 's/_PC$//'`
+        eval "basevalue=\"\$$base\""
+        if [ ".$basevalue" = "." ]; then
+          # not pulling in this module, _PC defined as default? Ignore
+          true
+        elif [ $basevalue = 2 ]; then
+          # module; handled in scripts/lookups-Makefile
+          true
+        else
+          # main binary
+          cflags=`pkg-config --cflags $pc_value`
+          if [ $? -ne 0 ]; then
+            echo >&2 "*** Missing pkg-config for package $pc_value (for Exim $var build option)"
+            exit 1
+          fi
+          libs=`pkg-config --libs $pc_value`
+          if [ "$var" != "${var#LOOKUP_}" ]; then
+            echo "LOOKUP_INCLUDE += $cflags"
+            echo "LOOKUP_LIBS += $libs"
+          elif [ "$var" != "${var#AUTH_}" ]; then
+            echo "CFLAGS += $cflags"
+            echo "AUTH_LIBS += $libs"
+          else
+            echo >&2 "Don't know how to handle pkg-config for $var"
+          fi
+        fi
+        ;;
+
+      PCRE_CONFIG)
+        case $PCRE_CONFIG in
+          yes|YES|y|Y)
+            cflags=`pcre-config --cflags`
+            if [ $? -ne 0 ]; then
+              echo >&2 "*** Missing pcre-config for regular expression support"
+              exit 1
+            fi
+            libs=`pcre-config --libs`
+            if [ ".$cflags" != "." ]; then
+              echo "INCLUDE += $cflags"
+            fi
+            echo "PCRE_LIBS=$libs"
+            ;;
+        esac
+        ;;
+
+      AVOID_GNUTLS_PKCS11)
+        echo "$var=yes"
+        ;;
+
+    esac
+  done
+  echo "# End of pkg-config fixups"
+  echo
+  ) >> $mft
+  subexit=$?
+  if [ $subexit -ne 0 ]; then
+    exit $subexit
+  fi
+fi
+rm -f $mftt
+
+# make the lookups Makefile with the definitions
+# the auxiliary script generates $look_mf_post from $look_mf_pre
+
+cp ../src/lookups/Makefile $look_mf_pre
+../scripts/lookups-Makefile
+
+# See if there is a definition of EXIM_PERL in what we have built so far.
+# If so, run Perl to find the default values for PERL_CC, PERL_CCOPTS,
+# and PERL_LIBS. These need to be put at the top of the Makefile, so we rename
+# what we have so far and then copy it afterwards. Use the value of PERL_COMMAND
+# if it has been defined.
+
+EXIM_PERL=`grep EXIM_PERL $mft`
+
+PERL_COMMAND=`grep PERL_COMMAND $mft | sed -e "\\$!d;s/^[$st]*PERL_COMMAND[$st]*=[$st]*//"`
+if [ "${PERL_COMMAND}" = "" ] ; then
+  PERL_COMMAND='perl'
+fi
+
+if [ "${EXIM_PERL}" != "" ] ; then
+  testperl=`$PERL_COMMAND --version`
+  if [ "$testperl" = "" ] ; then
+    echo "*** EXIM_PERL is set, but '$PERL_COMMAND --version' failed"
+    exit 1
+  fi
+
+  EXTUTILS_EMBED_NOT_INSTALLED=`$PERL_COMMAND -MExtUtils::Embed -e ";" 2>&1`
+  if [ "${EXTUTILS_EMBED_NOT_INSTALLED}" != "" ] ; then
+    echo "Please install ExtUtils::Embed for $PERL_COMMAND"
+    exit 1;
+  fi
+
+  mv $mft $mftt
+  echo "PERL_CC=`$PERL_COMMAND -MConfig -e 'print $Config{cc}'`" >>$mft
+  echo "PERL_CCOPTS=`$PERL_COMMAND -MExtUtils::Embed -e ccopts`" >>$mft
+  echo "PERL_LIBS=`$PERL_COMMAND -MExtUtils::Embed -e ldopts`" >>$mft
+  echo "" >>$mft
+  cat $mftt >> $mft
+  rm -f $mftt
+fi
+
+# Record the build variable in the Makefile.
+
+echo "build=$build" >>$mft
+echo "" >>$mft
+
+# Finally, join on the generic base make file, which contains the actual
+# rules and stuff.
+
+echo "# From ../OS/Makefile-Base" >> $mft
+cat ../OS/Makefile-Base >> $mft || exit 1
+
+# If the new makefile is the same as the existing one, say so, and just
+# update the timestamp. Otherwise remove the old and install the new.
+
+if      [ -s $mf ] && cmp -s $mft $mf && [ -s $look_mf ] && cmp -s $look_mf_post $look_mf
+then    echo ">>> rebuilt $mf unchanged"
+        echo " "
+        touch $mf || exit
+        rm -f $mft $look_mf_pre $look_mf_post
+elif    rm -f $mf $look_mf $look_mf_pre
+        mv $mft $mf
+	mv $look_mf_post $look_mf
+then    echo ">>> New $mf & $look_mf installed"
+        echo '>>> Use "make makefile" if you need to force rebuilding of the makefile'
+        echo " "
+else    echo " "
+        echo "*** Failed to install $mf - see $mft"
+	echo "    (or $look_mft)"
+        echo " "
+        exit 1;
+fi
+
+# vim: set ft=sh :
+# End of Configure-Makefile

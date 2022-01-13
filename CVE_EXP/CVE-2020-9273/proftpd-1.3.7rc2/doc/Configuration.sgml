@@ -1,0 +1,35 @@
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook V4.1//EN" [
+<!ENTITY byname SYSTEM "by_name_source.sgml">
+<!ENTITY bymodule SYSTEM "by_module_source.sgml"> 
+<!ENTITY bycontext SYSTEM "by_context_source.sgml"> 
+]>
+
+
+<book ID="PROFTPD-CONFIG">
+<?dbhtml filename="configuration.html">
+
+<bookinfo>
+<title>Configuration Directive List</title>
+</bookinfo>
+
+<chapter>
+<?dbhtml filename="by-name.html">
+<title>List of Directives</title>
+
+&byname;
+
+</chapter>
+
+<chapter>
+<?dbhtml filename="by-modules.html">
+<title>List of modules</title>
+&bymodule;
+</chapter>
+
+<chapter>
+<?dbhtml filename="by-context.html">
+<title>List of configuration contexts</title>
+&bycontext;
+</chapter>
+
+</book>

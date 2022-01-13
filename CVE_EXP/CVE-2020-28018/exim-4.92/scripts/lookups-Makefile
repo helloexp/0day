@@ -1,0 +1,194 @@
+#! /bin/sh
+
+# We turn the configure-built build-$foo/lookups/Makefile.predynamic into Makefile
+
+# We always re-exec ourselves at least once, because it's the cleanest and
+# most portable way to turn on various features we expect of POSIX sh.
+if [ -z "$EXIM_LOOKUP_MAKEFILE_ADJUSTED" ]
+then
+  SHELL=/bin/sh
+  EXIM_LOOKUP_MAKEFILE_ADJUSTED=yes
+  export EXIM_LOOKUP_MAKEFILE_ADJUSTED
+
+  # Solaris sh and tr are problematic until we get xpg4 variants
+  if [ -x /usr/xpg4/bin/sh ]
+  then
+    PATH="/usr/xpg4/bin:$PATH"
+    export PATH
+    SHELL=/usr/xpg4/bin/sh
+    export SHELL
+  fi
+
+  # IRIX uses /bin/ksh for sh but in a compatibility mode unless $_XPG == 1,
+  # where said compatibility mode disables $(...)
+  _XPG=1
+  export _XPG
+
+  # We need the _right_ tr, so must do that first; but if a shell which
+  # we're more confident is sane is available, let's try that.  Mostly,
+  # the problem is that "local" is not actually in "the" standard, it's
+  # just in every not-insane shell.  Though arguably, there are no shells
+  # with POSIX-ish syntax which qualify as "not insane".
+  for b in /bin/dash /bin/bash /usr/local/bin/bash
+  do
+    if [ -x "$b" ]
+    then
+      SHELL="$b"
+      break
+    fi
+  done
+  # if we get a report of a system with zsh but not bash, we can add that
+  # to the list, but be sure to enable sh_word_split in that case.
+
+  exec "$SHELL" "$0" "$@"
+fi
+
+input=lookups/Makefile.predynamic
+target=lookups/Makefile.postdynamic
+defs_source=Makefile-t
+tag_marker='MAGIC-TAG-MODS-OBJ-RULES-GO-HERE'
+
+tab='	'
+
+# We rely on tr(1) for translating case below.  Some people export
+# values of LC_CTYPE and LC_COLLATE which apparently break our assumptions.
+# We're a script expecting certain output based on known inputs and not dealing
+# with UTF8, so we should be safe doingthis:
+LC_ALL=C
+export LC_ALL
+
+if [ -f "$defs_source" ]
+then
+  :
+  # we are happy
+else
+  echo >&2 "$0: ERROR: MISSING FILE '${defs_source}'"
+  echo >&2 "$0: SHOULD HAVE BEEN CALLED FROM scripts/Configure-Makefile"
+  exit 1
+fi
+
+# nb: do not permit leading whitespace for this, as CFLAGS_DYNAMIC is exported
+# to the lookups subdir via a line with leading whitespace which otherwise
+# matches
+if grep -q "^CFLAGS_DYNAMIC[ $tab?:]*=" "$defs_source"
+then
+  # we have a definition, we're good to go
+  echo >&2 ">>> Creating lookups/Makefile for building dynamic modules"
+  enable_dynamic=yes
+else
+  echo >&2 ">>> Creating lookups/Makefile without dynamic module support"
+  enable_dynamic=''
+  # We always do something now, since there should always be a lookup,
+  # and now we need to run in order to put the OBJ=$(OBJ)+ rules in.  So we
+  # continue on.
+fi
+
+# For the want_ checks, we need to let the user override values from the make
+# command-line, not just check the Makefile.
+
+want_dynamic() {
+  local dyn_name="$1"
+  local re="LOOKUP_${dyn_name}[ $tab]*=[ $tab]*2"
+  env | grep -q "^$re"
+  if [ $? -eq 0 ]; then return 0; fi
+  grep -q "^[ $tab]*$re" "$defs_source"
+}
+
+want_at_all() {
+  local want_name="$1"
+  local re="LOOKUP_${want_name}[ $tab]*=[ $tab]*."
+  env | grep -q "^$re"
+  if [ $? -eq 0 ]; then return 0; fi
+  grep -q "^[ $tab]*$re" "$defs_source"
+}
+
+# Adapted want_at_all above to work for EXPERIMENTAL features
+want_experimental() {
+  local want_name="$1"
+  local re="EXPERIMENTAL_${want_name}[ $tab]*=[ $tab]*."
+  env | grep -q "^$re"
+  if [ $? -eq 0 ]; then return 0; fi
+  grep -q "^[ $tab]*$re" "$defs_source"
+}
+
+# The values of these variables will be emitted into the Makefile.
+
+MODS=""
+OBJ=""
+
+emit_module_rule() {
+  local lookup_name="$1"
+  local mod_name pkgconf
+  if [ "${lookup_name%:*}" = "$lookup_name" ]
+  then
+    # Square brackets are redundant but benign for POSIX compliant tr,
+    # however Solaris /usr/bin/tr requires them. Sometimes Solaris
+    # gets installed without a complete set of xpg4 tools, sigh.
+    mod_name=$(echo $lookup_name | tr [A-Z] [a-z])
+  else
+    mod_name="${lookup_name#*:}"
+    lookup_name="${lookup_name%:*}"
+  fi
+
+  if want_dynamic "$lookup_name"
+  then
+    if [ -z "$enable_dynamic" ]; then
+      echo >&2 "Missing CFLAGS_DYNAMIC prevents building dynamic $lookup_name"
+      exit 1
+    fi
+    MODS="${MODS} ${mod_name}.so"
+    pkgconf=$(grep "^LOOKUP_${lookup_name}_PC" "$defs_source")
+    if [ $? -eq 0 ]; then
+      pkgconf=$(echo $pkgconf | sed 's/^.*= *//')
+      echo "LOOKUP_${mod_name}_INCLUDE = $(pkg-config --cflags $pkgconf)"
+      echo "LOOKUP_${mod_name}_LIBS = $(pkg-config --libs $pkgconf)"
+    else
+      grep "^LOOKUP_${lookup_name}_" "$defs_source"
+      echo "LOOKUP_${mod_name}_INCLUDE = \$(LOOKUP_${lookup_name}_INCLUDE)"
+      echo "LOOKUP_${mod_name}_LIBS = \$(LOOKUP_${lookup_name}_LIBS)"
+    fi
+  elif want_at_all "$lookup_name"
+  then
+    OBJ="${OBJ} ${mod_name}.o"
+  fi
+}
+
+rm -f "$target"
+exec 5>&1
+exec > "$target"
+
+sed -n "1,/$tag_marker/p" < "$input"
+
+for name_mod in \
+    CDB DBM:dbmdb DNSDB DSEARCH IBASE LSEARCH MYSQL NIS NISPLUS ORACLE \
+    PASSWD PGSQL REDIS SQLITE TESTDB WHOSON
+do
+  emit_module_rule $name_mod
+done
+
+if want_at_all LDAP
+then
+  OBJ="${OBJ} ldap.o"
+fi
+
+# Because the variable is EXPERIMENTAL_SPF and not LOOKUP_SPF we
+# always include spf.o and compile a dummy if EXPERIMENTAL_SPF is not
+# defined.
+
+OBJ="${OBJ} spf.o"
+
+if want_experimental LMDB
+then
+  OBJ="${OBJ} lmdb.o"
+fi
+
+echo "MODS = $MODS"
+echo "OBJ = $OBJ"
+
+sed -n "/$tag_marker/,\$p" < "$input"
+
+exec >&5
+
+# Configure-Makefile will move $target into place
+
+# vim: set ft=sh sw=2 :

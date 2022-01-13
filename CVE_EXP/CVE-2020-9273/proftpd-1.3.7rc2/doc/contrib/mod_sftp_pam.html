@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_sftp_pam</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_sftp_pam</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_sftp_pam</code> module provides support for the "SSH Keyboard-Interactive Authentication" RFC (<a href="http://www.faqs.org/rfcs/rfc4256.html">RFC4256</a>).  How is <code>mod_sftp_pam</code> different from ProFTPD's existing
+PAM support, in the form of <code>mod_auth_pam</code>?  The difference is
+that the <code>mod_auth_pam</code> module does <b>not</b> echo the prompt,
+provided by the underlying PAM library/modules, back to the FTP client;
+this <code>mod_sftp_pam</code> module will echo any prompt back to the
+connecting SSH2 client.  This makes using onetime-password PAM modules, for
+example, work very easily for authenticating SSH2 logins.
+
+<p>
+This module is contained in the <code>mod_sftp_pam.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>; a discussion
+on <a href="#Usage">usage</a> is also available.
+
+<p>
+The most current version of <code>mod_sftp_pam</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#SFTPPAMEngine">SFTPPAMEngine</a>
+  <li><a href="#SFTPPAMOptions">SFTPPAMOptions</a>
+  <li><a href="#SFTPPAMServiceName">SFTPPAMServiceName</a>
+</ul>
+
+<hr>
+<h3><a name="SFTPPAMEngine">SFTPPAMEngine</a></h3>
+<strong>Syntax:</strong> SFTPPAMEngine <em>on|off</em><br>
+<strong>Default:</strong> On<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sftp_pam<br>
+<strong>Compatibility:</strong> 1.3.2rc2 and later
+
+<p>
+The <code>SFTPPAMEngine</code> directive toggles the use of the PAM library
+for supporting a keyboard-interactive authentication mechanism for SSH2 logins.
+By default <code>mod_sftp_pam</code> is enabled.
+
+<p>
+<hr>
+<h3><a name="SFTPPAMOptions">SFTPPAMOptions</a></h3>
+<strong>Syntax:</strong> SFTPPAMOptions <em>opt1 opt2 ... optN</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sftp_pam<br>
+<strong>Compatibility:</strong> 1.3.2rc2 and later
+
+<p>
+The <code>SFTPPAMOptions</code> directive is used to configure various
+optional behaviors of <code>mod_sftp_pam</code>; it is directly analogous
+to <code>mod_auth_pam</code>'s <code>AuthPAMOptions</code> directive.
+
+<p>
+The currently supported options are:
+<ul>
+  <li><code>NoTTY</code>
+  </li>
+
+  <p>
+  <li><code>NoInfoMsgs</code>
+    <p>
+    Disables the sending of information messages from PAM to the connecting
+    SSH client.  This option is usually used for compatibility with
+    OpenSSH's behavior.
+  </li>
+
+  <p>
+  <li><code>NoRadioMsgs</code>
+    <p>
+    Disables the sending of Linux-specific information messages from PAM
+    (usually from the <code>pam_winbind</code> PAM module) to the connecting
+    SSH client.  This option is usually used for compatibility with
+    OpenSSH's behavior.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h3><a name="SFTPPAMServiceName">SFTPPAMServiceName</a></h3>
+<strong>Syntax:</strong> SFTPPAMServiceName <em>service</em><br>
+<strong>Default:</strong> SFTPPAMServiceName sshd<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sftp_pam<br>
+<strong>Compatibility:</strong> 1.3.2rc2 and later
+
+<p>
+The <code>SFTPPAMConfig</code> directive is used to specify the name of the
+service used when performing the PAM check; PAM configurations can vary
+depending on the service.  By default, the &quot;sshd&quot; service is used.
+
+<p>
+Here's an example of changing the <em>service</em> used:
+<pre>
+  &lt;IfModule mod_sftp_pam.c&gt;
+    SFTPPAMEngine on
+    SFTPPAMServiceName ftpd
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+The <code>SFTPPAMServiceName</code> directive is directly analogous to
+<code>mod_auth_pam</code>'s <code>AuthPAMConfig</code> directive.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_sftp_pam</code> module is distributed with ProFTPD.  Simply follow
+the normal steps for using third-party modules in ProFTPD:
+<pre>
+  $ ./configure --with-modules=mod_sftp:mod_sftp_pam ...
+  $ make
+  $ make install
+</pre>
+Alternatively, <code>mod_sftp_pam</code> can be built as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_sftp_pam ...
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+For those with an existing ProFTPD installation, you can use the
+<code>prxs</code> tool to add <code>mod_sftp_pam</code>, as a DSO module, to
+your existing server:
+<pre>
+  $ prxs -c -i -d mod_sftp_pam.c
+</pre>
+
+<p>
+<hr><br>
+<h2><a name="Usage">Usage</a></h2>
+To use <code>mod_sftp_pam</code>, simply configure it to use the correct PAM
+service name, <i>e.g.</i>:
+<pre>
+  &lt;IfModule mod_sftp_pam.c&gt;
+    SFTPPAMEngine on
+    SFTPPAMServiceName sftp
+  &lt;/IfModule&gt;
+</pre>
+There is no requirement that <code>mod_sftp_pam</code> use the same PAM
+service name as the <code>mod_auth_pam</code> module; this allows you to have
+different PAM configurations for FTP versus SSH2 logins.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2008-2013 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

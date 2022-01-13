@@ -1,0 +1,83 @@
+#!/bin/sh
+#
+# PFTEST.install - setup files for an unprivileged proftpd test
+#
+
+PFTESTDIR=/tmp/PFTEST
+SRCDIR=./sample-configurations
+
+FILELIST="PFTEST.passwd PFTEST.group PFTEST.conf.in"
+
+PATH=/usr/bin:/bin
+export PATH
+umask 022
+
+
+#
+# Preconditions
+#
+if [ ! -d ${SRCDIR} ] || [ ! -r ${SRCDIR} ]; then
+	echo "Error: \"${SRCDIR}\" not found." >&2
+	exit 2
+fi
+
+for file in ${FILELIST} ; do
+	if [ ! -r ${SRCDIR}/${file} ]; then
+		echo "Error: \"${SRCDIR}/${file}\" not found." >&2
+		exit 2
+	fi
+done
+
+if [ -d ${PFTESTDIR} ] || [ -f ${PFTESTDIR} ] || [ -h ${PFTESTDIR} ] \
+	|| [ -b ${PFTESTDIR} ] || [ -c ${PFTESTDIR} ] || [ -p ${PFTESTDIR} ]
+then
+	echo "Error: \"${PFTESTDIR}\" already exists." >&2
+	exit 2
+fi
+
+
+#
+# Determine current user and group names
+#
+if [ -x /usr/xpg4/bin/id ] && /usr/xpg4/bin/id -un >/dev/null 2>&1 ; then
+	USERNAME=`/usr/xpg4/bin/id -un`
+	GROUPNAME=`/usr/xpg4/bin/id -gn`
+elif type id >/dev/null && id -un >/dev/null 2>&1 ; then
+	USERNAME=`id -un`
+	GROUPNAME=`id -gn`
+else
+	# Could try harder...
+	echo "Error: can not determine user and group names." >&2
+	exit 3
+fi
+
+
+#
+# Install the files
+#
+mkdir ${PFTESTDIR} || {
+	echo "Error: mkdir failed." >&2
+	exit 4
+}
+
+chmod 755 ${PFTESTDIR} || {
+	echo "Error: chmod failed." >&2
+	exit 4
+}
+
+cp -p ${SRCDIR}/PFTEST.passwd ${PFTESTDIR} \
+&& cp -p ${SRCDIR}/PFTEST.group ${PFTESTDIR} \
+&& sed -e "s/%User%/${USERNAME}/" \
+	-e "s/%Group%/${GROUPNAME}/" \
+	-e "s|%TestDir%|${PFTESTDIR}|" \
+	${SRCDIR}/PFTEST.conf.in > ${PFTESTDIR}/PFTEST.conf
+
+if [ $? -ne 0 ]; then
+	echo "Error: installation failed." >&2
+	exit 5
+fi
+
+echo "Sample test files successfully installed in ${PFTESTDIR}."
+
+exit 0
+

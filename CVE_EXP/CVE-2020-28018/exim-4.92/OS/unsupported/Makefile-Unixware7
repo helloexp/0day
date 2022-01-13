@@ -1,0 +1,32 @@
+# Exim: OS-specific make file for Unixware7
+# Based on information from James FitzGibbon <james@ehlo.com>
+
+# If you want to use libbind, you need to
+#     add -I/usr/local/bind/include to CFLAGS
+#     add -L/usr/local/bind/lib to LFLAGS
+#     remove -lresolv from LIBS
+#     add LOOKUP_LIBS=-lbind
+# The new settings should go in your Local/Makefile rather than here; then
+# they will be usable for subsequent Exim releases.
+
+CC=/usr/bin/cc
+CFLAGS=-O -I/usr/local/include
+LFLAGS=-L/usr/local/lib
+
+HAVE_ICONV=yes
+
+LIBS=-lsocket -lnsl -lelf -lgen -lresolv -lm
+
+# Removed on the advice of Larry Rosenman
+# EXTRALIBS=-lwrap
+
+EXTRALIBS_EXIMON=-lICE -lSM
+
+RANLIB=@true
+ERRNO_QUOTA=0
+
+X11=/usr/lib/X11
+XINCLUDE=-I/usr/include/X11
+XLFLAGS=-L/usr/lib -L$(X11)/lib
+
+# End

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_readme</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_readme</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+This module is contained in the <code>mod_readme.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_readme</code> is distributed with the
+ProFTPD source code.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#DisplayReadme">DisplayReadme</a>
+</ul>
+
+<hr>
+<h3><a name="DisplayReadme">DisplayReadme</a></h3>
+<strong>Syntax:</strong> DisplayReadme <em>path|pattern</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code><br>
+<strong>Module:</strong> mod_readme<br>
+<strong>Compatibility:</strong> 1.2.0pre8 and later
+
+<p>
+The <code>DisplayReadme</code> directive configures the server to notify
+the client of the last modified date of the specified <em>path</em> or
+<em>pattern</em>.  These notifications happen whenever a client logs in,
+or whenever the client changes directory.
+
+<p>
+For example:
+<pre>
+  DisplayReadme README
+</pre>
+will result in the following being displayed to connecting client, assuming
+there is a file called "README" in the current directory:
+<blockquote>
+  Please read the file README
+  it was last modified on Sun Oct 17 10:36:14 2011 - 0 days ago
+</blockquote>
+
+<p>
+As another example, assume there are two files named "README" and
+"README.first" in the directory into which the client changed.  Then using
+<pre>
+  DisplayReadme README*
+</pre>
+might result in the following being sent to the client:
+<blockquote>
+  Please read the file README
+  it was last modified on Tue Jan 25 04:47:48 2011 - 0 days ago
+  Please read the file README.first
+  it was last modified on Tue Jan 25 04:48:04 2011 - 0 days ago
+</blockquote>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+To install <code>mod_readme</code>, follow the usual steps for using
+third-party modules in ProFTPD:
+<pre>
+  $ ./configure --with-modules=mod_readme ...
+</pre>
+To build <code>mod_readme</code> as a DSO module:
+<pre>
+  # ./configure --enable-dso --with-shared=mod_readme
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make 
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your <code>proftpd</code> was compiled with DSO support,
+you can use the <code>prxs</code> tool to build <code>mod_readme</code> as
+a shared module:
+<pre>
+  $ prxs -c -i -d mod_readme.c
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2011-2013 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

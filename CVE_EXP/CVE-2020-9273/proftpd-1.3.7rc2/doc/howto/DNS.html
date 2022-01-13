@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: DNS</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: DNS</b></h2></center>
+<hr>
+
+<p>
+<b>FTP, DNS Names, and IP Addresses</b><br>
+FTP is an IP address-based protocol.  FTP clients connect to specific
+IP address/port combinations; FTP servers handle client connections by
+listening on IP addresses.  No DNS or host names are exchanged by clients
+and servers.  FTP does not support name-based virtual hosts, as HTTP 1.1
+does.
+
+<p>
+The above may seem obvious, but it must be reiterated often.  Users can
+become confused, since FTP clients and servers often use DNS names,
+rather than explicit IP addresses.  This is not surprising, as DNS names are
+easier to use than IP addresses.  The clients and servers resolve those
+DNS names to their IP addresses, behind the users' backs.
+
+<p>
+All of this means that whenever <code>proftpd</code> is given a DNS name,
+it will resolve that DNS name to its IP address, and then use the IP
+address.
+
+<p>
+<b>When are DNS Names Resolved?</b><br>
+When <code>proftpd</code> starts up and parses its configuration file,
+it expects to handle DNS names in the following configuration directives,
+if they are present:
+<pre>
+  Allow
+  DefaultAddress
+  Deny
+  From
+  MasqueradeAddress
+  &lt;VirtualHost&gt;
+</pre>
+Note that if a DNS name resolves to an IPv6 address (and <code>proftpd</code>
+has been compiled with IPv6 support via the <code>--enable-ipv6</code>
+configure option), then <code>proftpd</code> will handle it properly.
+Otherwise <code>proftpd</code> will attempt resolutions to IPv4 addresses
+only.
+
+<p>
+Even if none of the above configuration directives are used,
+<code>proftpd</code> will still perform at least one DNS lookup:  it will
+resolve the hostname of the server on which the daemon is running, <i>i.e.</i>
+the name displayed by typing <code>`hostname`</code>.  Why does
+<code>proftpd</code> need to know this?  There is always at least one
+server that <code>proftpd</code> will handle: the &quot;server config&quot;
+server (see the <a href="Vhost.html">virtual host</a> howto).  This
+&quot;server config&quot; server defaults to the IP address of the hostname of
+the machine.
+
+<p>
+Once <code>proftpd</code> has the complete list of IP addresses with which
+it work will while running, it completes its startup, and is ready to
+handle connections from FTP clients.  The running daemon will continue
+doing DNS lookups when necessary.  For example, every time connection is made
+to a <code>proftpd</code> daemon, or <code>proftpd</code> connects back
+to a client (as when handling active data transfers), the remote IP address
+is resolved to its DNS name.  <i>In addition</i>, once the DNS name is
+found, that name is resolved back to an IP address.  Why the additional
+step, when we already have the original IP address?  It is possible,
+either through ignorance or maliciousness, to configure DNS such that an
+IP address will map to a name, and that name will map back to a different
+IP address.  Configurations such this can be used to foil some DNS-based
+ACLs.  ProFTPD now deliberately checks for such configurations.
+
+<p>
+DNS resolution from an IP address and back can add noticeable
+delays to the FTP session, particularly when there are many data transfers
+occurring and <code>proftpd</code> is performing the reverse DNS lookup for
+each one.  This penalty can easily be removed by using the
+<code>UseReverseDNS</code> configuration directive:
+<pre>
+  UseReverseDNS off
+</pre>
+<b>However</b>, you should do this only if you do not have ACLs that
+rely on DNS names.  Otherwise, your ACLs will not work as you expect.
+Also, if <code>UseReverseDNS</code> is <em>off</em>, <code>proftpd</code>
+will log only IP addresses in its logs, rather than more legible
+DNS names.
+
+<p>
+Clever users of ProFTPD know that you can use the <code>Port</code>
+directive to &quot;disable&quot; a given virtual host (including the
+&quot;server config&quot; host) by setting a port number of zero:
+<pre>
+  Port 0
+</pre>
+By disabling the virtual host that way, can you prevent <code>proftpd</code>
+from resolving the IP address for that host?  No.  Using the
+<code>Port 0</code> trick like this is a hack that affects the process
+used to lookup the configuration to use for a client connection; it does
+<b>not</b> affect the parser, which handles the address lookup when
+the daemon is starting up.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+<a name="DNSNoHostname">
+<font color=red>Question</font>: Why do I see the following when my
+<code>proftpd</code> starts up?
+<pre>
+  getaddrinfo '<em>hostname</em>' error: No address associated with hostname
+  warning: unable to determine IP address of '<em>hostname</em>'
+</pre>
+<font color=blue>Answer</font>: This error is ProFTPD's way of reporting that
+it was unsuccessful in resolving <em>hostname</em> to an IP address.  Fixing
+this is a matter of configuring DNS for that <em>hostname</em>: properly set
+up an IP address for that DNS name in your DNS server, use a DNS name that has
+an IP address, or (as a quick fix/last resort) add that DNS name to your
+<code>/etc/hosts</code> file.  The proper solution depends largely on
+the circumstances.
+
+<p><a name="DNSDynamicIPAddresses">
+<font color=red>Question</font>: If <code>proftpd</code> resolves any DNS names to IP addresses when it starts up, and I am using dynamic IP addresses which
+change after my <code>proftpd</code> has started, will <code>proftpd</code>
+see my new IP addresses?<br>
+<font color=blue>Question</font>: Unfortunately not.  ProFTPD has no easy way
+of handling dynamic IP addresses by itself.  One way of dealing with this
+situation is to restart <code>proftpd</code> periodically, which will force it
+to re-parse its configuration and thus re-resolve all IP addresses.
+
+<p><a name="DNSNoDNS">
+<font color=red>Question</font>: What if I do not <i>want</i>
+<code>proftpd</code> to use DNS to resolve the hostname to an IP address
+because I am in an environment where there is no DNS at all?<br>
+<font color=blue>Answer</font>: In ProFTPD 1.3.3rc1, support for a new
+<code>-S</code> command-line option was added.  This option can be used to
+specify the IP address of the host machine.  By default,
+<code>proftpd</code> attempts to resolve the host IP address by using DNS
+resolution of the hostname.  However, in cases where DNS is not configured for
+the host machine, this approach does not work.
+
+<p>
+To specify the desired IP address, use <code>-S</code> when starting
+<code>proftpd</code>, <i>e.g.</i>:
+<pre>
+  $ /usr/local/sbin/proftpd -S 1.2.3.4 ...
+</pre>
+And if you want <code>proftpd</code> to listen on all interfaces, you can
+specify a wildcard socket using an IP address of 0.0.0.0:
+<pre>
+  $ /usr/local/sbin/proftpd -S 0.0.0.0 ...
+</pre>
+
+<p>
+Note that will also mean that, in your <code>proftpd.conf</code>, any
+<code>&lt;VirtualHost&gt;</code> sections will need to use IP addresses,
+not DNS names.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

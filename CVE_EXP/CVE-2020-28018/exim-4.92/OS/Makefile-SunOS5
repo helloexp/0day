@@ -1,0 +1,24 @@
+# Exim: OS-specific make file for SunOS5
+
+CFLAGS=-O
+
+HAVE_ICONV=yes
+
+BASENAME_COMMAND=look_for_it
+HOSTNAME_COMMAND=look_for_it
+
+RANLIB=@true
+LIBS=-lsocket -lnsl -lkstat -lm
+LIBRESOLV=-lresolv
+
+EXIWHAT_MULTIKILL_CMD=pkill
+EXIWHAT_MULTIKILL_ARG='exim( |$$|-)'
+
+X11=/usr/openwin
+XINCLUDE=-I$(X11)/include
+XLFLAGS=-L$(X11)/lib -R$(X11)/lib
+X11LIB=$(X11)/lib
+
+OS_C_INCLUDES=setenv.c
+
+# End

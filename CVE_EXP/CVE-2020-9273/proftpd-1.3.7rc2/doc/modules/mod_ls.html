@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_ls</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_ls</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_ls</code> module handles the <code>LIST</code>,
+<code>NLST</code>, and <code>STAT</code> FTP commands.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#DirFakeGroup">DirFakeGroup</a>
+  <li><a href="#DirFakeMode">DirFakeMode</a>
+  <li><a href="#DirFakeUser">DirFakeUser</a>
+  <li><a href="#ListOptions">ListOptions</a>
+  <li><a href="#ShowSymlinks">ShowSymlinks</a>
+  <li><a href="#UseGlobbing">UseGlobbing</a>
+</ul>
+
+<hr>
+<h3><a name="DirFakeGroup">DirFakeGroup</a></h3>
+<strong>Syntax:</strong> DirFakeGroup <em>off|on [display-name]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code>, <code>&lt;Directory&gt;</code>, .ftpaccess<br>
+<strong>Module:</strong> mod_ls<br>
+<strong>Compatibility:</strong> All versions
+
+<p>
+The <code>DirFakeGroup</code> directive can be used to hide the true group
+ownership of files (including directories, FIFOs, <i>etc</i>) in directory
+listings.  If simply turned <em>on</em>, <code>DirFakeGroup</code> will display
+all files as being owned by group "ftp".  Optionally, the <em>display-name</em>
+parameter can be used to specify a group other than "ftp".  A
+<em>display-name</em> of "~" can be used as the parameter, in order to display
+the primary group name of the current user.
+
+<p>
+Both <code>DirFakeGroup</code> and
+<a href="#DirFakeUser"><code>DirFakeUser</code></a> are <b>completely
+cosmetic</b>; the <em>display-names</em> configured do <b>not</b> need to exist
+on the system, and neither directive affects permissions, real ownership or
+access control <em>in any way</em>.
+
+<p>
+<hr>
+<h3><a name="DirFakeMode">DirFakeMode</a></h3>
+<strong>Syntax:</strong> DirFakeMode <em>display-mode</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code>, <code>&lt;Directory&gt;</code>, .ftpaccess<br>
+<strong>Module:</strong> mod_ls<br>
+<strong>Compatibility:</strong> All versions
+
+<p>
+The <code>DirFakeMode</code> directive configures the <em>mode</em> (or
+permissions) which will be displayed for <b>all</b> files and directories in
+directory listings.  For each subset of permissions (<i>i.e.</i> user, group,
+other), the "execute" permission for directories is added in listings if the
+"read" permission is specified by this directive.
+
+<p>
+As with <a href="#DirFakeUser"><code>DirFakeUser</code></a>, and
+<a href="#DirFakeGroup"><code>DirFakeGroup</code></a>, the "fake" permissions
+shown in directory listings are <b>cosmetic only</b>; they do not affect real
+permissions or access control <em>in any way</em> on the server.  Note,
+however, that <code>DirFakeMode</code> <i>can</i> affect the real permissions,
+for example, for FTP mirroring tools.  Such tools tend to create a mirror from
+what the tool sees (<i>e.g.</i> <code>DirFakeMode</code> permissions) on the
+source FTP server.
+
+<p>
+Examples:
+<pre>
+  # Display everything as read-only
+  DirFakeMode 0444
+</pre>
+
+<p>
+<hr>
+<h3><a name="DirFakeUser">DirFakeUser</a></h3>
+<strong>Syntax:</strong> DirFakeUser <em>off|on [display-name]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code>, <code>&lt;Directory&gt;</code>, .ftpaccess<br>
+<strong>Module:</strong> mod_ls<br>
+<strong>Compatibility:</strong> All versions
+
+<p>
+The <code>DirFakeUser</code> directive can be used to hide the true user
+ownership of files (including directories, FIFOs, <i>etc</i>) in directory
+listings.  If simply turned <em>on</em>, <code>DirFakeUser</code> will display
+all files as being owned by user "ftp".  Optionally, the <em>display-name</em>
+parameter can be used to specify a user other than "ftp".  A
+<em>display-name</em> parameter of "~" can be used in order to display the name
+of the current user.
+
+<p>
+Both <a href="#DirFakeGroup"><code>DirFakeGroup</code></a> and
+<code>DirFakeUser</code> are <b>completely cosmetic</b>; the
+<em>display-names</em> specified do <b>not</b> need to exist on the system,
+and neither directive affects permissions, real ownership or access control
+<em>in any way</em>.
+
+<p>
+<hr>
+<h3><a name="ListOptions">ListOptions</a></h3>
+<strong>Syntax:</strong> ListOptions <em>options [strict [maxdepth depth] [maxfiles count] [maxdirs count] [LISTOnly] [NLSTOnly] [NoErrorIfAbsent] [AdjustedSymlinks] [SortedNLST]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code>, <code>&lt;Directory&gt;</code>, .ftpaccess<br>
+<strong>Module:</strong> mod_ls<br>
+<strong>Compatibility:</strong> 1.2.8rc1 and later
+
+<p>
+The <code>ListOptions</code> directive is used to configure various optional
+behavior of <code>mod_ls</code>.  <b>Note</b>: all of the configured
+<code>ListOptions</code> parameters <b>must</b> appear on the same line in the
+configuration; only the <i>first</i> <code>ListOptions</code> directive that
+appears in the configuration is used.
+
+<p>
+The currently supported <em>flags</em> are:
+<ul>
+  <li><code>LISTOnly</code><br>
+    <p>
+    This <em>flag</em> tells <code>mod_ls</code> to apply the
+    <code>ListOptions</code> configuration only to FTP <code>LIST</code>
+    commands, and not to <i>e.g.</i> <code>NLST</code>/<code>STAT</code>
+    commands.
+  </li>
+
+  <p>
+  <li><code>NLSTOnly</code><br>
+    <p>
+    This <em>flag</em> tells <code>mod_ls</code> to apply the
+    <code>ListOptions</code> configuration only to FTP <code>NLST</code>
+    commands, and not to <i>e.g.</i> <code>LIST</code>/<code>STAT</code>
+    commands.
+  </li>
+
+  <p>
+  <li><code>NoErrorIfAbsent</code><br>
+    <p>
+    This <em>flag</em> tells <code>mod_ls</code> to return the FTP 226
+    response code for <code>LIST</code>/<code>NLST</code> commands for
+    files/paths which do not exist, rather than returning the 450 error
+    code.
+  </li>
+
+  <p>
+  <li><code>AdjustedSymlinks</code><br>
+    <p>
+    This <em>flag</em> tells <code>mod_ls</code> to try to automatically
+    adjust any symlink destination paths when the FTP session is chrooted,
+    so that the adjusted symlinks work properly <i>e.g.</i> for FTP clients.
+
+    <p>
+    <b>Note</b> that this <em>flag</em> first appeared in
+    <code>proftpd-1.3.7rc1</code>.
+  </li>
+
+  <p>
+  <li><code>SortedNLST</code><br>
+    <p>
+    By default, <code>mod_ls</code> returns <code>NLST</code> results
+    in an <em>unordered</em> list, <i>i.e.</i> the sort order used by the
+    underlying filesystem and the <code>readdir(3)</code> library function.
+    Some FTP clients, however, may want/expect to have <code>NLST</code>
+    results sorted alphabetically.  Use this flag to achieve that sorted
+    <code>NLST</code> behavior.
+
+    <p>
+    <b>Note</b> that this <em>flag</em> first appeared in
+    <code>proftpd-1.3.6rc3</code>.
+  </li>
+</ul>
+
+<p>
+See also: <a href="../howto/ListOptions.html">ListOptions</a>
+
+<p>
+<hr>
+<h3><a name="ShowSymlinks">ShowSymlinks</a></h3>
+<strong>Syntax:</strong> ShowSymlinks <em>on|off</em><br>
+<strong>Default:</strong> <code>ShowSymlinks on</code><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code><br>
+<strong>Module:</strong> mod_ls<br>
+<strong>Compatibility:</strong> All versions
+
+<p>
+The <code>ShowSymlinks</code> directive configures whether symbolic links are
+displayed as such in directory listings, or whether they are not displayed
+to the client.  If <code>ShowSymlinks</code> is <em>off</em>, then the linked
+file's permissions and ownership are used in the directory listing.
+
+<p>
+<hr>
+<h3><a name="UseGlobbing">UseGlobbing</a></h3>
+<strong>Syntax:</strong> UseGlobbing <em>on|off</em><br>
+<strong>Default:</strong> <code>UseGlobbing on</code><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code><br>
+<strong>Module:</strong> mod_ls<br>
+<strong>Compatibility:</strong> 1.2.5rc1 and later
+
+<p>
+The <code>UseGlobbing</code> directive controls the use of <code>glob(3)</code>
+functionality, which is needed for supporting wildcard characters such as "*"
+in directory listing requests from FTP clients.
+
+<p>
+The <code>glob(3)</code> functionality in FTP servers has been knowwn to
+cause security issues (see <a href="http://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2001-0249">CVE-2001-0249</a>), thus should be disabled when not needed.
+
+<p>
+Examples:
+<pre>
+  # Turn off support for globs in LIST/NLST commands
+  UseGlobbing off
+</pre>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_ls</code>module is <b>always</b> installed.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="NLSTNamesOnly">
+<font color=red>Question</font>: I have a legacy FTP application which sends
+the <code>NLST</code> command, and expects to receive <i>only</i> file
+<em>names</em>, without any directory prefix (relative or absolute).  I cannot
+change this application.  How can I configure ProFTPD to return only names
+for the <code>NLST</code> command?<br>
+<font color=blue>Answer</font>: You can use the
+<a href="#ListOptions"><code>ListOptions</code></a> directive to achieve
+this, like so:
+<pre>
+  # We want only names, no hidden files, and only for NLST
+  ListOptions '-A -1 NLSTOnly'
+</pre>
+
+<p>
+<hr><br>
+
+<font size=2><b><i>
+&copy; Copyright 2000-2019 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+
+<hr><br>
+</body>
+</html>

@@ -1,0 +1,32 @@
+The contrib/ directory contains third-party scripts, binaries and ProFTPD
+modules. Such found here are completely unsupported by the ProFTPD team,
+have not been tested and may or may not work as documented. In other words,
+use at your own risk.
+
+Contents:
+-=-=-=-=-
+
+xferstats.holger-preiss (BSD license, I think)
+
+  A port of the infamous wu-ftpd xferlog perl analysis script, w/ bug fixes
+  and some modifications. Useful for analyzing your /var/log/xferlog files. 
+  See xferlog(5).
+
+mod_quotatab_ldap.ldif
+
+  LDIF version of mod_quotatab_ldap schema (for supporting Fedora directory
+  server).
+
+mod_quotatab_ldap.schema
+
+  LDAP schema for LDAP-based mod_quotatab quotas via mod_ldap.
+
+mod_ratio.c (GPL license)
+
+  A third-party module which implements file/byte ratios in proftpd.
+  To install, run:
+
+    ./configure --with-modules=mod_ratio
+
+  From the top-level source directory. See the comments at the top of
+  mod_ratio.c for additional directives and usage.

@@ -1,0 +1,98 @@
+AUTHS
+
+The modules in this directory are in support of various authentication
+functions. Some of them, such as the base64 encoding/decoding and MD5
+computation, are just functions that might be used by several authentication
+mechanisms. Others are the SMTP AUTH mechanisms themselves, included in the
+final binary if the relevant AUTH_XXX value is set in Local/Makefile. The
+general functions are in separate modules so that they get included in the
+final binary only if they are actually called from somewhere.
+
+GENERAL FUNCTIONS
+
+The API for each of these functions is documented with the function's code.
+
+  auth_b64encode       encode in base 64
+  auth_b64decode       decode from base 64
+  auth_call_pam        do PAM authentication (if build with SUPPORT_PAM)
+  auth_get_data        issue SMTP AUTH challenge and read response
+  auth_xtextencode     encode as xtext
+  auth_xtextdecode     decode from xtext
+
+INTERFACE TO SMTP AUTHENTICATION MECHANISMS
+
+These are general SSL mechanisms, adapted for use with SMTP. Each
+authentication mechanism has three functions, for initialization, server
+authentication, and client authentication.
+
+INITIALIZATION
+
+The initialization function is called when the configuration is read, and can
+check for incomplete or illegal settings. It has one argument, a pointer to the
+instance block for this configured mechanism. It must set the flags called
+"server" and "client" in the generic auth_instance block to indicate whether
+the server and/or client functions are available for this authenticator.
+Typically this depends on whether server or client configuration options have
+been set, but it is also possible to have an authenticator that has only one of
+the server or client functions.
+
+SERVER AUTHENTICATION
+
+The second function performs authentication as a server. It receives a pointer
+to the instance block, and its second argument is the remainder of the data
+from the AUTH command. The numeric variable maximum setting (expand_nmax) is
+set to zero, with $0 initialized as unset. The authenticator may set up numeric
+variables according to its (old) specification and $auth<n> variables the
+preferred ones nowadays; it should leave them set at the end so that they can
+be used for the expansion of the generic server_set_id option, which happens
+centrally.
+
+This function has access to the SMTP input and output so that it can write
+intermediate responses and read more data if necessary. There is a packaged
+function in auth_get_data() which outputs a challenge and reads a response.
+
+The yield of a server authentication check must be one of:
+
+  OK          success
+  DEFER       couldn't complete the check
+  FAIL        authentication failed
+  CANCELLED   authentication forced to fail by "*" response to challenge,
+                or by certain forced string expansion failures
+  BAD64       bad base64 data received
+  UNEXPECTED  unexpected data received
+
+In the case of DEFER, auth_defer_msg should point to an error message.
+
+CLIENT AUTHENTICATION
+
+The third function performs authentication as a client. It receives a pointer
+to the instance block, and four further arguments:
+
+  The smtp_context item for the connection to the remote host.
+
+  The normal command-reading timeout value.
+
+  A pointer to a buffer, to be used for receiving responses. It is done this
+    way so that the buffer is available for logging etc. in the calling
+    function in cases of error.
+
+  The size of the buffer.
+
+The yield of a client authentication check must be one of:
+
+  OK          success
+  FAIL_SEND   error after writing a command; errno is set
+  FAIL        failed after reading a response;
+              either errno is set (for timeouts, I/O failures) or
+              the buffer contains the SMTP response line
+  CANCELLED   the client cancelled authentication (often "fail" in expansion)
+              the buffer may contain a message; if not, *buffer = 0
+  ERROR       local problem (typically expansion error); message in buffer
+
+To communicate with the remote host the client should call
+smtp_write_command(). If this yields FALSE, the authenticator should return
+FAIL. After a successful write, the response is received by a call to
+smtp_read_response(), which should use the buffer handed to the client function
+as an argument.
+
+****

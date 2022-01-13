@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_wrap</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_wrap</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+This module is contained in the <code>contrib/mod_wrap.c</code> file for
+ProFTPD 1.2.x, and is not compiled by default.  It enables the daemon to
+use the common tcpwrappers access control library while in
+<code>standalone</code> mode, and in a very configurable manner.
+
+<p>
+If not installed on your system, the TCP wrappers library, required by this
+module, can be found
+<a href="ftp://ftp.porcupine.org/pub/security/tcp_wrappers_7.6.tar.gz">here</a>,
+on Wietse Venema's site.  Once installed, it <i>highly recommended</i>
+that the <code>hosts_access(3)</code> and <code>hosts_access(5)</code> man
+pages be read and understood.  The <a href="#Installation">installation</a>
+of <code>mod_wrap</code> is fairly straightforward, with some caveats for
+Solaris and FreeBSD users.
+
+<p>
+Many programs will automatically add entries in the common allow/deny files,
+and use of this module will allow a ProFTPD daemon running in
+<code>standalone</code> mode to adapt as these entries are added.  The
+<code>portsentry</code> program does this, for example: when illegal access
+is attempted, it will add hosts to the <code>/etc/hosts.deny</code> file.
+
+<p>
+The most current version of <code>mod_wrap</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Thanks</h2>
+<p>
+<i>2000-05-29</i>: Thanks to David Douthitt &lt;ssrat <i>at</i> mailbag.com&gt;
+for pointing out the usefulness of using <code>mod_wrap</code> in conjunction
+with <code>portsentry</code>
+
+<p>
+<i>2001-03-01</i>: Updated the configuration directives, as per
+lung <i>at</i> theuw.net's helpful suggestions.
+   
+<p>
+<i>2001-09-24</i>: Thanks to Zenon Mousmoulas &lt;cajoline <i>at</i>
+chaosengine.de &gt; for helping determine that adding <code>-lnsl</code> would
+help in compiling <code>mod_wrap</code> with the stock RedHat
+<code>libwrap.a</code>, so that recompiling tcpwrappers without NIS/YP support
+should no longer be necessary.
+
+<p>
+<i>2001-09-27</i>: Thanks to Gabe Frost &lt;gfrost <i>at</i> gostnet.com&gt;
+for helping track down several mergedown bugs.
+
+<p>
+<i>2001-12-19</i>: Thanks to Mark Castillo &lt;markc <i>at</i> webFreak.com&gt;
+for pointing out the issue with passwords not being properly hidden
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#TCPAccessFiles">TCPAccessFiles</a>
+  <li><a href="#TCPAccessSyslogLevels">TCPAccessSyslogLevels</a>
+  <li><a href="#TCPGroupAccessFiles">TCPGroupAccessFiles</a>
+  <li><a href="#TCPServiceName">TCPServiceName</a>
+  <li><a href="#TCPUserAccessFiles">TCPUserAccessFiles</a>
+</ul>
+
+<hr>
+<h3><a name="TCPAccessFiles">TCPAccessFiles</a></h3>
+<strong>Syntax:</strong> TCPAccessFiles <em>allow-filename deny-filename</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code><br>
+<strong>Module:</strong> mod_wrap<br>
+<strong>Compatibility:</strong> 1.2.1 and later
+
+<p>
+TCPAccessFiles specifies two files, an allow and a deny file, each of which
+contain the IP addresses, networks or name-based masks to be allowed or denied
+connections to the server.  The files have the same format as the standard
+tcpwrappers hosts.allow/deny files.
+
+<p>
+Both file names are required.  Also, the paths to both files must be the full
+path, with two exceptions: if the path starts with <code>~/</code>, the check
+of that path will be delayed until a user requests a connection, at which time
+the path will be resolved to that user's home directory; or if the path starts
+with <code>~user/</code>, where user is some system user.  In this latter case,
+<code>mod_wrap</code> will attempt to resolve and verify the given user's home
+directory on start-up.
+
+<p>
+The service name for which <code>mod_wrap</code> will look in the indicated
+access files is <code>proftpd</code> by default; this can be configured via
+the <code>TCPServiceName</code> directive.
+
+<p>
+There is a built-in precedence to the <code>TCPAccessFiles</code>,
+<code>TCPGroupAccessFiles</code>, and <code>TCPUserAccessFiles</code>
+directives, if all are used.  <code>mod_wrap</code> will look for applicable
+<code>TCPUserAccessFiles</code> for the connecting user first.  If no applicable
+<code>TCPUserAccessFiles</code> is found, <code>mod_wrap</code> will search for
+<code>TCPGroupAccessFiles</code> which pertain to the connecting user.  If not
+found, <code>mod_wrap</code> will then look for the server-wide
+<code>TCPAccessFiles</code> directive.  This allows for access control to be
+set on a per-server basis, and allow for per-user or per-group access control
+to be handled without interfering with the server access rules.
+
+<p>
+Example:
+<pre>
+  # server-wide access files
+  TCPAccessFiles /etc/ftpd.allow /etc/ftpd.deny
+
+  # per-user access files, which are to be found in the user's home directory
+  TCPAccessFiles ~/my.allow ~/my.deny
+</pre>
+
+<p>
+See also:
+ <a href="#TCPGroupAccessFiles">TCPGroupAccessFiles</a>,
+ <a href="#TCPServiceName">TCPServiceName</a>,
+ <a href="#TCPUserAccessFiles">TCPUserAccessFiles</a>
+
+<p>
+<hr>
+<h3><a name="TCPAccessSyslogLevels">TCPAccessSyslogLevels</a></h3>
+<strong>Syntax:</strong> TCPAccessSyslogLevels <em>allow-level deny-level</em><br>
+<strong>Default:</strong> <code>TCPAccessSyslogLevels info warn</code><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code><br>
+<strong>Module:</strong> mod_wrap<br>
+<strong>Compatibility:</strong> 1.2.1 and later
+
+<p>
+ProFTPD can log when a connection is allowed, or denied, as the result of rules
+in the files specified in <code>TCPAccessFiles</code>, to the Unix
+<code>syslog</code> mechanism.  A discussion on the <code>syslog</code> levels
+which can be used is given in the <code>SyslogLevel</code> directive.
+
+<p>
+The <em>allow-level</em> parameter sets the syslog level at which allowed
+connections are logged; the <em>deny-level</em> parameter sets the syslog
+level for denied connections.
+
+<p>
+Example:
+<pre>
+  TCPAccessSyslogLevels debug warn
+</pre>
+
+<p>
+<hr>
+<h3><a name="#TCPGroupAccessFiles">TCPGroupAccessFiles</a></h3>
+<strong>Syntax:</strong> TCPGroupAccessFiles <em>group-expression allow-filename deny-filename</em><br>
+<strong>Default:</strong> <em>None</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_wrap<br>
+<strong>Compatibility:</strong> 1.2.1 and later
+
+<p>
+<code>TCPGroupAccessFiles</code> allows for access control files, the same
+types of files required by <code>TCPAccessFiles</code>, to be applied to
+select groups.  The given <em>group-expression</em> is a logical AND
+expression, which means that the connecting user must be a member of all the
+groups listed for this directive to apply.  Group names may be negated with a
+<code>!</code> prefix.
+
+<p>
+The rules for the filename paths are the same as for
+<code>TCPAccessFiles</code> settings.
+
+<p>
+Example:
+<pre>
+  # every member of group wheel must connect from restricted locations
+  TCPGroupAccessFiles wheel /etc/ftpd-strict.allow /etc/ftpd-strict.deny
+
+  # everyone else gets the standard access rules
+  TCPGroupAccessFiles !wheel /etc/hosts.allow /etc/hosts.deny
+</pre>
+
+<p>
+See Also: <a href="#TCPAccessFiles">TCPAccessFiles</a>
+
+<p>
+<hr>
+<h3><a name="TCPServiceName">TCPServiceName</a></h3>
+<strong>Syntax:</strong> TCPServiceName <em>name</em><br>
+<strong>Default:</strong> <code>TCPServiceName proftpd</code><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_wrap<br>
+<strong>Compatibility:</strong> 1.2.1 and later
+
+<p>
+<code>TCPServiceName</code> is used to configure the name of the service under
+which <code>mod_wrap</code> will check the allow/deny files.  By default, this
+is the name of the program started, <em>i.e.</em> &quot;proftpd&quot;. However,
+some administrators may want to use a different, more generic service name,
+such as &quot;ftpd&quot;; use this directive for such needs.
+
+<p>
+<hr>
+<h3><a name="TCPUserAccessFiles">TCPUserAccessFiles</a></h3>
+<strong>Syntax:</strong> TCPUserAccessFiles <em>user-expression allow-filename deny-filename</em><br>
+<strong>Default:</strong> <em>None</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_wrap<br>
+<strong>Compatibility:</strong> 1.2.1 and later
+
+<p>
+<code>TCPUserAccessFiles</code> allows for access control files, the same types
+of files required by <code>TCPAccessFiles</code>, to be applied to select
+users.  The given <em>user-expression</em> is a logical AND expression.
+Listing multiple users in a user-expression does not make much sense; however,
+this type of AND evaluation allows for expressions such as &quot;everyone
+<i>except</i> this user&quot; with the use of the <code>!</code> negation
+prefix.
+
+<p>
+The rules for the filename paths are the same as for
+<code>TCPAccessFiles</code> settings.
+
+<p>
+Example:
+<pre>
+  # user admin might be allowed to connect from anywhere
+  TCPUserAccessFiles admin /etc/ftpd-anywhere.allow /etc/ftpd-anywhere.deny
+
+  # while every other user has to connect from LAN addresses
+  TCPUserAccessFiles !admin /etc/ftpd-lan.allow /etc/ftpd-lan.deny
+</pre>
+
+<p>
+See also: <a href="#TCPAccessFiles">TCPAccessFiles</a>
+
+<p>
+<hr>
+<h2><a name="FAQ">FAQ</a></h2>
+
+<p>
+<font color=red>Question</font>: Using <code>mod_wrap</code>, connections
+from hosts that have broken reverse DNS mappings are refused.  OpenSSH
+uses the same <code>libwrap</code> library, and this doesn't happen.  Is it
+a bug in <code>mod_wrap</code>?<br>
+<font color=blue>Answer</font>:  No, it is not, strictly speaking, a bug
+in <code>mod_wrap</code>.
+
+<p>
+Users who encounter this issue will usually find log messages that look
+like the any/all of the following in their syslog:
+<pre>
+  proftpd: warning: can't verify hostname: gethostbyname(<i>dns-name</i>) failed
+  proftpd: warning: can't verify hostname: getaddrinfo(anothername.net, AF_INET) failed
+  proftpd: warning: host name/name mismatch: somedomain.com != vs-23.somename.com
+</pre>
+These log messages do <b>not</b>, in fact, come from <code>proftpd</code>.
+Instead, they come from the <code>libwrap</code> library, which is used by
+the <code>mod_wrap</code> module.  In particular, the <code>libwrap</code>
+library emits these log messages when it has been compiled with the
+<code>-DPARANOID</code> compile-time option (and most installations of the
+<code>libwrap</code> library are compiled this way).
+
+<p>
+OpenSSH allows such connections because the OpenSSH code, when using the
+<code>libwrap</code> library, does not check for paranoid/unknown results
+from the <code>host_access()</code> function of the <code>libwrap</code>
+library.  The <code>mod_wrap</code> module for ProFTPD <i>does</i> check
+for these values, thus why those connections are refused by
+<code>mod_wrap</code> but not OpenSSH.  This just demonstrates that not all
+applications use the <code>libwrap</code> library the same way.
+
+<p>
+The solution, in most cases, is to switch to using the newer
+<a href="mod_wrap2.html"><code>mod_wrap2</code></a> module, which does
+<b>not</b> use the <code>libwrap</code> library (and thus does not encounter
+this issue).
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+Use of <code>mod_wrap</code> is straightforward, with some minor caveats.  If
+you're using Solaris, you'll need to obtain and build the tcpwrappers library,
+as this library does not come installed on stock Solaris systems.  If you're
+using FreeBSD or Mac OSX (and possibly other versions), you'll need to change
+the following line in the header of <code>mod_wrap.c</code>:
+<pre>
+ * $Libraries: -lwrap -lnsl$
+</pre>
+to be:
+<pre>
+ * $Libraries: -lwrap$
+</pre>
+This line is needed on Linux and Solaris machines, to properly link against
+the <code>libnsl.a</code> library, which implements the NIS/YP functions.
+In FreeBSD and Mac OSX, these functions are implemented in <code>libc</code>.
+
+<p>
+Then, you need simply follow the normal steps for using third-party modules in
+ProFTPD:
+<pre>
+  $ ./configure --with-modules=mod_wrap
+  $ make
+  $ make install
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2009 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

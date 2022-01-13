@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Configuring &lt;Limits&gt;</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Configuring <code>&lt;Limits&gt;</code></b></h2></center>
+<hr>
+
+<p>
+ProFTPD's <code>&lt;Limit&gt;</code> configuration sections allow for
+powerful fine-grained control over who is allowed to use which FTP commands.
+This power comes at the price of complexity, however.  This document
+describes some of the things to keep in mind when writing
+<code>&lt;Limit&gt;</code> sections.
+
+<p>
+<b>Precedence</b><br>
+Perhaps the hardest part of using <code>&lt;Limit&gt;</code> is understanding
+its rules of precedence, which dictate which <code>&lt;Limit&gt;</code>'s
+restrictions apply when.  Precedence is discussed in the directive
+documentation, and will be mentioned here.  First, there are three types
+of parameters in a <code>&lt;Limit&gt;</code> directive: &quot;raw&quot;
+FTP commands, FTP command groups, and the <code>ALL</code> keyword.
+
+<p>
+&quot;Raw&quot; FTP commands are listed <a href="FTP.html">here</a>, including
+the RFC-mandated <a href="FTP.html#XCUP">X-variant</a> FTP commands, which are
+often missing from a thorough <code>&lt;Limit&gt;</code> configuration.
+
+<p>
+The FTP command groups are:
+<ul>
+  <li>ALL<br>
+    <i>Covering</i>: all FTP commands (but <b>not</b> <code>LOGIN</code>)
+
+  <p>
+  <li>DIRS<br>
+    <i>Covering</i>: CDUP, CWD, LIST, MDTM, MLSD, MLST, NLST, PWD, RNFR, STAT, XCUP, XCWD, XPWD
+
+  <p>
+  <li>LOGIN<br>
+    <i>Covering</i>: client logins
+
+  <p>
+  <li>READ<br>
+    <i>Covering</i>: RETR, SIZE
+
+  <p>
+  <li>WRITE<br>
+    <i>Covering</i>: APPE, DELE, MKD, RMD, RNTO, STOR, STOU, XMKD, XRMD
+</ul>
+
+<p>
+<code>&lt;Limit&gt;</code>s that use &quot;raw&quot; FTP commands have
+the highest precedence, followed by <code>&lt;Limit&gt;</code>s that use
+the command groups, and, having the lowest precedence, the <code>ALL</code>
+keyword.  If a <code>&lt;Limit&gt;</code> has both &quot;raw&quot; commands
+and command groups, then it boils down to the order of appearance of
+<code>&lt;Limit&gt;</code> sections in <code>proftpd.conf</code> that
+use the &quot;raw&quot; command in question.
+
+<p>
+<b><code>SITE</code> Commands</b><br>
+To apply a <code>&lt;Limit&gt;</code> to a <code>SITE</code> command, combine
+&quot;SITE&quot; and the command (<i>e.g.</i> &quot;CHMOD&quot;) by an
+underscore (&quot;_&quot;), like so:
+<pre>
+  &lt;Limit SITE_<i>command</i>&gt;
+</pre>
+Thus, in order to place a limit on <code>SITE CHMOD</code>, one would have:
+<pre>
+  &lt;Limit SITE_CHMOD&gt;
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+
+<p>
+<b>Inheritance</b><br>
+Most <code>&lt;Limit&gt;</code> sections appear within
+<code>&lt;Directory&gt;</code> sections in <code>proftpd.conf</code>.  This
+means that, like the other <code>&lt;Directory&gt;</code> configuration
+effects, the <code>&lt;Limit&gt;</code>s will be inherited by all subdirectories
+that appear in the <code>&lt;Directory&gt;</code> path, unless explicitly
+overridden by a &quot;closer&quot; <code>&lt;Limit&gt;</code> section.
+This means that one could configure a <code>&lt;Limit&gt;</code> section
+denying all FTP commands for all directories, and then explicitly allow
+the <code>READ</code> or <code>WRITE</code> FTP command groups in appropriate
+subdirectories (<i>e.g.</i> <code>pub/</code> or <code>incoming/</code>
+directories).
+
+<p>
+<b>Using <code>AllowUser</code> and <code>DenyUser</code></b><br>
+There is a catch to using the <code>AllowUser</code> configuration directive
+that causes confusion, primarily when a single <code>AllowUser</code>
+directive is being used to allow access to some FTP commands only to
+certain users.  ProFTPD uses the same function for parsing the
+<code>AllowUser</code> and <code>AllowGroup</code> (and other) directives.
+This function parses the list of names for such directives as a 
+Boolean AND list, which means that each name on the list must evaluate to
+TRUE (must match) for the current user in order for the directive to apply.
+For <code>AllowGroup</code>, this makes sense, and allows a great deal
+of flexibility.  However, it does not make sense for <code>AllowUser</code>,
+because a user may not be multiple users at the same time.  This is a known
+issue, and a proper, thorough solution is being developed.  In the meantime,
+however, there is a workaround for allowing multiple users via the
+<code>AllowUser</code> directive.  Rather than listing the users using
+a single <code>AllowUser</code>, using a separate <code>AllowUser</code>
+for each user.  For example, instead of:
+<pre>
+  AllowUser bob,dave,wendy
+</pre>
+try using:
+<pre>
+  AllowUser bob
+  AllowUser dave
+  AllowUser wendy
+</pre>
+All of this applies to the <code>DenyUser</code> directive as well.
+
+<p>
+Another important item to keep in mind is that the names used in
+<code>&lt;Limit&gt;</code> sections, <i>e.g.</i> using <code>AllowUser</code>,
+<code>DenyUser</code>, <code>AllowGroup</code>, and <code>DenyGroup</code>,
+are <b>not</b> resolved to an ID and then applied; the limits are applied
+only to the names.  Why is this important?  Consider the case where the site
+is using virtual users, where two different user names are assigned the
+same UID.  Different limits can be applied to each name separately. Do not
+assume that the limits are applied to the underlying IDs.
+
+<p>
+<b>Using <code>Order</code></b><br>
+One thing that sometimes trips up some administrators is the difference
+between ProFTPD's and Apache's <code>Order</code> configuration directives.
+For Apache, an <code>Order</code> of &quot;Allow,Deny&quot; means that
+access is <b>denied</b> by default, unless an <code>Allow</code> directive
+explicitly allows access; an <code>Order</code> of &quot;Deny,Allow&quot;
+means that access is <b>allowed</b> by default, unless a <code>Deny</code>
+directive explicitly denies access.  This is different from ProFTPD, where
+an <code>Order</code> of &quot;Allow,Deny&quot; <b>allows</b> access by
+default, unless denied by a <code>Deny</code> directive; &quot;Deny,Allow&quot;
+<b>denies</b> access by default, unless explicitly granted by an
+<code>Allow</code> directive.  The developers of ProFTPD felt their
+interpretation to be the more &quot;common sense&quot; interpretation, even
+though it does not match Apache's interpretation.
+
+<p><a name="Examples"></a>
+<b>Examples</b><br>
+Here are examples to help illustrate the use of <code>&lt;Limit&gt;</code>.
+First, a common configuration: an upload-only directory.
+<pre>
+  &lt;Directory /path/to/uploads&gt;
+    &lt;Limit ALL&gt;
+      DenyAll
+    &lt;/Limit&gt;
+
+    &lt;Limit CDUP CWD PWD XCWD XCUP&gt;
+      AllowAll
+    &lt;/Limit&gt;
+
+    &lt;Limit STOR STOU&gt;
+      AllowAll
+    &lt;/Limit&gt;
+  &lt;/Directory&gt;
+</pre>
+The first <code>&lt;Limit ALL&gt;</code> section blocks use of <i>all</i> FTP
+commands within the <code>/path/to/uploads</code> directory.  Having denied
+use of all commands, we then proceed to define which commands <i>can</i> be
+used.  The <code>CDUP</code> and <code>CWD</code> commands (and their X
+variants) should be allowed so that clients can change into and out of the
+directory.  Next, <code>STOR</code> and <code>STOU</code> are allowed, so that
+clients can actually upload files into the directory (assuming that the
+filesystem permissions allow for the client to write files in the directory
+as well).  The <code>WRITE</code> command group might have been used, but
+that also allows things like creating and deleting subdirectories, which
+is usually not wanted in an upload-only configuration.
+
+<p>
+This next example shows a &quot;blind&quot; directory, where clients can
+upload and download files from the directory, but they cannot see what is
+in the directory:
+<pre>
+  &lt;Directory /path/to/dir&gt;
+    &lt;Limit LIST NLST MLSD MLST STAT&gt;
+      DenyAll
+    &lt;/Limit&gt;
+  &lt;/Directory&gt;
+</pre>
+That's it.  By default, all commands are allowed in a directory.  By blocking
+the FTP commands used to list a directory's contents (<i>i.e.</i>
+<code>LIST</code>, <code>MLSD</code>, <code>MLST</code>, and <code>NLST</code>),
+we have effectively blocked the client from seeing anything in the directory.
+Not many clients use the <code>STAT</code> command, but it also needs to
+be limited, as it can return information about files in a directory as well.
+
+<p>
+Cautious system administrators may want only a few select system users to be
+able to connect to their <code>proftpd</code> server--all other users are
+to be denied access.  The <code>LOGIN</code> command group is designed for
+just this scenario:
+<pre>
+  &lt;Limit LOGIN&gt;
+    AllowUser barb
+    AllowUser dave
+    AllowGroup ftpuser
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+This allows the users <code>barb</code> and <code>dave</code>, as well as
+any user in the <code>ftpuser</code> group, to login.  All other users will
+be denied.
+
+<p>
+What if a site wished to allow <b>only</b> anonymous access?  This would be
+configured using the <code>LOGIN</code> command group, as above:
+<pre>
+  &lt;Limit LOGIN&gt;
+    DenyAll
+  &lt;/Limit&gt;
+
+  &lt;Anonymous ~ftp&gt;
+    &lt;Limit LOGIN&gt;
+      AllowAll
+    &lt;/Limit&gt;
+    ...
+  &lt;/Anonymous&gt;
+</pre>
+
+The <code>&lt;Limit&gt;</code> section outside of the
+<code>&lt;Anonymous&gt;</code> section denies logins to everyone.  However,
+the <code>&lt;Anonymous&gt;</code> section has a <code>&lt;Limit&gt;</code>
+that allows everyone to login; anonymous logins are allowed, and non-anonymous
+logins are denied.
+
+<p>
+Another related question often asked is &quot;How can I limit a user to only
+being able to login from a specific range of IP addresses?&quot;  The
+<code>&lt;Limit LOGIN&gt;</code> can be used, in conjunction with the
+<a href="../../contrib/mod_ifsession.html">mod_ifsession</a> module and a
+<a href="Classes.html">Class</a>, to configure this:
+<pre>
+  &lt;Class friends&gt;
+    From 1.2.3.4/8
+  &lt;/Class&gt;
+
+  &lt;IfUser dave&gt;
+    &lt;Limit LOGIN&gt;
+      AllowClass friends
+      DenyAll
+    &lt;/Limit&gt;
+  &lt;/IfUser&gt;
+</pre>
+
+<p>
+Or if you want to have a specific IP address, rather than a range, you can
+do this without classes (but still requiring <code>mod_ifsession</code>):
+<pre>
+  &lt;IfUser dave&gt;
+    &lt;Limit LOGIN&gt;
+      Deny from 1.2.3.4
+    &lt;/Limit&gt;
+  &lt;/IfUser&gt;
+</pre>
+Note that the same effect can be achieved by using the
+<a href="../../contrib/mod_wrap2.html">mod_wrap2</a> module to configure
+user-specific allow/deny files.
+
+<p>
+One issue that you should avoid is having multiple different
+<code>&lt;Limit LOGIN&gt;</code> sections in your config
+<i>for the same vhost</i>.  Consider a config like this:
+<pre>
+  &lt;VirtualHost 1.2.3.4&gt;
+    ...
+    &lt;Limit LOGIN&gt;
+      Order allow, deny
+      Allow from 192.168.0.0/16
+      DenyAll
+    &lt;/Limit&gt;
+    ...
+    &lt;Limit LOGIN&gt;
+      Order deny, allow
+      Deny from 192.168.0.0/16
+    &lt;/Limit&gt;
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+The two <code>&lt;Limit LOGIN&gt;</code> sections conflict; which one will
+<code>proftpd</code> actually use for deciding whether to allow a connection
+to that <code>&lt;VirtualHost&gt;</code>?  Answer: the <b>last</b>
+<code>&lt;Limit LOGIN&gt;</code> section defined.  To avoid confusion, then,
+it is best to consolidate all of your <code>&lt;Limit LOGIN&gt;</code> rules
+into a single section for a given vhost.
+
+<p>
+In Apache, it is possible to configure password-protected directories.
+Some sysadmins attempt to configure <code>proftpd</code> similarly, by
+unsuccessfully attempting something like this in the
+<code>proftpd.conf</code> file:
+<pre>
+  &lt;Directory /some/path&gt;
+    &lt;Limit LOGIN&gt;
+      DenyUser foo
+    &lt;/Limit&gt;
+  &lt;/Directory&gt;
+</pre>
+The above will <b>not</b> work.  FTP clients (unlike HTTP clients) login
+to the <i>server</i>, not into specific directories.
+
+<p>
+One situation that often arises is one where the administrator would like
+to give users the ability to upload and dowload files from a given directory,
+but not to be able to delete files from that directory.  This cannot be
+accomplished using normal Unix filesystem permissions, for if a user has
+write permission on a directory (necessary for uploading files to that
+directory) they also have delete permissions.  In Unix, a directory file
+serves as a sort of &quot;table of contents&quot;, tracking the files in
+the directory.  Adding or removing a file are thus changes on the directory
+file, and do not involve checking the permissions on the file being added
+or removed.  This is also how a non-root user can delete files that are owned
+by root and only have user-write permissions.  So how then can a site
+be configured to allow writes but not deletes?  By using a configuration
+similar to the following:
+<pre>
+  &lt;Directory /path/to/dir&gt;
+    &lt;Limit DELE&gt;
+      AllowUser ftpadm
+      DenyAll
+    &lt;/Limit&gt;
+  &lt;/Directory&gt;
+</pre>
+This will allow the user <code>ftpadm</code> to delete files in the
+<code>/path/to/dir</code>, but no other users.
+
+<p>
+The FTP protocol has two types of data transfers: active and passive.  In
+some configurations, only one type of transfer is allowed by the network
+(<i>e.g.</i> active transfers should be denied because clients are sending
+the wrong IP addresses).  The ability to place a <code>&lt;Limit&gt;</code>
+on the FTP commands response for active and passive data transfers was
+added to ProFTPD in 1.2.10rc1.  If you are using that version or later,
+you can use the following to block active transfers:
+<pre>
+  &lt;Limit EPRT PORT&gt;
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+Or, conversely, to block passive data transfers:
+<pre>
+  &lt;Limit EPSV PASV&gt;
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+
+<p>
+Another common question is: "How can I create a read-only account using
+<code>&lt;Limit&gt;</code> sections"?  Here's how:
+<pre>
+  # Assumes that the user is chrooted into their home directory
+  &lt;Directory ~<i>user</i>&gt;
+    &lt;Limit CWD PWD DIRS READ&gt;
+      AllowUser <i>user</i>
+    &lt;/Limit&gt;
+
+    &lt;Limit ALL&gt;
+      DenyUser <i>user</i>
+    &lt;/Limit&gt;
+  &lt;/Directory&gt;
+</pre>
+
+<p>
+What if you want to prevent a certain directory from being deleted, but
+you <i>do</i> want to allow sub-directories in that directory to be deletable?
+Using two <code>&lt;Directory&gt;</code> sections with
+<code>&lt;Limit&gt;</code> sections, you can do this, <i>e.g.</i>:
+<pre>
+  &lt;Directory /path/to/dir&gt;
+    &lt;Limit RMD XRMD&gt;
+      DenyAll
+    &lt;/Limit&gt;
+  &lt;/Directory&gt;
+
+  &lt;Directory /path/to/dir/*&gt;
+    &lt;Limit RMD XRMD&gt;
+      AllowAll
+    &lt;/Limit&lt;
+  &gt;/Directory&gt;
+</pre>
+Note the trailing "/*" suffix in the second <code>&lt;Directory&gt;</code>
+section; this means that the second <code>&lt;Directory&gt;</code> section
+configuration applies to the sub-directories, but <i>not</i> to the parent
+directory itself (which is covered by the first <code>&lt;Directory&gt;</code>
+section).
+
+<p>
+What if you want to make sure the directory cannot be renamed, in addition to
+ensuring that it cannot be deleted?  Simply include the <code>RNFR</code> and
+<code>RNTO</code> FTP commands in the list of denied commands, <i>e.g.</i>:
+<pre>
+  &lt;Directory /path/to/dir&gt;
+    &lt;Limit RMD RNFR RNTO XRMD&gt;
+      DenyAll
+    &lt;/Limit&gt;
+  &lt;/Directory&gt;
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2016 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Exim: OS-specific make file for SCO SVR4.2MP (and maybe Unixware)
+#
+#  *** Note that for SCO 5 the configuration file is called SCO_SV,
+#  *** and that Unixware7 has its own configuration. This is an old
+#  *** file that is retained for compatibility.
+#
+# Note that SCO does not include dbm/ndbm with their standard compiler
+# (it is available with /usr/ucb/cc, but that has bugs of its own). You
+# should install gcc and gdbm, then execute 'make install-compat' in the
+# gdbm source directory.
+
+CC=gcc -I/usr/local/include
+CFLAGS=-O
+
+RANLIB=@true
+DBMLIB=-lgdbm -L/usr/local/lib
+ERRNO_QUOTA=0
+LIBS=-lsocket -lelf -lgen -lnsl -lresolv -lm
+
+X11=/usr/lib/X11
+XINCLUDE=-I/usr/include/X11
+XLFLAGS=-L/usr/lib -L$(X11)/lib
+
+# End

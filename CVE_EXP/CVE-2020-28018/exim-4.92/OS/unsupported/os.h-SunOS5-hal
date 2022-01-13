@@ -1,0 +1,14 @@
+/* Exim: OS-specific C header file for SunOS5 on HAL */
+
+#define HAVE_MMAP
+
+#define HAVE_KSTAT
+#define LOAD_AVG_KSTAT        "system_misc"
+#define LOAD_AVG_KSTAT_MODULE "unix"
+#define LOAD_AVG_SYMBOL       "avenrun_1min"
+#define LOAD_AVG_FIELD         value.ul
+
+/* default is non-const */
+#define ICONV_ARG2_TYPE const char **
+
+/* End */

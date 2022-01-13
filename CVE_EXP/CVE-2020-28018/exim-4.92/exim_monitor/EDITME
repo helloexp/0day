@@ -1,0 +1,179 @@
+##################################################
+#                The Exim Monitor                #
+##################################################
+
+# This is the template for the Exim monitor's main build-time configuration
+# file. It contains settings that are independent of any operating system. It
+# should be edited and then saved to a file called Local/eximon.conf before
+# running the make command to build the monitor, if any settings are required.
+# Local/eximon.conf can be empty if no changes are needed. The examples given
+# here (commented out) are the default settings.
+
+# Any settings made in the configuration file can be overridden at run time
+# by setting up an environment variable with the same name as any of these
+# options, but preceded by EXIMON_, for example, EXIMON_WINDOW_TITLE.
+
+
+##################################################################
+#      Set these variables as appropriate for your system        #
+##################################################################
+
+# The qualifying name for your domain. The only use made of this is for
+# testing that certain addresses are the same when displaying the
+# log tail, and for shortening sender addresses in the queue display.
+
+# QUALIFY_DOMAIN=
+
+# The default minimum width and height for the whole window are 103 and
+# 162 pixels respectively. This is enough to hold the left-most stripchart
+# and the quit button. The values can be changed here.
+
+# MIN_HEIGHT=162
+# MIN_WIDTH=103
+
+# If you uncomment the following setting, the window will start up at
+# its minimum size, instead of the default maximum. There may be a quick
+# flash during the start-up process. Defining it this way allows it to be
+# overridden by an environment variable.
+
+# START_SMALL=${EXIMON_START_SMALL-yes}
+
+# The title for eximon's main display window. It is possible to have
+# host name of the machine you are running on substituted into the
+# title string. If you include the string ${fullhostname} then the
+# complete name is used. If you include ${hostname} then the full
+# host name will have the string contained in the DOMAIN variable
+# stripped from its right-hand end before being substituted. Any other
+# shell or environment variables may also be included.
+
+# If you use any substitutions, remember to ensure that the $ and {}
+# characters are escaped from the shell, e.g. by using single quotes.
+
+# WINDOW_TITLE="${hostname} eximon"
+
+# The domain that you want to be stripped from the machine's full hostname
+# when forming the short host name for the eximon window title, as
+# described above.
+
+# DOMAIN=
+
+# Parameters for the rolling display of the tail of the exim log file.
+# The width and depth are measured in pixels; LOG_BUFFER specifies the
+# amount of store to set aside for holding the log tail, which is displayed
+# in a scrolling window. When this store is full, the earlier 50% of it
+# is discarded - this is much more efficient that throwing it away line
+# by line. The number given can be followed by the letter K to indicate
+# that the value is in kilobytes. A minimum value of 1K is enforced.
+
+# LOG_DEPTH=300
+# LOG_WIDTH=950
+# LOG_BUFFER=20K
+
+# The font which is used in the log tail display. This is defined in
+# the normal X manner. It must be a "character cell" font, because this
+# is required by the text widget.
+
+# LOG_FONT=-misc-fixed-medium-r-normal-*-14-140-*-*-*-*-iso8859-1
+
+# Parameters for the display of message that are on the exim queue.
+# The width and depth are measured in pixels.
+
+# QUEUE_DEPTH=200
+# QUEUE_WIDTH=950
+
+# The font which is used in the queue display.
+
+# QUEUE_FONT=$LOG_FONT
+
+# When a message has more than one undelivered address, they are listed
+# one below the other. A limit can be placed on the number of addresses
+# displayed for any one message. If there are more, then "..." is used
+# to indicate this.
+
+# QUEUE_MAX_ADDRESSES=10
+
+# The display of the contents of the queue is updated every QUEUE_INTERVAL
+# seconds by default (there is a button to request update).
+
+# QUEUE_INTERVAL=300
+
+# The size of the popup text window that is used for looking at the
+# contents of messages, etc.
+
+# TEXT_DEPTH=200
+
+# The keystroke/mouse-operation that is used to pop up the menu in the
+# queue window is configurable. The default is Shift with the lefthand
+# mouse button. The name of an alternative can be specified in the standard
+# X way of naming these things. With the default configuration for the monitor,
+# individuals can override this by setting the EXIMON_MENU_EVENT environment
+# variable.
+
+# MENU_EVENT='Shift<Btn1Down>'
+
+# When the menu is used to perform an operation on a message, the result of the
+# operation is normally visible in the log window, so Eximon doesn't display
+# the output of the generated Exim command. However, you can request that
+# this output be shown in a separate window by setting ACTION_OUTPUT to "yes".
+# This does not apply to the output generated from attempting to deliver a
+# message, which is always shown.
+
+# ACTION_OUTPUT=no
+
+# When some action is taken on a message, such as freezing it, or changing
+# its recipients, the queue display is normally automatically updated. On
+# systems that have very large queues, this can take some time and be dis-
+# tracting. If this option is set to "no", the queue display is no longer
+# automatically updated after an action is applied to a message.
+
+# ACTION_QUEUE_UPDATE=yes
+
+# When the menu item to display a message's body is invoked, the amount
+# of data is limited to BODY_MAX bytes. This limit is a safety precaution
+# to save the screen scrolling for ever on an enormous message.
+
+# BODY_MAX=20000
+
+# The stripcharts are updated every STRIPCHART_INTERVAL seconds.
+
+# STRIPCHART_INTERVAL=60
+
+# A stripchart showing the count of messages in the queue is always
+# displayed on the left of eximon's window. Its name is "queue" by
+# default, but can be changed by this variable.
+
+# QUEUE_STRIPCHART_NAME=queue
+
+# The following variable may be set to the name of a disc partition. If
+# it is, a stripchart showing the percentage fullness of the partition
+# will be displayed as the second stripchart. This can be used to keep
+# a display of a mail spool partition on the screen.
+
+# SIZE_STRIPCHART=/var/mail
+
+# The name of the size stripchart will be the last component of SIZE_STRIPCHART
+# unless the following variable is set to override it.
+
+# SIZE_STRIPCHART_NAME=space
+
+# The following variable contains a specification of which stripcharts
+# you want eximon to display based on log entries. The string consists of
+# pairs of strings, delimited by slash characters. The first string in each
+# pair is a regular expression that matches some distinguishing feature in a
+# exim log entry.
+
+# Entries that match the expression will be counted and displayed in a
+# stripchart whose title is given by the second string. The string may
+# be continued over several input lines, provided that it is split
+# after a slash, and an additional slash (optionally preceded by white
+# space) is included at the start of the continuation line.
+
+# Stripcharts configured by the following parameter are displayed to the
+# right of the queue and size stripcharts, in the order defined here.
+
+# LOG_STRIPCHARTS='/ <= /in/
+#                  / => /out/
+#                  / => .+ R=local/local/
+#                  / => .+ T=[^ ]*smtp/smtp/'
+
+# End of exim_monitor/EDITME

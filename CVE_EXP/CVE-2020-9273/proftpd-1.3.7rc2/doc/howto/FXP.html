@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: FXP (Site-to-Site Transfers)</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: FXP (Site-to-Site Transfers)</b></h2></center>
+<hr>
+
+<p>
+<b>FXP</b><br>
+What is FXP?  FXP is part of the name of a popular Windows FTP client:
+<pre>
+  <a href="http://www.flashfxp.com">http://www.flashfxp.com</a>
+</pre>
+This client has made the name &quot;FXP&quot; commonly used as a synonym
+for site-to-site FTP transfers, for transferring a file between two
+remote FTP servers without the transfer going through the client's host.
+Sometimes &quot;FXP&quot; is referred to as a protocol; in fact, it is not.
+The site-to-site transfer capability was deliberately designed into FTP.
+
+<p>
+<b>Site-to-Site Transfers</b><br>
+In a site-to-site transfer, the client logs in to two servers (server A and
+server B).  It then arranges for a file transfer, telling one server (server A)
+that it will be a passive transfer, and the other server (server B) that it
+will be an active transfer.  For a passive transfer, server A will return an
+address/port (via response to the <code>PASV</code> command) to which the
+client is to connect.  The client then passes that address/port in a
+<code>PORT</code> command to server B.  Then, the client sends a
+<code>RETR</code> to one of the servers and a <code>STOR</code> to the
+other, thus starting the transfer.  The data does not pass to the client
+machine at all.
+
+<p>
+Any firewalls protecting either (or both) servers involved may need to allow
+active and passive FTP data transfers, depending on which server is told to be
+active, which is told to be passive.
+
+<p>
+<b>Example Site-to-Site Transfer</b><br>
+In the example below, italicized represent responses to the given FTP commands.
+Lines in blue show communications to <font color=blue>server A</font>, while
+those in red are to <font color=red>server B</font>.  Black lines are
+informational messages displayed by the FXP client.
+<pre>
+  <font color=blue>TYPE I
+  <i>200 Type set to I.</i></font>
+  <font color=red>TYPE I
+  <i>200 Type set to I.</i></font>
+  <font color=blue>PASV
+  <i>227 Entering Passive Mode (1,2,3,4,130,161).</i></font>
+  <font color=red>PORT 1,2,3,4,130,161
+  <i>200 PORT command successful</i></font>
+  <font color=blue>STOR file.mp3
+  <i>150 Opening BINARY mode data connection for file.mp3</i></font>
+  <font color=red>RETR file.mp3
+  <i>150 Opening BINARY mode data connection for file.mp3 (15000000 bytes)</i></font>
+  <font color=blue><i>226 Transfer complete.</i></font>
+  <font color=red><i>226 Transfer complete.</i></font>
+  Transferred: file.mp3 14.31 MB in 2.38 (6,147.06 KBps)
+  <font color=blue>TYPE A
+  <i>200 Type set to A.</i>
+  PASV
+  <i>227 Entering Passive Mode (5,6,7,8,168,183).</i>
+  LIST
+  <i>150 Opening ASCII mode data connection for file list</i>
+  <i>226 Transfer complete.</i></font>
+  <font color=red>TYPE A
+  <i>200 Type set to A.</i>
+  PASV
+  <i>227 Entering Passive Mode (1,2,3,4,130,162).</i>
+  LIST
+  <i>150 Opening ASCII mode data connection for file list</i>
+  <i>226 Transfer complete.</i></font>
+  Transfer queue completed
+  Transferred 1 file totaling 14.31 MB in 3.42 (6,147.06 KBps)
+</pre>
+The client instructs <font color=blue>server A</font> to expect a passive
+data transfer, and <font color=red>server B</font> to initiate an active
+data transfer.  The address and port returned in
+<font color=blue>server A</font>'s response to the <code>PASV</code> command
+is passed to <font color=red>server B</font> as arguments in the
+<code>PORT</code> command.  The transfer is then started by telling
+<font color=blue>server A</font> to expect a file to be uploaded, and
+<font color=red>server B</font> to download the file.  The following
+<code>PASV/LIST</code> sequences are the client confirming that the file
+was transferred successfully.
+
+<p>
+This example also illustrates that site-to-site transfers use both active
+and passive data transfers; for sites that operate behind firewalls and
+NAT, passive transfers may require extra configuration to operate properly
+(<i>i.e.</i> use of the <a href="../modules/mod_core.html#MasqueradeAddress"><code>MasqueradeAddress</code></a> and
+<a href="../modules/mod_core.html#PassivePorts"><code>PassivePorts</code></a>
+configuration directives).
+
+<p>
+<b>&quot;FTP Bounce&quot; Attacks and <code>AllowForeignAddress</code></b><br>
+So, what does this mean for ProFTPD?  By default, ProFTPD <b>does not allow</b>
+site-to-site transfers, for by allowing them, the server also allows
+a type of attack known as the &quot;FTP bounce&quot; attack:
+<pre>
+  <a href="http://www.cert.org/advisories/CA-1997-27.html">http://www.cert.org/advisories/CA-1997-27.html</a>
+</pre>
+The protection against this attack is to enforce the requirement that,
+from the server's point of view, the remote address of a control connection
+matches the remote address of a data connection.  If the addresses do not
+match, the data connection is treated as from a foreign client, and thus
+rejected.
+
+<p>
+However, some site administrators do want to allow their servers to support
+site-to-site transfers.  ProFTPD must be explicitly configured to allow these
+by using the <a href="../modules/mod_core.html#AllowForeignAddress"><code>AllowForeignAddress</code></a> configuration directive.
+
+<p>
+Note that even if <code>AllowForeignAddress</code> is enabled, you may still
+encounter trouble with site-to-site transfers involving your server.
+These issues usually arise from firewall configurations, or with upstream
+ISPs performing filtering on the FTP port.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

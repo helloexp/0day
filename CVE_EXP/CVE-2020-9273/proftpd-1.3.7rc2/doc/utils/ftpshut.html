@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<HTML><HEAD><TITLE>Manpage of ftpshut</TITLE>
+</HEAD><BODY>
+<HR>
+
+<H2>NAME</H2>
+
+ftpshut - shut down all proftpd servers at a given time
+
+<H2>SYNOPSIS</H2>
+
+<B>ftpshut</B>
+
+[
+<B>-l</B><I> min </I>
+
+] [
+<B>-d</B><I> min </I>
+
+]
+<I>time</I>
+
+[
+<I>warning-message </I>
+
+]
+
+<H2>DESCRIPTION</H2>
+
+The <B>ftpshut</B> command provides an automated shutdown procedure that a
+superuser can use to automagically disconnect current proftpd connections,
+and deny new connections.  The command creates a control file as
+<B>/etc/shutmsg</B> to inform proftpd processes about an impending shutdown.
+
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+
+<DT><B>time</B>
+<DD>
+The time at which the ftp servers will be brought down.  It may be the
+word `now', indicating an immediate shutdown, or a future time in one
+of two formats: <I>+number</I> or <I>HHMM.</I> The first form brings the
+servers down in <I>number</I> minutes, while the second form indicates an
+exact time of day, using a 24-hour clock format.
+
+<P>
+<DT><B>-l min</B>
+<DD>
+Specifies the number of minutes before shutdown that new ftp access will
+be disabled.  If the -l option is not specified, a default of 10 minutes
+(or immediately, if less than 10 minutes remains until shutdown) is used.
+
+<P>
+<DT><B>-d min</B>
+<DD>
+Specifies the number of minutes before shutdown that existing ftp
+connections will be disconnected.  If the -d option is not specified,
+a default of 5 minutes (or immediately, if less than 5 minutes remains
+until shutdown) is used.
+
+<P>
+<DT><B>warning-message</B>
+<DD>
+Optionally provide a message which will be sent to new connections
+(if denied) and existing connections (when disconnected).  The message
+can contain the following magic cookies, which will be replaced as
+follows before being sent to new or existing connections:
+
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>%s</B>
+<DD>
+time proftpd is being shut down
+
+<DT><B>%r</B>
+<DD>
+time new connections will be denied
+
+<DT><B>%d</B>
+<DD>
+time current connections will be dropped
+
+<DT><B>%C</B>
+<DD>
+current working directory (where applicable)
+
+<DT><B>%L</B>
+<DD>
+local host name (of virtualhost name)
+
+<DT><B>%R</B>
+<DD>
+remote host name
+
+<DT><B>%T</B>
+<DD>
+local time (format Thu Nov 15 17:12:42 1990)
+
+<DT><B>%U</B>
+<DD>
+username given at login time
+
+</DL>
+</DL>
+</DL>
+
+<H2>CAVEATS</H2>
+
+Proftpd servers can only be shutdown via ftpshut if a master daemon is running
+in <I>standalone</I> mode.  Servers running in <I>inetd</I> mode will honor
+the shutdown message file created by ftpshut, however currently running servers
+may be chroot(2)ed, and unable to read the shutdown message control file.
+
+<P>
+It is possible to set an absolute shutdown time which is 
+<B>earlier</B> than the current time.  If this is the case, proftpd will not
+shutdown until the indicated time on the following day.
+
+<H2>FILES</H2>
+
+<B>/usr/sbin/ftpshut</B><BR>
+<B>/etc/shutmsg</B>
+
+<H2>AUTHORS</H2>
+
+<P>
+ProFTPD is written and maintained by a number of people, full credits
+can be found on <A HREF="http://www.proftpd.org/credits.html">http://www.proftpd.org/credits.html</A>
+
+<H2>SEE ALSO</H2>
+inetd(8), ftp(1), proftpd(8), ftpwho(1), ftpcount(1)
+
+<P>
+Full documentation on ProFTPD, including configuration and FAQs, is available at
+<A HREF="http://www.proftpd.org/">http://www.proftpd.org/</A>
+<P>
+
+Report bugs at <A HREF="http://bugs.proftpd.org/">http://bugs.proftpd.org/</A><BR>
+For help/support, try the ProFTPD mailing lists, detailed on
+<A HREF="http://www.proftpd.org/lists.html">http://www.proftpd.org/lists.html</A>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</BODY>
+</HTML>

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Configuration Tricks</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Configuration Tricks</b></h2></center>
+<hr>
+
+<p>
+Proficient users of <code>proftpd</code>, and site administrators who
+require fancy configurations, usually make use of a handful of useful
+tricks when it comes to configuring their FTP server.  These tricks can
+help to make your <code>proftpd.conf</code> smaller, clearer, and easier to
+maintain.
+
+<p><a name="ConfigVariables">
+<b>Configuration File Variables</b><br>
+One juicy tidbit of configuration knowledge is the little known
+<code>%u</code> variable.  It will be substituted, during the handling of
+an FTP session, with the name of the user who logged in.
+
+<p>
+The <code>%u</code> variable can be appear in the <code>proftpd.conf</code>
+like so:
+<pre>
+  DefaultRoot /home/%u
+</pre>
+Now, the above may not seem that useful, not much of an improvement over
+using the tilde (<code>~</code>) symbol, for restricting users to their
+home directories.  But what if you wanted to restrict users to the
+<code>public_ftp/</code> subdirectory, within their home directories?
+Using the tilde character cannot achieve that.  Instead, you might use:
+<pre>
+  DefaultRoot /home/%u/public_ftp
+</pre>
+
+<p>
+This is also useful for setting up configurations for specific directories
+in all users' home directories, <i>e.g.</i>:
+<pre>
+  &lt;Directory /home/%u/public_ftp&gt;
+    ...
+  &lt;/Directory&gt;
+</pre>
+
+<p>
+This <code>%u</code> variable can appear in the following configuration
+directives:
+<ul>
+  <li><code>DefaultChdir</code>
+  <li><code>DefaultRoot</code>
+  <li><code>&lt;Directory&gt;</code>
+</ul>
+
+<p><a name="PerUserDirHash">
+<b>Simple Per-User Directory Hashing</b><br>
+Some sites find that they might have large number of users (on the order of
+hundreds to thousands), each with their own home directory.  You might start
+off using a directory layout such as <code>/home/<i>user</i>/</code> for each
+user, but this quickly leads to such a large number of subdirectories in the
+<code>/home/</code>.  With that number of entries, simple commands like
+<code>ls(1)</code> may never complete, or take minutes to hours.
+
+<p>
+To reduce the number of entries within a given directory, such large sites
+often look to use some form of <i>directory hashing</i>.  The simplest form
+is to change from <i>e.g.</i> <code>/home/<i>user</i>/</code> to <code>/home/<i>u</i>/<i>us</i>/<i>user</i>/</code>.  For example, if you had user "bobsmith",
+the home directory would be <code>/home/b/bo/bobsmith</code>.
+
+<p>
+The question then is: can <code>proftpd</code> be configured to use a
+directory hashing scheme like this, without having to change the home directory
+attribute for those thousands of users (which might be stored in an LDAP
+directory used by applications as well)?  Answer: yes.  The <code>%u</code>
+variable above supports way to handle simple directory hashing.
+
+<p>
+To use it, you would use something like the following in your
+<code>proftpd.conf</code>:
+<pre>
+  DefaultRoot /home/%u[0]/%u
+</pre>
+where the <code>%u</code> variable is the user name, and
+<code>%u[<i>index</i>]</code> can be used to reference the letters in the user
+name, at that <em>index</em> position.  The above configuration would
+use a single level of directory hashing, resulting in <i>e.g.</i>
+<code>/home/b/bobsmith</code>.  If your directory hashing gets more complex,
+using more levels, you can still use this syntax:
+<pre>
+  DefaultRoot /home/%u[0]/%u[0]%u[1]/%u[0]%u[1]%u[2]/%u
+</pre>
+which would result in <code>/home/b/bo/bob/bobsmith</code>.
+
+<p>
+Of course, more <a href="http://michaelandrews.typepad.com/the_technical_times/2009/10/creating-a-hashed-directory-structure.html">complex hashing schemes</a>
+can be used, but <code>proftpd</code> does not currently implement them.
+
+<p><a name="EnvironVariables">
+<b>Environment Variables</b><br>
+Did you know that you can also substitute environment variables into your
+<code>proftpd.conf</code> as well?  It's true!  ProFTPD started supporting
+using environment variables in configuration files in the 1.2.10rc1 release.
+To use the environment variable, simply use:
+<pre>
+  %{env:<i>ENV_VAR_NAME</i>}
+</pre>
+Unlike the <code>%u</code> variable, you can use environment variables
+anywhere within your <code>proftpd.conf</code> file.
+
+<p>
+For example, you might use something like this if you wanted to control
+the default IP address on which <code>proftpd</code> listens using
+an environment variable:
+<pre>
+  DefaultAddress %{env:PR_DEFAULT_ADDR}
+</pre>
+Then whatever value the <code>PR_DEFAULT_ADDR</code> environment variable
+has, when starting <code>proftpd</code>, will be substituted in.  Using:
+<pre>
+  PR_DEFAULT_ADDR='127.0.0.1' /usr/local/sbin/proftpd ...
+</pre>
+would mean that, effectively, the configuration would be:
+<pre>
+  DefaultAddress 127.0.0.1
+</pre>
+"What happens if the environment variable is not set?" you ask.  Good question.
+Then the configuration file parser will substitute in an empty string, and
+<code>proftpd</code> will probably fail to start, citing a configuration
+error.
+
+<p><a name="ServerRoot">
+Have you ever wanted functionality like Apache's <code>ServerRoot</code>, where
+you specify the root directory for all of your server-related files in one
+place, and then all the other config files relative to that root, so that
+relocating the entire server configuration is much easier?  ProFTPD does not
+have a <code>ServerRoot</code> directive, <b>but</b> using environment
+variables, we can achieve the same thing!
+
+<p>
+At the top of your <code>proftpd.conf</code>, use the
+<a href="../modules/mod_core.html#SetEnv"><code>SetEnv</code></a> directive,
+like so:
+<pre>
+  # Must be set toward start/top of config
+  SetEnv SERVER_ROOT /path/to/proftpd/config/root
+</pre>
+Now, for the any other config file that should be relative to that location,
+use that environment variable, <i>e.g.</i>:
+<pre>
+  PidFile %{env:SERVER_ROOT}/var/run/proftpd.pid
+  SystemLog %{env:SERVER_ROOT}/log/proftpd.log
+</pre>
+If you want to tell <code>proftpd</code> that your config files are now all
+located elsewhere (say for a custom installation), you only need to change
+a single configuration line: the setting of your <code>SERVER_ROOT</code>
+environment variable.
+
+<p><a name="ConditionalConfigFiles">
+<b>Conditional Configuration Files</b><br>
+Another common request or desire to make large sections of your configuration
+conditional.  Maybe you only want some directives to apply to certain
+users, or maybe you want to ship a <code>proftpd.conf</code> that can be
+used by people with different modules loaded (<i>e.g.</i> for distributing
+a common <code>proftpd.conf</code>). Or maybe you simply want some sections
+of your configuration file to be used based on something else entirely.
+
+<p>
+The most common conditional you will probably see in various
+<code>proftpd.conf</code> files is:
+<pre>
+  &lt;IfModule <i>moduleName</i>&gt;
+    ...
+  &lt;/IfModule&gt;
+</pre>
+This is way of making the configuration directives within that section only
+in effect if the specified module is present.  It may not seem like much,
+but this is quite useful.  (I have a single <code>proftpd.conf</code> with
+more than 20 such sections, for use while I develop new modules.)
+
+<p>
+I have seen one clever sysadmin use the above conditional section in conjunction
+with DSO modules in their <code>proftpd.conf</code> like so:
+<pre>
+  &lt;IfModule mod_dso.c&gt;
+    # If mod_dso is present, we know we can dynamically load DSO modules
+
+    &lt;IfModule !mod_sql.c&gt;
+      # If mod_sql is not yet loaded, load it!
+      LoadModule mod_sql.c
+    &lt;/IfModule&gt;
+
+    &lt;IfModule !mod_sql_mysql.c&gt;
+      # If mod_sql_mysql is not yet loaded, load it!
+      LoadModule mod_sql_mysql.c
+    &lt;/IfModule&gt;
+    
+  &lt;/IfModule&gt;
+</pre>
+You can see how, with the above, you can use provide the same
+<code>proftpd.conf</code> to sites which use shared modules as well as those
+which use static modules.
+
+<p>
+Users who wish to have entire sections of configuration only apply to specific
+users, or groups, or even <a href="Classes.html">classes</a> of clients really
+should be aware of the
+<a href="../contrib/mod_ifsession.html"><code>mod_ifsession</code></a> module,
+and its very handy <code>&lt;IfUser&gt;</code>, <code>&lt;IfGroup&gt;</code>,
+and <code>&lt;IfClass&gt;</code> sections.
+
+<p>
+And, for those admins who want even more control over large sections of
+their <code>proftpd.conf</code> on a conditional basis, there is:
+<pre>
+  &lt;IfDefine <i>value</i>&gt;
+    ...
+  &lt;/IfDefine&gt;
+</pre>
+The enclosed section of the configuration file will be parsed only if
+<em>value</em> is defined.  For multiple directives, this trick is better
+than using multiple environment variables; the latter is better for single
+parameters.
+
+<p>
+"But how you define <em>value</em>?", you say.  There are two ways of
+defining the values that <code>&lt;IfDefine&gt;</code> looks for: using
+the <code>-D</code> command-line option, or by using the <code>Define</code>
+directive.
+
+<p>
+Let us assume that your <code>proftpd.conf</code> contains a section like:
+<pre>
+  &lt;IfDefine USE_SQL&gt;
+    LoadModule mod_sql.c
+    LoadModule mod_sql_mysql.c
+  &lt;/IfDefine&gt;
+</pre>
+You can then make sure your <code>proftpd</code> loads those modules by
+starting it using <code>-D</code>, <i>i.e.</i>:
+<pre>
+  /usr/local/sbin/proftpd -DUSE_SQL ...
+</pre>
+Or, if later you decide that you don't want to use <code>-D</code> anymore,
+you can simply add a <code>Define</code> to the <code>proftpd.conf</code>:
+<pre>
+  Define USE_SQL
+
+  ...
+
+  &lt;IfDefine USE_SQL&gt;
+    LoadModule mod_sql.c
+    LoadModule mod_sql_mysql.c
+  &lt;/IfDefine&gt;
+</pre>
+
+<p>
+If you are really ambitious, you can use devious combinations of
+<code>Define</code>, environment variables, <code>&lt;IfModule&gt;</code> and
+<code>&lt;IfDefine&gt;</code> sections in your configuration file to achieve
+some terse but powerful files.
+
+<p>
+As a demonstration, here is an example making use of environment variables,
+<code>Define</code>, and <code>&lt;IfDefine&gt;</code>.  First, set an
+environment variable, <i>e.g.</i> (assuming Bourne shell syntax):
+<pre>
+  $ USE_BANS=TRUE
+  $ export USE_BANS
+</pre>
+Now start proftpd using the -D command-line option to set a define based
+on the value of that environment variable:
+<pre>
+  $ ./proftpd -DUSE_BANS=$USE_BANS ...
+</pre>
+And in the <code>proftpd.conf</code>, you might have something like:
+<pre>
+  &lt;IfDefine USE_BANS=TRUE&gt;
+    ..
+  &lt;/IfDefine&gt;
+</pre>
+in which case, the directives within that conditional section would be
+in effect when proftpd was started.  On the other hand, to disable those
+configuration directives before starting proftpd, all that you need to do
+now is change the environment variable value:
+<pre>
+  $ USE_BANS=FALSE
+  $ export USE_BANS
+</pre>
+That <code>&lt;IfDefine&gt;</code> section will no longer be in effect
+when proftpd is started.
+
+<p><a name="MultipleDaemonsSameHost">
+<b>Multiple Daemons on Same Host</b><br>
+What if you wanted to run multiple instances of <code>proftpd</code> on the
+same host?  This is actually a prudent idea, for running one production
+<code>proftpd</code> while running a different, possibly newer
+<code>proftpd</code> for testing, side-by-side.  Is it possible?  Of course!
+
+<p>
+Different <code>proftpd</code> daemons can coexist on the same machine,
+but they cannot all use the same configuration file.  There is a small list
+of directives that need to have different parameters for each
+<code>proftpd</code> instance, <i>i.e.</i>:
+<ul>
+  <li><code>PidFile</code>
+  <li><code>ScoreboardFile</code>
+  <li><code>ServerLog</code>
+  <li><code>SystemLog</code>
+</ul>
+
+<p>
+Failure to assign different <code>PidFile</code>s and
+<code>ScoreboardFile</code>s for each <code>proftpd</code> will cause the
+multiple instances to overwrite each other's files, and inevitably cause
+problems.  Keeping separate log files (<code>ServerLog</code>,
+<code>SystemLog</code>, <i>etc</i>) for each daemon is simply a good idea.
+
+<p>
+What about the <code>PassivePorts</code> directive?  Do the different
+<code>proftpd</code> instances each need their own range?  No.
+When a passive data transfer is requested, <code>proftpd</code> will choose a
+random port from within a <code>PassivePorts</code> range, <i>but not before
+then</i>.  If the port happens to be in use, <code>proftpd</code> will try
+another random port within the range, and so on, until the range is exhausted.
+Thus multiple <code>proftpd</code> instances should be able to share the same
+<code>PassivePorts</code> range without issue (assuming it is a decently wide
+range).
+
+<p>
+There is one final setting which <i>can</i> cause problems: <code>Port</code>.
+An actual incident can help illustrate the issue:
+<blockquote>
+  I tried to setup another instance of proftpd.  I copied my existing config
+  file and changed the port information.  My production FTP server runs on port
+  1979.  In the test config file I specified 1980.  I started the testing
+  instance on the command line by executing the following command:
+
+    ./proftpd -d 5 -n -c /etc/proftpd/proftpd.test.conf
+
+  The testing instance started up without any problems. Unfortunately, when a
+  client connected it gave the error message that the server is already bound
+  to port 1979.  This is very strange, as the client connected successfully to
+  port 1980 in the first instance.  How did the test server get the port
+  information of the other production server?
+</blockquote>
+
+<p>
+In reality, the test server did not "get" the port information from the
+production instance.  Instead, this admin was encountering the "L-1" issue.
+The FTP RFCs state that for <b>active</b> data transfers, the <i>source</i>
+port of the TCP connection (the source port of the TCP connection from the
+server <i>to</i> the client) must be <i>L-1</i>, where <i>L</i> is the control
+port number.
+
+<p>
+So if your control port (configured by the <code>Port</code> directive in
+<code>proftpd.conf</code>) is 1980, then the source port that
+<code>proftpd</code> has to use, for any active data transfers (<i>e.g.</i>
+for clients which use the <code>PORT</code> or <code>EPRT</code> commands), is
+1979.  If that port 1979 is already in use by another daemon (such as another
+<code>proftpd</code> instance as its control port), you have a collision,
+and will likely see the "Address already in use" error message.
+
+<p>
+In the case, the test server should work if the following was used:
+<pre>
+  Port 1981
+</pre>
+<i>i.e.</i> a port number that is the existing <code>proftpd</code>'s port
+number <i>plus</i> two (or more).
+
+<p>
+Using the above configuration tricks, the same <code>proftpd.conf</code>
+file <i>could</i> be used by both the production and the test daemons,
+using something like:
+<pre>
+  # These directives need to differ depending on whether the test server
+  # or the production server is reading this configuration.
+  &lt;IfDefine TEST&gt;
+    Port 2121
+    PidFile /var/ftpd/proftpd.test.pid
+    ScoreboardFile /var/ftpd/proftpd.test.scoreboard
+  &lt;/IfDefine&gt;
+
+  &lt;IfDefine !TEST&gt;
+    Port 2123
+    PidFile /var/ftpd/proftpd.pid
+    ScoreboardFile /var/ftpd/proftpd.scoreboard
+  &lt;/IfDefine&gt;
+</pre>
+Then, starting <code>proftpd</code> with the proper command-line invocation
+<i>e.g.</i>:
+<pre>
+  /usr/local/sbin/proftpd -DTEST ...
+</pre>
+will use the test server configuration.  Omitting the <code>-D</code>
+option on the command-line will cause <code>proftpd</code> to use the
+production configuration.
+
+<p><a name="TransferPriority">
+<b>Reducing FTP Traffic Impact on Host System</b><br>
+Some sites run <code>proftpd</code> on a system which is used to host other
+services as well (<i>e.g.</i> Apache, a file server, <i>etc</i>).  These
+sites might notice that when many FTP downloads or uploads are happening,
+the other services start to be impacted: slower/stuttering web pages or
+streaming video/music, for example.
+
+<p>
+Wouldn't it be nice if you could somehow tell <code>proftpd</code> to use
+a lower priority, <i>i.e.</i> in the manner of the <code>nice(1)</code>
+command, for such data transfers?  Fortunately, you can do exactly this using
+the <a href="../modules/mod_xfer.html#TransferPriority"><code>TransferPriority</code></a> directive.  For example, a good default configuration to use is:
+<pre>
+  # Use a low process priority during all data transfers
+  TransferPriority APPE,RETR,STOR,STOU low
+</pre>
+One user reporting always having stuttering streaming video when FTP data
+transfers were happening.  After using the <code>TransferPriority</code>
+directive, that user saw no more video stream stuttering while still
+approaching full LAN network speed for the FTP data transfer.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

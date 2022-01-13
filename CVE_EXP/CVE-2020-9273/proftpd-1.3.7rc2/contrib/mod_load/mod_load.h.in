@@ -1,0 +1,58 @@
+/* config.h.in.  Generated automatically from configure.in by autoheader.  */
+
+/* Define if on AIX 3.
+   System headers sometimes define this.
+   We just want to avoid a redefinition error message.  */
+#ifndef _ALL_SOURCE
+#undef _ALL_SOURCE
+#endif
+
+/* Define to empty if the keyword does not work.  */
+#undef const
+
+/* Define if your system has its own `getloadavg' function.  */
+#undef HAVE_GETLOADAVG
+
+/* Define if on MINIX.  */
+#undef _MINIX
+
+/* Define if your struct nlist has an n_un member.  */
+#undef NLIST_NAME_UNION
+
+/* Define if you have <nlist.h>.  */
+#undef NLIST_STRUCT
+
+/* Define if the system does not provide POSIX.1 features except
+   with this defined.  */
+#undef _POSIX_1_SOURCE
+
+/* Define if you need to in order for stat and other things to work.  */
+#undef _POSIX_SOURCE
+
+/* Define on System V Release 4.  */
+#undef SVR4
+
+/* Define for Encore UMAX.  */
+#undef UMAX
+
+/* Define for Encore UMAX 4.3 that has <inq_status/cpustats.h>
+   instead of <sys/cpustats.h>.  */
+#undef UMAX4_3
+
+/* Define if you have the getloadavg function.  */
+#undef HAVE_GETLOADAVG
+
+/* Define if you have the pstat_getdynamic function.  */
+#undef HAVE_PSTAT_GETDYNAMIC
+
+/* Define if you have the <mach/mach.h> header file.  */
+#undef HAVE_MACH_MACH_H
+
+/* Define if you have the <stdlib.h> header file. */
+#undef HAVE_STDLIB_H
+
+/* Define if you have the <unistd.h> header file.  */
+#undef HAVE_UNISTD_H
+
+/* Define if you have the kstat library (-lkstat).  */
+#undef HAVE_LIBKSTAT

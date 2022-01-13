@@ -1,0 +1,142 @@
+To create CRLs, first create the CA and the server/client certs:
+
+  # cert-tool --create-ca=crl-ca --signing-ca=self --combined \
+      --days-valid 3650
+
+  # cert-tool --create-cert=crl-server-cert --signing-ca=crl-ca.pem \
+      --signing-key=crl-ca.pem --combined --days-valid 3650
+
+  # cert-tool --create-cert=crl-client-cert --signing-ca=crl-ca.pem \
+      --signing-key=crl-ca.pem --combined --days-valid 3650
+
+To create the crl-ca-revoked.pem file in this directory, I used the following
+OpenSSL command:
+
+  # openssl ca -config ./etc/cert-tool.conf -revoke crl-ca.pem \
+    -cert crl-ca.pem -keyfile crl-ca.pem -crl_reason keyCompromise \
+    -crldays 3650
+
+Note that you will need to set the following environment variables for the
+above 'openssl ca' command to succeed; the cert-tool.conf relies heavily
+on environment variables:
+
+  CERT_TOOL_HOME
+  CERT_TOOL_DAYS_VALID
+  CERT_TOOL_KEY_LEN
+  CERT_TOOL_COMMON_NAME
+  CERT_TOOL_ALT_DNS
+  CERT_TOOL_ALT_EMAIL
+  CERT_TOOL_ALT_IP
+  CERT_TOOL_ALT_URI
+
+For example:
+
+  # CERT_TOOL_HOME=`pwd` CERT_TOOL_DAYS_VALID=3650 CERT_TOOL_KEY_LEN=1024 CERT_TOOL_COMMON_NAME=crl-ca CERT_TOOL_ALT_DNS=www.castaglia.org CERT_TOOL_ALT_EMAIL=tj@castaglia.org CERT_TOOL_ALT_IP=127.0.0.1 CERT_TOOL_ALT_URI=http://www.castaglia.org/proftpd openssl ca -config ./etc/cert-tool.conf -revoke crl-ca.pem -cert crl-ca.pem -keyfile crl-ca.pem -crl_reason keyCompromise -crldays 3650
+
+Then to issue the CRL:
+
+  # openssl ca -gencrl -cert crl-ca.pem -keyfile crl-ca.pem \
+    -out crl-ca-revoked.pem 
+
+Note that the above command may fail like so:
+
+  # openssl ca -gencrl -cert crl-ca.pem -keyfile crl-ca.pem \
+      -out crl-ca-revoked.pem
+  Using configuration from /usr/lib/ssl/openssl.cnf
+  ./demoCA/index.txt: No such file or directory
+  unable to open './demoCA/index.txt'
+  20415:error:02001002:system library:fopen:No such file or directory:bss_file.c:352:fopen('./demoCA/index.txt','r')
+  20415:error:20074002:BIO routines:FILE_CTRL:system lib:bss_file.c:354:
+
+Which suggests that using the cert-tool.conf is again necessary:
+
+  # CERT_TOOL_HOME=`pwd` CERT_TOOL_DAYS_VALID=3650 CERT_TOOL_KEY_LEN=1024 CERT_TOOL_COMMON_NAME=crl-ca CERT_TOOL_ALT_DNS=www.castaglia.org CERT_TOOL_ALT_EMAIL=tj@castaglia.org CERT_TOOL_ALT_IP=127.0.0.1 CERT_TOOL_ALT_URI=http://www.castaglia.org/proftpd openssl ca -config ./etc/cert-tool.conf -gencrl -cert crl-ca.pem -keyfile crl-ca.pem -out crl-ca-revoked.pem
+  Using configuration from ./etc/cert-tool.conf
+  cannot lookup how long until the next CRL is issued
+  20417:error:0E06D06C:configuration file routines:NCONF_get_string:no value:conf_lib.c:329:group=cert_tool_ca name=crlnumber
+  20417:error:0E06D06C:configuration file routines:NCONF_get_string:no value:conf_lib.c:329:group=cert_tool_ca name=default_crl_days
+  20417:error:0E06D06C:configuration file routines:NCONF_get_string:no value:conf_lib.c:329:group=cert_tool_ca name=default_crl_hours
+
+Had to fix the cert-tool and its config file, but finally was able to issue the CRL:
+
+  # CERT_TOOL_HOME=`pwd` CERT_TOOL_DAYS_VALID=3650 CERT_TOOL_KEY_LEN=1024 CERT_TOOL_COMMON_NAME=crl-ca CERT_TOOL_ALT_DNS=www.castaglia.org CERT_TOOL_ALT_EMAIL=tj@castaglia.org CERT_TOOL_ALT_IP=127.0.0.1 CERT_TOOL_ALT_URI=http://www.castaglia.org/proftpd openssl ca -config ./etc/cert-tool.conf -gencrl -cert crl-ca.pem -keyfile crl-ca.pem -out crl-ca-revoked.pem
+  Using configuration from ./etc/cert-tool.conf
+
+XXX Looks like I need to add --revoke-cert/--revoke-ca options to cert-tool,
+XXX and --create-crl
+XXX
+XXX To generate a cert with an AuthorityInfoAccess (AIA) attribute, use:
+XXX
+XXX   authorityInfoAcces = OCSP;URI:http://localhost:7777
+XXX
+XXX in the 'cert_tool_x509_ext' config section.
+
+To generate CAs for OCSP testing, I added support for the AIA OCSP attribute
+in both CAs and certs.  For testing HTTPS OCSP responders, I had to manually
+tweak the cert-tool code so that the default OCSP responder URL was HTTPS.
+Then:
+
+  CERT_TOOL_HOME=`pwd` ./cert-tool --create-ca=ocsp-https-ca --signing-ca=self --combined --days-valid 3650 
+  CERT_TOOL_HOME=`pwd` ./cert-tool --create-cert=ocsp-https-server --signing-ca=ocsp-https-ca.pem --signing-key=ocsp-https-ca.pem --combined --days-valid 3650
+  CERT_TOOL_HOME=`pwd` ./cert-tool --create-cert=ocsp-https-client --signing-ca=ocsp-https-ca.pem --signing-key=ocsp-https-ca.pem --combined --days-valid 3650
+
+For running OpenSSL's ocsp(1) as a responder, I use:
+
+  cd cert-tool/
+  openssl ocsp -index etc/cert-tool.index -CA ocsp-ca.pem \
+    -rsigner ocsp-ca.pem -url http://localhost:7777 -ignore_err
+
+And for testing the ocsp(1) as a client:
+
+  cd cert-tool/
+  openssl ocsp -issuer ocsp-ca.pem -cert ocsp-ca.pem -nonce -text \
+    -url http://localhost:7777 -CAfile ocsp-ca.pem
+
+Keep in mind the following:
+
+  1.  OpenSSL-1.0.0 apps bind to IPv6 _only_ sockets by default (should
+      hopefully be fixed in future versions).
+
+  2.  OpenSSL ocsp(1) responder does NOT support HTTPS, only HTTP.
+
+To create the .p12 (PKCS#12) file in this directory, I used the following
+OpenSSL command:
+
+  # openssl pkcs12 -export -in server-cert.cert.pem \
+    -inkey server-cert.key.pem \
+    -out server-cert.p12 \
+    -name "ProFTPD PKCS12"
+
+When prompted for a password, leave it blank (i.e. just hit enter).
+
+To create the client-cert-localhost.pem file in this directory, I used:
+
+  # cert-tool --days-valid=3650 --common-name=localhost --combined \
+      --create-cert=client-cert-localhost \
+      --signing-ca=ca-cert.pem --signing-key=ca-cert.pem
+
+To create the password-protected server cert server-cert-passwd.pem in this
+directory, I used:
+
+  # cert-tool --days-valid=3650 --combined --key-cipher aes128 \
+      --create-cert=server-cert-passwd \
+      --signing-ca=ca-cert.pem --signing-key=ca-cert.pem
+
+The passphrase is "password".
+
+To create the DSA cert, I used:
+
+  # CERT_TOOL_USE_DSA=1 ./cert-tool --create-ca=dsa-server-cert --combined --signing-ca=dsa-ca.pem --signing-key=dsa-ca.pem --verbose --key-length=512
+
+NOTE: the --key-length=512 is important.  By default, cert-tool creates keys
+of 1024 bits; this turns out to be too large for DSA keys for OpenSSL.
+
+To create an EC cert, I used:
+
+  # cert-tool --create-ca=ec-ca --combined --signing-ca=self \
+     --verbose --key-cipher curve:secp256k1 --days-valid 3650
+  # cert-tool --create-cert=ec-server-cert --combined --signing-ca=ec-ca.pem \
+     --signing-key=ec-ca.pem --verbose --key-cipher= curve:secp256k1 \
+     --days-valid 3650
+
+The passphrase is "password".

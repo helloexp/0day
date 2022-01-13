@@ -1,0 +1,29 @@
+# Exim: OS-specific make file for GNU and variants.
+
+HAVE_ICONV=yes
+
+BASENAME_COMMAND=look_for_it
+CHOWN_COMMAND=look_for_it
+CHGRP_COMMAND=look_for_it
+CHMOD_COMMAND=look_for_it
+
+CFLAGS ?= -O -D_FILE_OFFSET_BITS=64 -D_LARGEFILE_SOURCE
+
+DBMLIB = -ldb
+USE_DB = yes
+
+LIBS = -lnsl -lcrypt -lm
+LIBRESOLV = -lresolv
+
+X11=/usr/X11R6
+XINCLUDE=-I$(X11)/include
+XLFLAGS=-L$(X11)/lib
+X11_LD_LIB=$(X11)/lib
+
+EXIWHAT_PS_ARG=ax
+EXIWHAT_EGREP_ARG='/exim( |$$)'
+EXIWHAT_MULTIKILL_CMD=killall
+EXIWHAT_MULTIKILL_ARG=exim
+EXIWHAT_KILL_SIGNAL=-USR1
+
+# End

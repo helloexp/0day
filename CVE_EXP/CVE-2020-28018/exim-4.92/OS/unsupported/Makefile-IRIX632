@@ -1,0 +1,16 @@
+# Exim: OS-specific make file for IRIX 6 on 32-bit systems.
+# There seems to be some variation. The commented settings show
+# some alternatives.
+
+HAVE_ICONV=yes
+HOSTNAME_COMMAND=/usr/bsd/hostname
+#CFLAGS=-OPT:Olimit=1500 -32 -mips2
+CFLAGS=-32
+LFLAGS=-32
+#LIBS=-lmld
+LIBS=-lelf -lm
+XINCLUDE=-I/usr/include/X11
+vfork=fork
+RANLIB=@true
+
+# End

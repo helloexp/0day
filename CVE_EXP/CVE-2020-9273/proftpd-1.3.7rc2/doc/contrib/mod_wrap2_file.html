@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_wrap2_file</title>
+</head>
+
+<body bgcolor=white>
+
+<hr><br>
+<center>
+<h2><b>ProFTPD module <code>mod_wrap2_file</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+This submodule provides the file-specific &quot;driver&quot; for storing
+IP/DNS-based access control information in files.
+
+<p>
+Many programs will automatically add entries in the common
+<code>hosts.allow</code>/<code>hosts.deny</code> files, and use of this module
+will allow a <code>proftpd</code> daemon running in <code>standalone</code>
+mode to adapt as these entries are added.  The <code>portsentry</code> program
+does this, for example: when illegal access is attempted, it will add hosts to
+the <code>/etc/hosts.deny</code> file.
+
+<p>
+This <code>mod_wrap2</code> submodule is contained in the
+<code>mod_wrap2_file.c</code>, and is not compiled by default.  See the
+<code>mod_wrap2</code> <a href="mod_wrap2.html#Installation">installation</a>
+instructions.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<p>
+<hr><h2><a name="FileTables">File Access Tables</a></h2>
+Using file-based access tables (<em>source-type</em> of &quot;file&quot;) the
+data will be stored in the familiar <code>hosts.allow</code>,
+<code>hosts.deny</code> file format.
+
+<p>
+The <code>mod_wrap2_file</code> module supports the &quot;file&quot; string
+for the <em>source-type</em> parameter of the
+<a href="mod_wrap2.html#WrapUserTables"><code>WrapUserTables</code></a>,
+<a href="mod_wrap2.html#WrapGroupTables"><code>WrapGroupTables</code></a>,
+and
+<a href="mod_wrap2.html#WrapTables"><code>WrapTables</code></a>,
+configuration directives.  If the &quot;file&quot; <em>source-type</em>
+is used, then the <em>source-info</em> parameter must be the full path to
+the file table.
+
+<p>
+Both file names are required.  Also, the paths to both files must be the full
+path, with two exceptions: if the path starts with <code>~/</code>, the check
+of that path will be delayed until a user requests a connection, at which time
+the path will be resolved to that user's home directory; or if the path starts
+with <code>~user/</code>, where user is some system user.  In this latter case,
+<code>mod2_wrap</code> will attempt to resolve and verify the given user's home
+directory on start-up.  The <code>%U</code> variable can also be used in the
+paths; it will be resolved to the <code>USER</code> name sent by the client.
+
+<p>
+The format for the files used by <code>mod_wrap2_file</code> is described
+in the <code>host_access(5)</code> man page.
+
+<p>
+Examples:
+<pre>
+  # Server-wide access files
+  WrapTables file:/etc/hosts.allow file:/etc/hosts.deny
+
+  # FTP server-specific access files
+  WrapTables file:/etc/ftpd.allow file:/etc/ftpd.deny
+
+  # Per-user access files, which are to be found in the user's home directory
+  WrapUserTables file:~/my.allow file:~/my.deny
+
+  # Per-user access files, which are <b>not</b> found in the user's home.
+  WrapUserTables file:/etc/ftpd/acls/%U.allow file:/etc/ftpd/acls/%U.deny
+</pre>
+
+<p>
+<hr><h2><a name="FileExamples">Example File Tables</a></h2>
+The following examples are taken from the <code>hosts_access(5)</code> man page:
+
+<p>
+<b>Mostly Closed</b><br>
+In this case, access is denied by default. Only explicitly authorized hosts
+are permitted access.
+
+<p>
+The default policy (no access) is implemented with a trivial deny file:
+<pre>
+  /etc/hosts.deny:
+    ALL: ALL
+</pre>
+This denies all service to all hosts, unless they are permitted access by
+entries in the allow file.
+
+<p>
+The explicitly authorized hosts are listed in the allow file.  For example:
+<pre>
+  /etc/hosts.allow:
+    ALL: LOCAL @some_netgroup
+    ALL: .foobar.edu EXCEPT terminalserver.foobar.edu
+</pre>
+The first rule permits access from hosts in the local domain (no `.' in the
+host name) and from members of the <em>some_netgroup</em> netgroup.  The
+second rule permits access from all hosts in the <em>.foobar.edu</em> domain
+(notice the leading dot), with the exception of
+<em>terminalserver.foobar.edu</em>.
+
+<p>
+<b>Mostly Open</b><br>
+Here, access is granted by default; only explicitly specified hosts are
+refused service.
+
+<p>
+The default policy (access granted) makes the allow file redundant so that it
+can be omitted.  The explicitly non-authorized hosts are listed in the deny
+file. For example:
+<pre>
+  /etc/hosts.deny:
+    ALL: some.host.name, .some.domain
+    ALL EXCEPT in.fingerd: other.host.name, .other.domain
+</pre>
+The first rule denies some hosts and domains all services; the second rule
+still permits finger requests from other hosts and domains.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>
+

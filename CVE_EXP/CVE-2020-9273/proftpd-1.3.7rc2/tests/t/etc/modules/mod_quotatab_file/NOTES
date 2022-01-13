@@ -1,0 +1,17 @@
+These files were generated using the following commands:
+
+  ftpquota-group-limit.tab:
+    # ftpquota --create-table --table-path=tests/t/etc/modules/mod_quotatab_file/ftpquota-group-limit.tab --type=limit
+    # ftpquota --add-record --Bu 18 --units=Gb --quota-type=group --name=test --table-path=tests/t/etc/modules/mod_quotatab_file/ftpquota-group-limit.tab --type=limit
+
+  ftpquota-group-tally.tab:
+    # ftpquota --create-table --table-path=tests/t/etc/modules/mod_quotatab_file/ftpquota-group-tally.tab --type=tally
+
+  ftpquota-all-limit.tab:
+    # ftpquota --create-table --table-path=tests/t/etc/modules/mod_quotatab_file/ftpquota-group-limit.tab --type=limit
+    # ftpquota --add-record --Bd 18 --units=Gb --quota-type=all --table-path=tests/t/etc/modules/mod_quotatab_file/ftpquota-all-limit.tab --type=limit
+
+  ftpquota-all-tally.tab:
+    # ftpquota --create-table --table-path=tests/t/etc/modules/mod_quotatab_file/ftpquota-all-tally.tab --type=tally
+    # ftpquota --add-record --type=tally --quota-type=all --Bu 0 --Bd 0 --Bt 0 --Fu 0 --Fd 0 --Ft 0 --table-path=tests/t/etc/modules/mod_quotatab_file/ftpquota-all-tally.tab --type=tally
+

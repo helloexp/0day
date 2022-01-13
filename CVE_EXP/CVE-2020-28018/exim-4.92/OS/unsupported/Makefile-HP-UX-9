@@ -1,0 +1,15 @@
+# Exim: OS-specific make file for HP-UX 9
+
+CFLAGS=-O
+BASENAME_COMMAND=/bin/basename
+HAVE_ICONV=yes
+HAVE_SETRESUID=YES
+HAVE_SETEUID=NO
+XINCLUDE=-I/usr/include/X11R5
+XLFLAGS=-L/usr/lib/X11R5 -L/usr/contrib/X11R5/lib
+X11_LD_LIB=/usr/contrib/X11R5/lib
+EXIMON_TEXTPOP=
+DBMLIB=-lndbm
+RANLIB=@true
+
+# End

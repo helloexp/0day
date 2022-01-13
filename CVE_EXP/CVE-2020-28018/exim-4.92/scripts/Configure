@@ -1,0 +1,10 @@
+#! /bin/sh -e
+
+# A script to be called to run all the other configuring scripts manually.
+
+scripts/Configure-Makefile
+scripts/Configure-os.h
+scripts/Configure-os.c
+scripts/Configure-config.h
+
+# End of Configure

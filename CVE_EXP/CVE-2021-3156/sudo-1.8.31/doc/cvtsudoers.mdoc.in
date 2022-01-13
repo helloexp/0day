@@ -1,0 +1,439 @@
+.\"
+.\" SPDX-License-Identifier: ISC
+.\"
+.\" Copyright (c) 2018 Todd C. Miller <Todd.Miller@sudo.ws>
+.\"
+.\" Permission to use, copy, modify, and distribute this software for any
+.\" purpose with or without fee is hereby granted, provided that the above
+.\" copyright notice and this permission notice appear in all copies.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+.\" WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+.\" MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+.\" ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+.\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+.\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+.\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+.\"
+.Dd December 11, 2018
+.Dt CVTSUDOERS 1
+.Os Sudo @PACKAGE_VERSION@
+.Sh NAME
+.Nm cvtsudoers
+.Nd convert between sudoers file formats
+.Sh SYNOPSIS
+.Nm cvtsudoers
+.Op Fl ehMpV
+.Op Fl b Ar dn
+.Op Fl c Ar conf_file
+.Op Fl d Ar deftypes
+.Op Fl f Ar output_format
+.Op Fl i Ar input_format
+.Op Fl I Ar increment
+.Op Fl m Ar filter
+.Op Fl o Ar output_file
+.Op Fl O Ar start_point
+.Op Fl P Ar padding
+.Op Fl s Ar sections
+.Op Ar input_file
+.Sh DESCRIPTION
+.Nm
+can be used to convert between
+.Em sudoers
+security policy file formats.
+The default input format is sudoers.
+The default output format is LDIF.
+It is only possible to convert a
+.Em sudoers
+file that is syntactically correct.
+.Pp
+If no
+.Ar input_file
+is specified, or if it is
+.Ql - ,
+the policy is read from the standard input.
+By default, the result is written to the standard output.
+.Pp
+The options are as follows:
+.Bl -tag -width Fl
+.It Fl b Ar dn , Fl -base Ns = Ns Ar dn
+The base DN (distinguished name) that will be used when performing
+LDAP queries.
+Typically this is of the form
+.Li ou=SUDOers,dc=my-domain,dc=com
+for the domain
+.Li my-domain.com .
+If this option is not specified, the value of the
+.Ev SUDOERS_BASE
+environment variable will be used instead.
+Only necessary when converting to LDIF format.
+.It Fl c Ar conf_file , Fl -config Ns = Ns Ar conf_file
+Specify the path to the configuration file.
+Defaults to
+.Pa @sysconfdir@/cvtsudoers.conf .
+.It Fl d Ar deftypes , Fl -defaults Ns = Ns Ar deftypes
+Only convert
+.Li Defaults
+entries of the specified types.
+One or more
+.Li Defaults
+types may be specified, separated by a comma
+.Pq Ql \&, .
+The supported types are:
+.Bl -tag -width 8n
+.It all
+All Defaults entries.
+.It global
+Global Defaults entries that are applied regardless of
+user, runas, host or command.
+.It user
+Per-user Defaults entries.
+.It runas
+Per-runas user Defaults entries.
+.It host
+Per-host Defaults entries.
+.It command
+Per-command Defaults entries.
+.El
+.Pp
+See the
+.Sy Defaults
+section in
+.Xr sudoers @mansectform@
+for more information.
+.Pp
+If the
+.Fl d
+option is not specified, all
+.Li Defaults
+entries will be converted.
+.It Fl e , Fl -expand-aliases
+Expand aliases in
+.Ar input_file .
+Aliases are preserved by default when the output
+.Ar format
+is JSON or sudoers.
+.It Fl f Ar output_format , Fl -output-format Ns = Ns Ar output_format
+Specify the output format (case-insensitive).
+The following formats are supported:
+.Bl -tag -width 8n
+.It JSON
+JSON (JavaScript Object Notation) files are usually easier for
+third-party applications to consume than the traditional
+.Em sudoers
+format.
+The various values have explicit types which removes much of the
+ambiguity of the
+.Em sudoers
+format.
+.It LDIF
+LDIF (LDAP Data Interchange Format) files can be imported into an LDAP
+server for use with
+.Xr sudoers.ldap @mansectform@ .
+.Pp
+Conversion to LDIF has the following limitations:
+.Bl -bullet -width 1n
+.It
+Command, host, runas and user-specific Defaults lines cannot be
+translated as they don't have an equivalent in the sudoers LDAP schema.
+.It
+Command, host, runas and user aliases are not supported by the
+sudoers LDAP schema so they are expanded during the conversion.
+.El
+.It sudoers
+Traditional sudoers format.
+A new sudoers file will be reconstructed from the parsed input file.
+Comments are not preserved and data from any include files will be
+output inline.
+.El
+.It Fl h , Fl -help
+Display a short help message to the standard output and exit.
+.It Fl i Ar input_format , Fl -input-format Ns = Ns Ar input_format
+Specify the input format.
+The following formats are supported:
+.Bl -tag -width 8n
+.It LDIF
+LDIF (LDAP Data Interchange Format) files can be exported from an LDAP
+server to convert security policies used by
+.Xr sudoers.ldap @mansectform@ .
+If a base DN (distinguished name) is specified, only sudoRole objects
+that match the base DN will be processed.
+Not all sudoOptions specified in a sudoRole can be translated from
+LDIF to sudoers format.
+.It sudoers
+Traditional sudoers format.
+This is the default input format.
+.El
+.It Fl I Ar increment , Fl -increment Ns = Ns Ar increment
+When generating LDIF output, increment each sudoOrder attribute by
+the specified number.
+Defaults to an increment of 1.
+.It Fl m Ar filter , Fl -match Ns = Ns Ar filter
+Only output rules that match the specified
+.Ar filter .
+A
+.Ar filter
+expression is made up of one or more
+.Sy key = Ar value
+pairs, separated by a comma
+.Pq Ql \&, .
+The
+.Sy key
+may be
+.Dq user ,
+.Dq group
+or
+.Dq host .
+For example,
+.Sy user No = Ar operator
+or
+.Sy host No = Ar www .
+An upper-case User_Alias or Host_Alias may be specified as the
+.Dq user
+or
+.Dq host .
+.Pp
+A matching
+.Em sudoers
+rule may also include users, groups and hosts that are not part of the
+.Ar filter .
+This can happen when a rule includes multiple users, groups or hosts.
+To prune out any non-matching user, group or host from the rules, the
+.Fl p
+option may be used.
+.Pp
+By default, the password and group databases are not consulted when matching
+against the filter so the users and groups do not need to be present
+on the local system (see the
+.Fl M
+option).
+Only aliases that are referenced by the filtered policy rules will
+be displayed.
+.It Fl M , Fl -match-local
+When the
+.Fl m
+option is also specified, use password and group database information
+when matching users and groups in the filter.
+Only users and groups in the filter that exist on the local system will match,
+and a user's groups will automatically be added to the filter.
+If the
+.Fl M
+is
+.Em not
+specified, users and groups in the filter do not need to exist on the
+local system, but all groups used for matching must be explicitly listed
+in the filter.
+.It Fl o Ar output_file , Fl -output Ns = Ns Ar output_file
+Write the converted output to
+.Ar output_file .
+If no
+.Ar output_file
+is specified, or if it is
+.Ql - ,
+the converted
+.Em sudoers
+policy will be written to the standard output.
+.It Fl O Ar start_point , Fl -order-start Ns = Ns Ar start_point
+When generating LDIF output, use the number specified by
+.Ar start_point
+in the sudoOrder attribute of the first sudoRole object.
+Subsequent sudoRole object use a sudoOrder value generated by adding an
+.Ar increment ,
+see the
+.Fl I
+option for details.
+Defaults to a starting point of 1.
+A starting point of 0 will disable the generation of sudoOrder
+attributes in the resulting LDIF file.
+.It Fl p , Fl -prune-matches
+When the
+.Fl m
+option is also specified,
+.Nm
+will prune out non-matching users, groups and hosts from
+matching entries.
+.It Fl P Ar padding , Fl -padding Ns = Ns Ar padding
+When generating LDIF output, construct the initial sudoOrder value by
+concatenating
+.Ar order_start
+and
+.Ar increment ,
+padding the
+.Ar increment
+with zeros until it consists of
+.Ar padding
+digits.
+For example, if
+.Ar order_start
+is 1027,
+.Ar padding
+is 3, and
+.Ar increment
+is 1, the value of sudoOrder for the first entry will be 1027000,
+followed by 1027001, 1027002, etc.
+If the number of sudoRole entries is larger than the padding would allow,
+.Nm
+will exit with an error.
+By default, no padding is performed.
+.It Fl s Ar sections , Fl -suppress Ns = Ns Ar sections
+Suppress the output of specific
+.Ar sections
+of the security policy.
+One or more section names may be specified, separated by a comma
+.Pq Ql \&, .
+The supported section name are:
+.Sy defaults ,
+.Sy aliases
+and
+.Sy privileges
+(which may be shortened to
+.Sy privs ) .
+.It Fl V , -version
+Print the
+.Nm
+and
+.Em sudoers
+grammar versions and exit.
+.El
+.Pp
+Options in the form
+.Dq keyword = value
+may also be specified in a configuration file,
+.Pa @sysconfdir@/cvtsudoers.conf
+by default.
+The following keywords are recognized:
+.Bl -tag -width 4n
+.It Sy defaults = Ar deftypes
+See the description of the
+.Fl d
+command line option.
+.It Sy expand_aliases = Ar yes | no
+See the description of the
+.Fl e
+command line option.
+.It Sy input_format = Ar ldif | sudoers
+See the description of the
+.Fl i
+command line option.
+.It Sy match = Ar filter
+See the description of the
+.Fl m
+command line option.
+.It Sy order_increment = Ar increment
+See the description of the
+.Fl I
+command line option.
+.It Sy order_start = Ar start_point
+See the description of the
+.Fl O
+command line option.
+.It Sy output_format = Ar json | ldif | sudoers
+See the description of the
+.Fl f
+command line option.
+.It Sy padding = Ar padding
+See the description of the
+.Fl P
+command line option.
+.It Sy prune_matches = Ar yes | no
+See the description of the
+.Fl p
+command line option.
+.It Sy sudoers_base = Ar dn
+See the description of the
+.Fl b
+command line option.
+.It Sy suppress = Ar sections
+See the description of the
+.Fl s
+command line option.
+.El
+.Pp
+Options on the command line will override values from the
+configuration file.
+.Sh FILES
+.Bl -tag -width 24n
+.It Pa @sysconfdir@/cvtsudoers.conf
+default configuration for cvtsudoers
+.El
+.Sh EXAMPLES
+Convert
+.Pa /etc/sudoers
+to LDIF (LDAP Data Interchange Format) where the
+.Pa ldap.conf
+file uses a
+.Em sudoers_base
+of my-domain,dc=com, storing the result in
+.Pa sudoers.ldif :
+.Bd -literal -offset indent
+$ cvtsudoers -b ou=SUDOers,dc=my-domain,dc=com -o sudoers.ldif \e
+             /etc/sudoers
+.Ed
+.Pp
+Convert
+.Pa /etc/sudoers
+to JSON format, storing the result in
+.Pa sudoers.json :
+.Bd -literal -offset indent
+$ cvtsudoers -f json -o sudoers.json /etc/sudoers
+.Ed
+.Pp
+Parse
+.Pa /etc/sudoers
+and display only rules that match user
+.Em ambrose
+on host
+.Em hastur :
+.Bd -literal -offset indent
+$ cvtsudoers -f sudoers -m user=ambrose,host=hastur /etc/sudoers
+.Ed
+.Pp
+Same as above, but expand aliases and prune out any non-matching
+users and hosts from the expanded entries.
+.Bd -literal -offset indent
+$ cvtsudoers -ep -f sudoers -m user=ambrose,host=hastur /etc/sudoers
+.Ed
+.Pp
+Convert
+.Pa sudoers.ldif
+from LDIF to traditional
+.Em sudoers
+format:
+.Bd -literal -offset indent
+$ cvtsudoers -i ldif -f sudoers -o sudoers.new sudoers.ldif
+.Ed
+.Sh SEE ALSO
+.Xr sudoers @mansectform@ ,
+.Xr sudoers.ldap @mansectform@ ,
+.Xr sudo @mansectsu@
+.Sh AUTHORS
+Many people have worked on
+.Nm sudo
+over the years; this version consists of code written primarily by:
+.Bd -ragged -offset indent
+.An Todd C. Miller
+.Ed
+.Pp
+See the CONTRIBUTORS file in the
+.Nm sudo
+distribution (https://www.sudo.ws/contributors.html) for an
+exhaustive list of people who have contributed to
+.Nm sudo .
+.Sh BUGS
+If you feel you have found a bug in
+.Nm ,
+please submit a bug report at https://bugzilla.sudo.ws/
+.Sh SUPPORT
+Limited free support is available via the sudo-users mailing list,
+see https://www.sudo.ws/mailman/listinfo/sudo-users to subscribe or
+search the archives.
+.Sh DISCLAIMER
+.Nm
+is provided
+.Dq AS IS
+and any express or implied warranties, including, but not limited
+to, the implied warranties of merchantability and fitness for a
+particular purpose are disclaimed.
+See the LICENSE file distributed with
+.Nm sudo
+or https://www.sudo.ws/license.html for complete details.

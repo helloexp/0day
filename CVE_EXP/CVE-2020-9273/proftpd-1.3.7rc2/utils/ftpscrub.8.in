@@ -1,0 +1,55 @@
+.TH ftpscrub 8 "November 2008"
+.\" Process with
+.\" groff -man -Tascii ftpscrub.8 
+.\"
+.SH NAME
+ftpscrub \- scrub the proftpd scoreboard file of stale entries
+.SH SYNOPSIS
+.B ftpscrub
+.SH DESCRIPTION
+The
+.BI ftpscrub
+command provides a way to scrub the scoreboard file on demand, at times
+which suit the site best.  This should be run periodically on sites
+which run proftpd in
+.I inetd
+mode.
+.SH OPTIONS
+.TP 12
+.B \-h,\--help
+Display a short usage description, including all available options.
+.TP
+.BI \-f,\--file " scoreboard\-file"
+Specify the full path to proftpd's run\-time scoreboard file (configured
+via the \fBScoreboardFile\fP directive in
+.I proftpd.conf
+).  If proftpd's
+default directory has been changed via this directive, \fBftpscrub\fP
+must either be recompiled, or this option must be used in order to find
+proftpd's scoreboard.
+.TP
+.B \-v,\--verbose
+Reports additional information while scrubbing the scoreboard.
+.SH FILES
+.PD 0
+.B @SBINDIR@/ftpscrub
+.br
+.B @LOCALSTATEDIR@/proftpd.scoreboard
+.PD
+.SH AUTHORS
+.PP
+ProFTPD is written and maintained by a number of people, full credits
+can be found on
+.BR http://www.proftpd.org/credits.html
+.PD
+.SH SEE ALSO
+.BR inetd(8), ftp(1), proftpd(8), ftpwho(1), ftpcount(1)
+.PP
+Full documentation on ProFTPD, including configuration and FAQs, is available at
+.BR http://www.proftpd.org/
+.PP
+For help/support, try the ProFTPD mailing lists, detailed on
+.BR http://www.proftpd.org/lists.html
+.PP
+Report bugs at
+.BR http://bugs.proftpd.org/

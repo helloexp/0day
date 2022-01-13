@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Display Files</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: <code>Display</code> Files</b></h2></center>
+<hr>
+
+<p>
+ProFTPD supports a number of configuration directives that specify a file
+whose contents should be displayed to connected clients at various times:
+<ul>
+  <li>
+    <dt><code>DisplayConnect</code>
+    <dd>Displayed to clients as soon as they connect</dd>
+  </li>
+
+  <p>
+  <li>
+    <dt><code>DisplayLogin</code>
+    <dd>Displayed to clients once they have logged in using the
+        <code>USER</code> and <code>PASS</code> commands</dd>
+  </li>
+
+  <p>
+  <li>
+    <dt><code>DisplayChdir</code>
+    <dd>Displayed to a client whenever it changes into a directory</dd>
+  </li>
+
+  <p>
+  <li>
+    <dt><code>DisplayFileTransfer</code>
+    <dd>Displayed to the client whenever a file is successfully transfer,
+        either uploaded or downloaded</dd>
+  </li>
+
+  <p>
+  <li>
+    <dt><code>DisplayQuit</code>
+    <dd>Displayed to a client when the session ends via the <code>QUIT</code>
+        command</dd>
+  </li>
+</ul>
+
+<p>
+Note the subtle difference between <code>DisplayConnect</code> and
+<code>DisplayLogin</code>.  A <code>DisplayConnect</code> file will be
+displayed to all clients; this makes it suitable for server banners,
+messages of the day, <i>etc</i>.  A <code>DisplayLogin</code> file will only
+be displayed once the client has logged in.
+
+<p>
+The configured file paths can be either relative or absolute (except in the
+case of <code>DisplayConnect</code>, which always requires absolute paths).
+In the case of a relative path, the file is assumed to be in the starting
+directory a user, <i>i.e.</i> the <code>&lt;Anonymous&gt;</code> directory
+for anonymous logins, and the user's home directory for non-anonymous logins.
+<b>Note</b>: If <code>DefaultRoot</code> is in effect, then the file
+<b>must</b> reside inside the <code>chroot</code>ed directory. If the 
+configured file cannot be found or accessed, no error occurs and nothing is
+logged or displayed to the client.
+
+<p>
+<b><code>Display</code> Variables</b><br>
+The following table contains the variables that can be used in
+<code>Display</code> files. Be aware that not all of these may have a rational
+value, depending on the context in which they are used (<i>e.g.</i>,
+<code>%u</code> if <code>IdentLookups</code> are <em>off</em>).
+
+<p>
+Other <code>contrib</code> modules may provide additional variables for use
+as well; please consult their documentation for more information.
+
+<p>
+<table border=1 summary="Display Variables">
+  <tr>
+    <td><b>Variable</b></td>
+    <td><b>Meaning</b></td>
+  </tr>
+
+  <tr>
+    <td>%C</td>
+    <td>Current working directory</td>
+  </tr>
+
+  <tr>
+    <td>%E</td>
+    <td>Server admin's email address</td>
+  </tr>
+
+  <tr>
+    <td>%F</td>
+    <td>Available space on file system, in KB</td>
+  <tr>
+
+  <tr>
+    <td>%f</td>
+    <td>Available space on file system, with units</td>
+  </tr>
+
+  <tr>
+    <td>%i</td>
+    <td>The number of files uploaded (input) in this session</td>
+  </tr>
+
+  <tr>
+    <td>%K</td>
+    <td>Total number of bytes transferred</td>
+  </tr>
+
+  <tr>
+    <td>%k</td>
+    <td>Total number of bytes transferred, in units</td>
+  </tr>
+
+  <tr>
+    <td>%L</td>
+    <td>Local hostname</td>
+  </tr>
+
+  <tr>
+    <td>%M</td>
+    <td>Maximum number of connections</td>
+  </tr>
+
+  <tr>
+    <td>%N</td>
+    <td>Current number of connections</td>
+  </tr>
+
+  <tr>
+    <td>%o</td>
+    <td>The number of files downloaded (output) in this session</td>
+  </tr>
+
+  <tr>
+    <td>%R</td>
+    <td>Remote hostname</td>
+  </tr>
+
+  <tr>
+    <td>%T</td>
+    <td>Current time</td>
+  </tr>
+
+  <tr>
+    <td>%t</td>
+    <td>The number of files transferred (uploaded and downloaded) in this session</td>
+  </tr>
+
+  <tr>
+    <td>%U</td>
+    <td>Username originally used to login</td>
+  </tr>
+
+  <tr>
+    <td>%u</td>
+    <td>Username reported by ident protocol</td>
+  </tr>
+
+  <tr>
+    <td>%V</td>
+    <td><code>ServerName</code> of virtual host, if any</td>
+  </tr>
+
+  <tr>
+    <td>%x</td>
+    <td>The name of the user's <code>Class</code>, if any</td>
+  </tr>
+
+  <tr>
+    <td>%y</td>
+    <td>Current number of connections from the user's <code>Class</code></td>
+  </tr>
+
+  <tr>
+    <td>%z</td>
+    <td>Maximum number of connections from the user's <code>Class</code></td>
+  </tr>
+
+  <tr>
+    <td>%{total_bytes_in}</td>
+    <td>The number of bytes uploaded (input) in this session</td>
+  </tr>
+
+  <tr>
+    <td>%{total_bytes_out}</td>
+    <td>The number of bytes downloaded (output) in this session</td>
+  </tr>
+
+  <tr>
+    <td>%{total_bytes_xfer}</td>
+    <td>The number of bytes transferred (uploaded and downloaded) in this session</td>
+  </tr>
+
+  <tr>
+    <td>%{total_files_in}</td>
+    <td>The number of files uploaded (input) in this session</td>
+  </tr>
+
+  <tr>
+    <td>%{total_files_out}</td>
+    <td>The number of files downloaded (output) in this session</td>
+  </tr>
+
+  <tr>
+    <td>%{total_files_xfer}</td>
+    <td>The number of files transferred (uploaded and downloaded) in this session</td>
+  </tr>
+
+  <tr>
+    <td>%{env:<i>name</i>}</td>
+    <td>The value of the environment variable <i>name</i></td>
+  </tr>
+
+  <tr>
+    <td>%{time:<i>format</i>}</td>
+    <td>Uses <i>format</i> (as per the <code>strftime(3)</code> function) to format a timestamp</td>
+  </tr>
+</table>
+
+<p><a name="FAQ"></a>
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="DisplayPathsWithSpaces">
+<font color=red>Question</font>: I configured a path which contains spaces for
+<code>DisplayLogin</code>, and it doesn't work.  Why not?<br>
+<font color=blue>Answer</font>: If using paths/files which contains spaces,
+make sure that you enclose the path in quotation marks, <i>e.g.</i>:
+<pre>
+  DisplayLogin "/path/to/display login.txt"
+</pre>
+Otherwise, the configuration file parser will treat the space-separated
+portions of the path as separate directive parameters.
+
+<p><a name="DisplayAvailableBytes">
+<font color=red>Question</font>: I configured a <code>DisplayLogin</code>
+file which uses the <code>%F</code> variable, but it is not showing me the
+correct amount of bytes available on my system.  Why not?<br>
+<font color=blue>Answer</font>:  ProFTPD determines the available bytes for
+the <code>%F</code>/<code>%f</code> variables <i>based on the filesystem
+containing the <code>Display</code> file</i>.
+
+<p>
+For example, if your <code>Display</code> file is in <code>/etc/proftpd</code>,,
+and the <code>/etc</code> directory is mounted on a small disk, then
+<code>%F</code>/<code>%f</code> will only report on the bytes available in the
+<code>/etc</code> filesystem, not on other filesystems (<i>e.g.</i> not
+the <code>/home</code> filesystem).
+
+<br><hr>
+<font size=2><b><i>
+&copy; Copyright 2012-2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

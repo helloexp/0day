@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Logins and Authentication</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Logins and Authentication</b></h2></center>
+<hr>
+
+<p>
+Logging into <code>proftpd</code> and being successfully authenticated by
+the server involves a lot of different modules and different checks.  This
+document aims to discuss the sort of checks and configuration involved, and
+hopefully provide a better idea of how <code>proftpd</code> authenticates users.
+
+<p><b>PAM</b><br>
+PAM, which stands for <b>P</b>luggable <b>A</b>uthentication <b>M</b>odules,
+is an API intended to make it easy to replace the old Unix-style DES password
+hashes stored in <code>/etc/passwd</code> with a flexible system that allows
+system administrators to use MD5 checksums, SQL tables, LDAP servers,
+RADIUS servers, <i>etc</i> in place of that password check.  However, what
+PAM does <b>not</b> provide is the rest of the user account information in
+<code>/etc/passwd</code>, <i>i.e.</i> the user's UID and GID, home directory,
+and shell.  This means that PAM <b>cannot</b> be used as a drop-in replacement
+for user information stored in <code>/etc/passwd</code>. <a href="http://www.gnu.org/manual/glibc-2.2.5/html_node/Name-Service-Switch.html#Name%20Service%20Switch">NSS</a> (<b>N</b>ame <b>S</b>ervice <b>S</b>witch) modules, supported by
+some operating systems, are a complementary API to PAM which can be used to
+supply the rest of this user information.  <code>proftpd</code> uses the normal
+<code>libc</code> functions for looking up user information, and those
+<code>libc</code> functions typically read <code>/etc/passwd</code>.  NSS is
+an abstraction layer within some <code>libc</code> implementations that causes
+those functions to read other sources rather than <code>/etc/passwd</code>.
+Regardless of NSS support, <code>proftpd</code> has support for
+&quot;<a href="#virtual">virtual</a>&quot; users via its authentication
+<a href="#modules">modules</a>.
+
+<p>
+When configuring <code>proftpd</code>, the <code>configure</code> script
+will automatically try to determine whether your operating system supports PAM.
+If it does, the <code>mod_auth_pam</code> module will automatically be compiled
+into your <code>proftpd</code>.  If you explicitly do not want PAM support,
+you can use the <code>--disable-auth-pam</code> configure option to disable
+this automatic detection.  The point of using PAM is that it can provide an
+extra authentication step during a login.  By &quot;authentication&quot;, I
+mean that PAM answers a yes/no question: &quot;Is this user who they say they
+are?&quot;.  PAM modules are configured either in <code>/etc/pam.conf</code> or
+<code>/etc/pam.d/</code>, depending on your operating system.  However,
+many of the PAM modules provided by vendors are not designed to work well
+with some of the authentication <a href="#modules">modules</a> supported by
+<code>proftpd</code>.  If PAM is not a necessity for you, and you plan to
+use one of the authentication modules (other than <code>mod_auth_unix</code>),
+then you need do nothing.  By default, proftpd uses PAM as an <i>additional</i>
+check during logins, but if that check fails, the login may still succeed.
+If you <i>do</i> need the PAM check to be authoritative, then you need to
+use the <code>AuthOrder</code> directive, <i>e.g.</i>:
+<pre>
+  AuthOrder mod_auth_pam.c* ...
+</pre>
+To disable use of PAM entirely, use:
+<pre>
+  &lt;IfModule mod_auth_pam.c&gt;
+    AuthPAM off
+  &lt;/IfModule&gt;
+</pre>
+
+<p><a name="directives"><b>Configuration Directives</b><br>
+There are several configuration directives that can cause login problems.
+The most common one is <a href="../modules/mod_auth.html#RequireValidShell"><code>RequireValidShell</code></a>, so common that it is a
+<a href="http://www.proftpd.org/docs/faq/faq_full.html#AEN267">FAQ</a>.
+If <code>proftpd</code> does not actually <i>use</i> the shell configured for
+a user, why does it check to see if the shell is valid by looking in
+<code>/etc/shells</code>?  Certain other FTP servers (<i>e.g.</i>
+<code>wu-ftpd</code>, <code>pure-ftpd</code>) do check for invalid shells and
+deny logins based on this criterion; <code>proftpd</code> follows this pattern
+so as not to surprise too many system administrators.  Use of invalid shells
+is a common sysadmin trick for denying shell-based login access (<i>e.g.</i>
+<code>ssh</code> logins); many sites use other means, however, and so use of
+the <code>RequireValidShell</code> directive is also frequently seen.
+
+<p>
+Another reason why a client cannot login might be if the login user is
+<code>root</code> (or has a UID of zero, and hence has root privileges).
+Logging in as <code>root</code> is dangerous, and should be avoided if
+possible.  If you do find it absolutely necessary to login as <code>root</code>,
+<i>please</i> use <a href="TLS.html">SSL/TLS</a>, or at least <a href="SSH.html">tunnel</a> your FTP connection using SSH.  The <a href="../modules/mod_auth.html#RootLogin"><code>RootLogin</code></a> configuration directive is needed
+in your <code>proftpd.conf</code> in order for <code>proftpd</code> to
+explicitly allow root logins.
+
+<p>
+One uncommon obstacle that you might encounter to allowing a user to login is
+the possibility that that user is listed in an <code>/etc/ftpusers</code>
+file.  This is another legacy check, courtesy of <code>wu-ftpd</code>.
+Any user that is listed in <code>/etc/ftpusers</code> is <b>not</b> allowed
+to login via FTP.  A little backwards from what might be expected from the
+file name, I agree.  <code>proftpd</code> was made to similarly honor any <code>/etc/ftpusers</code> file by default in order to ease the pain for sites
+migrating from <code>wu-ftpd</code> to <code>proftpd</code>. Disabling
+<code>proftpd</code>'s check for this file is as simple as using the
+<a href="../modules/mod_auth.html#UseFtpUsers"><code>UseFtpUsers</code></a>
+configuration directive, like so:
+<pre>
+  UseFtpUsers off
+</pre>
+in your <code>proftpd.conf</code> file.
+
+<p>
+The <a href="../modules/mod_auth_unix.html#PersistentPasswd"><code>PersistentPasswd</code></a> configuration directive can
+be necessary in some environments, particularly those that use NIS/YP,
+NSS modules, or (in the case of Mac OSX) the <code>netinfo</code> service.
+In order to be able to lookup and map UIDs and GIDs to names, as when
+listing directories and files, <code>proftpd</code> tries to keep the
+<code>/etc/passwd</code> file open.  This is particularly relevant if the
+<code>DefaultRoot</code> directive is in effect, for once <code>chroot</code>ed,
+<code>proftpd</code> cannot open <code>/etc/passwd</code>.  However, services
+such as NIS, NSS, and <code>netinfo</code> function very differently while
+providing a file-like interface, and they do not function properly if
+<code>proftpd</code> keeps them open.  Using:
+<pre>
+  PersistentPasswd off
+</pre>
+in your <code>proftpd.conf</code> should cause name lookups to work
+properly if you use NIS, NSS, or <code>netinfo</code>.
+
+<p>
+If you feel your logins are slow, then you might be encountering another
+<a href="http://www.proftpd.org/docs/faq/faq_full.html#AEN519">FAQ</a>.
+The timeouts when performing RFC931 <code>ident</code> lookups, and
+DNS reverse resolutions, add a noticeable delay to a login.
+
+<p><a name="anonymous"><b>Anonymous Logins</b><br>
+Anonymous logins are allowed by defining an <a href="http://www.proftpd.org/docs/directives/linked/config_ref_Anonymous.html"><code>&lt;Anonymous&gt;</code></a>
+section, or <i>context</i>, in your <code>proftpd.conf</code>.  No
+<code>&lt;Anonymous&gt;</code> contexts mean that <code>proftpd</code> will
+not allow anonymous logins.  As the documentation describes,
+<code>proftpd</code> knows to treat a given login name (given to the server by
+the client via the <code>USER</code> FTP command) by seeing if the login
+name is the same as the <code>User</code> name in an
+<code>&lt;Anonymous&gt;</code> context.  For example:
+<pre>
+  &lt;Anonymous /var/ftp/anon/dave&gt;
+    User dave
+    Group ftpanon
+    ...
+  &lt;/Anonymous&gt;
+</pre>
+would cause any client logging in as <code>dave</code> to be treated as an
+anonymous login, and to be handled using the <code>&lt;Anonymous&gt;</code>
+context above.  This structure allows for multiple login names to be treated
+as anonymous logins, and for each anonymous login to have its own specific
+anonymous configuration.  Some administrators use <code>&lt;Anonymous&gt;</code>
+contexts to define &quot;virtual&quot; users directly in their
+<code>proftpd.conf</code>, but this practice is <b>discouraged</b>.  Virtual
+user accounts are discussed next.
+
+<p><a name="homedir"><b>Resolving <code>~</code></b><br>
+The <code>DefaultRoot</code> directive is commonly used to restrict or
+&quot;<a href="Chroot.html">jail</a>&quot; users into specific directories,
+usually their individual home directories.  This is done via:
+<pre>
+  DefaultRoot ~
+</pre>
+where the tilde (<code>~</code>) is expanded to the home directory of the
+logging in user.  Now, when <code>proftpd</code> is resolving the tilde,
+it switches to the privileges of the logging-in user and attempts to resolve
+the home directory.  This ensures that the user will, once restricted to
+that directory, will have the ability to see files and move around.  So
+if using the tilde does not appear to be working in your configuration,
+double-check that the permissions on the home directory of the user in
+question at least allow that user to change into the directory (which requires
+execute permission on the home directory).  If <code>proftpd</code> finds
+that the permissions are too restrictive, an error message like:
+<pre>
+  chroot("~"): No such file or directory
+</pre>
+will be logged.
+
+<p><a name="virtual"><b>Virtual Users</b><br>
+One question that often arises is &quot;How do I create a proftpd user?&quot;
+<code>proftpd</code> uses your system's <code>/etc/passwd</code> file by
+default, and so <code>proftpd</code> users are the same as your system users.
+&quot;Virtual&quot; users, sometimes described as FTP-only user accounts, are
+users that can login to <code>proftpd</code>, but who are separate from the
+normal system users, and who do not have entries in <code>/etc/passwd</code>.
+<code>proftpd</code> does not care how or where user information is defined.
+The daemon is designed with an abstraction layer on top of user information
+sources, and that abstraction is responsible for supplying that data that is
+<b>required</b> for every user: a name, a UID, a GID, a home directory, and a
+shell.  A user's shell will not be used except in
+<code>RequireValidShell</code> checks, but it must still present.  The code
+that is responsible for supplying this data, reading it from whatever storage
+format is supported, lies in <code>proftpd</code>'s various configurable
+authentication modules.
+
+<p><a name="modules"><b>Authentication Modules</b><br>
+<code>proftpd</code> uses authentication modules for accessing user account
+information.  These modules implement an API that that daemon uses to
+lookup account information by name or by ID, to authenticate a user using
+the provided password, and to resolve names to IDs or IDs to names.  The
+following authentication modules are all provided with <code>proftpd</code>:
+<ul>
+  <li><code>mod_auth_unix</code><br>
+    Handles normal authentication via <code>/etc/passwd</code>, <code>/etc/group</code>
+  </li>
+
+  <p>
+  <li><a href="../modules/mod_auth_file.html"><code>mod_auth_file</code></a><br>
+    Handles the <code>AuthUserFile</code> and <code>AuthGroupFile</code> directives, for storing user account information in <a href="AuthFiles.html">other files</a>
+  </li>
+
+  <p>
+  <li><a href="../contrib/mod_ldap.html"><code>mod_ldap</code></a><br>
+    Handles user account information stored in LDAP directories
+  </li>
+
+  <p>
+  <li><a href="../contrib/mod_radius.html"><code>mod_radius</code></a><br>
+    Handles user account information provided by RADIUS servers
+  </li>
+
+  <p>
+  <li><a href="../contrib/mod_sql.html"><code>mod_sql</code></a><br>
+    Handles user account information stored in <a href="SQL.html">SQL tables</a>
+  </li>
+</ul>
+Note that <code>mod_auth_pam</code> is not on this list because it cannot
+provide the necessary user account information.  It can be used to supplement
+other auth modules by adding its PAM checks, however.
+
+<p><a name="order">
+Since <code>proftpd</code> supports multiple authentication modules at the
+same time, how does it know which authentication module to use?  What if you
+want to tell <code>proftpd</code> which modules to check, and in which order?
+What if you want some authentication modules to be used in one
+<code>&lt;VirtualHost&gt;</code>, and different authentication modules in
+another?
+
+<p>
+By default, <code>proftpd</code> will ask every configured authentication
+module about a given user, until it finds an authentication module that knows
+about that user, or until an authentication module signals an unrecoverable
+error.  The order in which these modules are asked depends on the order of
+modules in the <code>--with-modules</code> option used when configuring
+<code>proftpd</code>.
+
+<p>
+Some modules can be figured to not &quot;play nice&quot; and allow other
+authentication modules a chance at providing user information.  That is, some
+modules can be &quot;authoritative&quot;, and if that module does not know
+about the user, it will signal an error and prevent <code>proftpd</code>
+from asking other modules.  <code>mod_auth_pam</code>'s
+<code>AuthPAMAuthoritative</code> directive, and the <code>*</code> syntax
+in the <code>SQLAuthenticate</code> directive of <code>mod_sql</code>, are
+examples of this authoritativeness.  In general, it is best to avoid using
+such mechanisms, and to use the
+<a href="../modules/mod_core.html#AuthOrder"><code>AuthOrder</code></a> configuration directive instead.
+
+<p>
+The following illustrates a situation where <code>AuthOrder</code> is
+useful.  The default build of <code>proftpd</code> has two authentication
+modules included: <code>mod_auth_file</code> and <code>mod_auth_unix</code>.
+<code>proftpd</code> will consult <b>both</b> modules when authenticating a
+user: first <code>mod_auth_file</code>, then <code>mod_auth_unix</code>.
+(<i>Note</i>: versions of <code>proftpd</code> before 1.2.8rc1 would only
+support either <code>AuthUserFile</code> or <code>/etc/passwd</code>, but not
+both at the same time.)  If any authentication module can authenticate a user,
+then authentication succeeds. This holds true of other authentication modules
+like <code>mod_ldap</code>, <code>mod_sql</code>, <code>mod_radius</code>,
+<i>etc</i>.
+
+<p>
+However, if you only want <code>proftpd</code> to use your
+<code>AuthUserFile</code> and no other authentication modules, then you would
+use the <code>AuthOrder</code> directive like this:
+<pre>
+  AuthOrder mod_auth_file.c
+</pre>
+Or, if you use <code>mod_sql</code> and wanted <code>proftpd</code> to check
+your SQL tables first, and then default to system users:
+<pre>
+  AuthOrder mod_sql.c mod_auth_unix.c
+</pre>
+Note that the <code>mod_auth.c</code> module should <b>never</b> be used in an
+<code>AuthOrder</code> directive.
+
+<p><a name="FAQ"></a>
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="LogPassword">
+<font color=red>Question</font>: How can I configure <code>proftpd</code> to
+log/show the password typed by the user?<br>
+<font color=blue>Answer</font>:  You cannot.  Period.  The <code>proftpd</code>
+code goes out of its way to ensure that the password is never logged.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

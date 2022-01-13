@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Sendfile Support</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Sendfile Support</b></h2></center>
+<hr>
+
+<p>
+<b>What is "sendfile"?</b><br>
+Many Unix kernels provide a function called <code>sendfile(2)</code>,
+a system call which provides a "zero-copy" way of copying data from one
+file (or socket) descriptor to another.  The phrase "zero-copy" refers to the
+fact that all of the copying of data between the two descriptors is done
+entirely by the kernel, with no copying of data into userspace buffers.
+The normal way of copying data between files involves using the
+<code>read(2)</code> system call to read data from the source descriptor
+into a userspace buffer, then calling the <code>write(2)</code> system call
+to write that buffer to the destination descriptor.  This copying of the
+data <i>twice</i> (once into the userland buffer, and once out from that
+userland buffer) imposes some performance and resource penalties.  The
+<code>sendfile(2)</code> avoids these penalties by avoiding any use of
+userland buffers; it also results in a single system call (and thus only
+one context switch), rather than the series of
+<code>read(2)</code>/<code>write(2)</code> system calls (each system call
+requiring a context switch) usually used for data copying.
+
+<p>
+Unix kernels handle a socket as just another file descriptor; this means
+that <code>sendfile(2)</code> can be used to efficiently copy data from
+a file on disk to a network socket, <i>e.g.</i> for downloading a file.
+
+<p>
+<b>Use of <code>sendfile(2)</code> in ProFTPD</b><br>
+For the above reasons, ProFTPD will, by default, attempt to use the
+<code>sendfile(2)</code> function for all downloads.  However, there are
+a few cases where ProFTPD will specifically avoid the use of
+<code>sendfile(2)</code>:
+<ul>
+  <li>When data are transferred in <a href="ASCII.html">ASCII</a> mode;
+    note that this automatically applies to directory listings (which,
+    by definition, are ASCII transfers)
+  <li>When RFC2228 data channel protection is in effect (<i>e.g.</i>
+    <a href="TLS.html">SSL/TLS</a>)
+  <li>When transfers are being throttled via the <code>TransferRate</code>
+    directive
+  <li>When <code>MODE Z</code> data compression is being used (via the
+    <code>mod_deflate</code> module)
+</ul>
+The use of <code>sendfile(2)</code> can also be explicitly configured at
+run-time by using the following in your <code>proftpd.conf</code> file:
+<pre>
+  UseSendfile off
+</pre>
+
+<p>
+Sendfile support in the compiled <code>proftpd</code> daemon can also be
+disabled at compile time, by using the <code>--disable-sendfile</code>
+configure option, <i>e.g.</i>:
+<pre>
+  $ ./configure --disable-sendfile ...
+</pre>
+This is not recommended unless necessary.
+
+<p>
+<b>Known Issues with <code>sendfile(2)</code></b><br>
+As useful as the <code>sendfile(2)</code> function can be, there are
+unfortunately cases where bad implementations of the function can cause
+problems.  These problems manifest as broken or aborted downloads, or as
+downloaded data being corrupted, or even as downloaded files being larger
+than the original file.
+
+<p>
+The <code>sendfile(2)</code> function requires support from both the Unix
+kernel <i>and</i> from the filesystem drivers which handle the filesystems
+for the file descriptors being used.  The following operating systems
+have had reports of issues when using <code>sendfile(2)</code>:
+<ul>
+  <li><a href="http://forums.proftpd.org/smf/index.php?topic=2860.0">AIX 5.2</a>
+  <li><a href="http://forums.proftpd.org/smf/index.php?topic=3605.0">Solaris 10 x86</a>
+  <li>PA-RISC Linux
+</ul>
+There have also been some issues reported from users of virtualization
+technologies such as OpenVZ and VMware.
+
+<p>
+There have been cases where it was the filesystems, rather than the kernels,
+which appeared to have been the culprits in <code>sendfile(2)</code>
+problems:
+<ul>
+  <li>Network filesystems (<i>e.g</i> NFS, SMBFS/Samba, CIFS)
+  <li>Virtualized filesystems (OpenVZ, VMware, and even
+    <a href="http://bugs.proftpd.org/show_bug.cgi?id=2734">Veritas</a>)
+  <li>Other filesystems (<i>e.g.</i> NTFS and <code>tmpfs</code> on Linux)
+</ul>
+Again, if you encounter issues with downloading files from ProFTPD when those
+files reside on a networked or virtualized filesystem, try using
+"UseSendfile off" in your <code>proftpd.conf</code>.
+
+<p>
+Bugs in certain network cards have been reported on Linux, where the use
+of <code>sendfile(2)</code> triggers TCP checksum offloading bugs on these
+cards when using IPv6.
+
+<p>
+<a href="http://bugs.proftpd.org/show_bug.cgi?id=3081">Bug 3081</a> also
+demonstrates an interesting <code>sendfile(2)</code> issue.  It is a special
+case where the FTP client and server are on the same machine, 
+<code>sendfile(2)</code> is used when downloading a file, and the client is
+downloading the file to the <i>exact same filesystem path</i> from which the
+server is reading the file.  When this happens, <code>proftpd</code> will
+"hang".  The fix for this situation is relatively simple: "Don't do that."
+
+<p>
+If your Unix kernel and your filesystems work together to support
+the use of <code>sendfile(2)</code> properly, you may run into one last
+potential issue with ProFTPD's <code>ftptop</code> and <code>ftpwho</code>
+utilities when <code>sendfile(2)</code> is used (at least for versions of
+<code>proftpd</code> prior to 1.3.4rc1).  These utilities rely on
+data in ProFTPD's <a href="Scoreboard.html"><code>ScoreboardFile</code></a>
+for providing their information, including transfer rates.  The progress
+of a file being downloaded is tracked in the <code>ScoreboardFile</code>
+as part of the download process; specifically, as part of the normal
+<code>read(2)</code>/<code>write(2)</code> loop.  When the
+<code>sendfile(2)</code> function is used, the <code>ScoreboardFile</code> is
+not updated with the progress (since all of the data copying is being handled
+by the kernel, not by <code>proftpd</code> code at that point).  Thus
+for downloads which use <code>sendfile(2)</code>, <code>ftptop</code> and
+<code>ftpwho</code> often report the transfer rate as "Inf".
+
+<p>
+The transfer rates for <i>uploads</i> are still reported properly by
+<code>ftptop</code> and <code>ftpwho</code>, however.
+
+<p>
+In <code>proftpd-1.3.4rc1</code> and later, the <code>UseSendfile</code>
+directive changed.  Now you can use <code>UseSendfile</code> in
+<code>&lt;Directory&gt;</code> sections and <code>.ftpaccess</code> files.
+This allows sites to disable use of <code>sendfile(2)</code> just for specific
+directories/filesystems where it might be a problem, <i>e.g.</i>:
+<pre>
+  &lt;Directory /path/to/nfs/files&gt;
+    UseSendfile off
+  &lt;/Directory&gt;
+</pre>
+
+<p>
+Instead of the usual <em>on/off</em> parameters, the <code>UseSendfile</code>
+directive can also take a byte length, or a file size percentage, as parameters.
+These parameters can be used so that <code>sendfile(2)</code> is used for
+more optimal downloads <b>while still letting <code>ftptop</code> and
+<code>ftpwho</code> display download progress rates</b>.  To use this, the
+best way to use specify a file size percentage such as 10% or 25%; this means
+that <code>sendfile(2)</code> will be used for each 10% or 25% percent of
+the size of the file being downloaded:
+<pre>
+  &lt;Directory /&gt;
+    UseSendfile 10%
+  &lt;/Directory&gt;
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Note that to use proftpd via this socket file, you will need:
+#
+#   ServerType inetd
+#
+# in /etc/proftpd.conf
+
+[Unit]
+Description=ProFTPD FTP Server Activation Socket
+Conflicts=proftpd.service
+
+[Socket]
+ListenStream=21
+Accept=true
+
+[Install]
+WantedBy=sockets.target

@@ -1,0 +1,56 @@
+CONTRIBUTING TO EXIM
+====================
+
+Exim is an open-source project licensed under the GNU General Public License.
+At time of writing, all the developers work on Exim on a volunteer basis.
+We welcome patches and contributions.  There is no copyright assignment
+policy; if you offer a patch, it is assumed to be under the GPL, of whichever
+version the main developers see fit to use.
+
+Mistakes or inadequacies in the documentation are treated as bugs.  The main
+documentation is called "The Exim Specification" for a reason.  So if you
+can't code there are still places where your help will be very appreciated.
+
+General discussion, requests for help, and initial "is this a bug?" questions
+go to <exim-users@exim.org>.  Many suspected bugs turn out to not be bugs, so
+asking first is appreciated.
+
+Our main website is at http://www.exim.org/ and contains links to our wiki,
+where many frequent setups are walked through.  You will also find our
+bug-tracking system linked there.
+
+Development takes place in part on exim-users, when bugs or missing features
+are spotted based on feedback from people actually using the product.  In
+large part, discussion takes place on <exim-dev@exim.org>.  While you can use
+the bug-tracking system, everyone working on Exim, a mail transfer agent, is
+comfortable dealing with just email too, so you can use whichever you're most
+comfortable with.
+
+If you have an idea for a new feature, please do raise it on exim-users first.
+
+Our code is maintained in a Git repository.  The master repository, together
+with some others, can be found on http://git.exim.org/ and we welcome patches,
+whether of documentation or of code.  If you have a request for a new feature
+and can accompany it with working code, then it stands a much greater chance
+of being incorporated in a timely manner.
+
+If you're planning on working on a major new feature or redesign, please do
+talk to us first.
+
+We do not have a formal code-review process, but posted patches are subject to
+being reworked before being pulled in, or requests for modification made;
+we're a small enough pool of developers that we rely on the good judgement and
+discretion of the committer rather than formal process.
+
+We prefer new features to be accompanied by documentation patches, but if no
+new documentation is provided, we can write it and, in the process, perhaps
+uncover issues to work over with you.  Note that the PDF form of the
+documentation is faster to build than the TXT form.
+
+We do have a test harness and appreciate it if new features can be accompanied
+by new tests; if this is awkward for you, please do include sufficient
+description to allow someone else to write the test.
+
+
+-The Exim Maintainers
+ July 7th, 2010

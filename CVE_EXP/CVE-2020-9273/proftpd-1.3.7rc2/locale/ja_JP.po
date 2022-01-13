@@ -1,0 +1,980 @@
+# Template for ProFTPD Response String translations
+# Copyright (C) 2008-2009 The ProFTPD Project
+# This file is distributed under the same license as the ProFTPD package.
+# The ProFTPD Project <core@proftpd.org>, 2009.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: core@proftpd.org\n"
+"POT-Creation-Date: 2009-02-05 13:26-0800\n"
+"PO-Revision-Date: 2009-02-05 13:26-0800\n"
+"Last-Translator: Taizo ITO <taizoster@gmai.com>\n"
+"Language-Team: Taizo ITO <taizoster@gmail.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+#: ../contrib/mod_ban.c:1474 ../contrib/mod_tls.c:4566
+#: ../modules/mod_auth.c:1162 ../modules/mod_auth.c:1186
+#: ../modules/mod_auth.c:1220 ../modules/mod_auth.c:1231
+#: ../modules/mod_auth.c:1267 ../modules/mod_auth.c:1282
+#: ../modules/mod_auth.c:1293 ../modules/mod_auth.c:1731
+#: ../modules/mod_auth.c:1794 ../modules/mod_auth.c:1816
+#: ../modules/mod_auth.c:1828 ../modules/mod_auth.c:1971
+#: ../modules/mod_auth.c:1982
+msgid "Login incorrect."
+msgstr "間違ったログインです"
+
+#: ../contrib/mod_quotatab.c:175 ../contrib/mod_quotatab.c:240
+msgid "upload"
+msgstr "アップロード"
+
+#: ../contrib/mod_quotatab.c:179 ../contrib/mod_quotatab.c:244
+msgid "download"
+msgstr "ダウンロード"
+
+#: ../contrib/mod_quotatab.c:183 ../contrib/mod_quotatab.c:248
+msgid "transfer"
+msgstr "転送"
+
+#: ../contrib/mod_quotatab.c:194
+#, c-format
+msgid "%.2f of %.2f %s %s"
+msgstr "%.2f of %.2f %s %s"
+
+#: ../contrib/mod_quotatab.c:195
+msgid "byte"
+msgstr "バイト"
+
+#: ../contrib/mod_quotatab.c:195
+msgid "bytes"
+msgstr "バイト"
+
+#: ../contrib/mod_quotatab.c:202
+#, c-format
+msgid "%.2f of %.2f %s Kb"
+msgstr "%.2f of %.2f %s Kb"
+
+#: ../contrib/mod_quotatab.c:210
+#, c-format
+msgid "%.2f of %.2f %s Mb"
+msgstr "%.2f of %.2f %s Mb"
+
+#: ../contrib/mod_quotatab.c:218
+#, c-format
+msgid "%.2f of %.2f %s Gb"
+msgstr "%.2f of %.2f %s Gb"
+
+#: ../contrib/mod_quotatab.c:255
+#, c-format
+msgid "%u of %u %s %s"
+msgstr ""
+
+#: ../contrib/mod_quotatab.c:256
+msgid "file"
+msgstr "ファイル"
+
+#: ../contrib/mod_quotatab.c:256
+msgid "files"
+msgstr "ファイル"
+
+#: ../contrib/mod_quotatab.c:274
+#, c-format
+msgid "bytes:\t%.2f/%.2f"
+msgstr "バイト:\t%.2f/%.2f"
+
+#: ../contrib/mod_quotatab.c:277
+#, c-format
+msgid "bytes:\tunlimited"
+msgstr "バイト:\t制限なし"
+
+#: ../contrib/mod_quotatab.c:286
+#, c-format
+msgid "Kb:\t%s%.2f/%.2f"
+msgstr "Kb:\t%s%.2f/%.2f"
+
+#: ../contrib/mod_quotatab.c:289
+#, c-format
+msgid "Kb:\tunlimited"
+msgstr "Kb:\t制限なし"
+
+#: ../contrib/mod_quotatab.c:298
+#, c-format
+msgid "Mb:\t%s%.2f/%.2f"
+msgstr "Mb:\t%s%.2f/%.2f"
+
+#: ../contrib/mod_quotatab.c:301
+#, c-format
+msgid "Mb:\tunlimited"
+msgstr "Mb:\t制限なし"
+
+#: ../contrib/mod_quotatab.c:310
+#, c-format
+msgid "Gb:\t%s%.2f/%.2f"
+msgstr "Gb:\t%s%.2f/%.2f"
+
+#: ../contrib/mod_quotatab.c:313
+#, c-format
+msgid "Gb:\tunlimited"
+msgstr "Gb:\t制限なし"
+
+#: ../contrib/mod_quotatab.c:332
+#, c-format
+msgid "files:\t%u/%u"
+msgstr "ファイル:\t%u/%u"
+
+#: ../contrib/mod_quotatab.c:335
+#, c-format
+msgid "files:\tunlimited"
+msgstr "ファイル:\t制限なし"
+
+#: ../contrib/mod_quotatab.c:1464 ../contrib/mod_quotatab.c:1471
+#: ../contrib/mod_quotatab.c:1519 ../contrib/mod_quotatab.c:1526
+#: ../contrib/mod_quotatab.c:2117 ../contrib/mod_quotatab.c:2126
+#: ../contrib/mod_quotatab.c:2139 ../contrib/mod_quotatab.c:2148
+#: ../contrib/mod_quotatab.c:2182 ../contrib/mod_quotatab.c:2194
+#: ../contrib/mod_quotatab.c:2210 ../contrib/mod_quotatab.c:2222
+#: ../contrib/mod_quotatab.c:2451 ../contrib/mod_quotatab.c:2477
+#: ../contrib/mod_quotatab.c:2507 ../contrib/mod_quotatab.c:2516
+#: ../contrib/mod_quotatab.c:2569 ../contrib/mod_quotatab.c:2601
+#: ../contrib/mod_quotatab.c:2635 ../contrib/mod_quotatab.c:2644
+#, c-format
+msgid "%s: notice: quota reached: used %s"
+msgstr "%s: 注意: 容量制限に達しました: 使用 %s"
+
+#: ../contrib/mod_quotatab.c:2045 ../contrib/mod_quotatab.c:2056
+#: ../contrib/mod_quotatab.c:2071 ../contrib/mod_quotatab.c:2082
+#: ../contrib/mod_quotatab.c:2344 ../contrib/mod_quotatab.c:2355
+#: ../contrib/mod_quotatab.c:2370 ../contrib/mod_quotatab.c:2381
+#, c-format
+msgid "%s denied: quota exceeded: used %s"
+msgstr "%s 拒否: 容量制限を越えました: 使用 %s"
+
+#: ../contrib/mod_quotatab.c:2466 ../contrib/mod_quotatab.c:2492
+#: ../contrib/mod_quotatab.c:2585 ../contrib/mod_quotatab.c:2617
+#, c-format
+msgid "%s: notice: quota reached: '%s' removed"
+msgstr "%s: 注意: 容量制限に達しました: '%s' 削除されました"
+
+#: ../contrib/mod_quotatab.c:2663 ../contrib/mod_site_misc.c:266
+#: ../contrib/mod_site_misc.c:315 ../contrib/mod_site_misc.c:358
+#: ../contrib/mod_site_misc.c:415 ../modules/mod_auth.c:66
+#: ../modules/mod_site.c:450
+msgid "Please login with USER and PASS"
+msgstr "ユーザー名とパスワードでログインしてください"
+
+#: ../contrib/mod_quotatab.c:2669
+msgid "'SITE QUOTA' not understood."
+msgstr "'SITE QUOTA' を認識できませんでした。"
+
+#: ../contrib/mod_quotatab.c:2684
+msgid "No quotas in effect"
+msgstr "有効な容量制限はありません"
+
+#: ../contrib/mod_quotatab.c:2692
+msgid "The current quota for this session are [current/limit]:"
+msgstr "このセッションの現在の容量制限は [現在/制限]:"
+
+#: ../contrib/mod_quotatab.c:2694
+#, c-format
+msgid "Name: %s"
+msgstr "名前: %s"
+
+#: ../contrib/mod_quotatab.c:2695
+#, c-format
+msgid "Quota Type: %s"
+msgstr "容量制限タイプ: %s"
+
+#: ../contrib/mod_quotatab.c:2696
+msgid "User"
+msgstr "ユーザー"
+
+#: ../contrib/mod_quotatab.c:2697
+msgid "Group"
+msgstr "グループ"
+
+#: ../contrib/mod_quotatab.c:2698
+msgid "Class"
+msgstr "クラス"
+
+#: ../contrib/mod_quotatab.c:2699 ../contrib/mod_quotatab.c:2707
+msgid "(unknown)"
+msgstr "(未知)"
+
+#: ../contrib/mod_quotatab.c:2699
+msgid "All"
+msgstr "全て"
+
+#: ../contrib/mod_quotatab.c:2701
+#, c-format
+msgid "Per Session: %s"
+msgstr "セッション毎: %s"
+
+#: ../contrib/mod_quotatab.c:2702
+msgid "False"
+msgstr "False"
+
+#: ../contrib/mod_quotatab.c:2702
+msgid "True"
+msgstr "True"
+
+#: ../contrib/mod_quotatab.c:2704
+#, c-format
+msgid "Limit Type: %s"
+msgstr "制限タイプ: %s"
+
+#: ../contrib/mod_quotatab.c:2705
+msgid "Hard"
+msgstr "Hard"
+
+#: ../contrib/mod_quotatab.c:2706
+msgid "Soft"
+msgstr "Soft"
+
+#: ../contrib/mod_quotatab.c:2709 ../contrib/mod_quotatab.c:2719
+#, c-format
+msgid "  Uploaded %s"
+msgstr "  アップロードされた %s"
+
+#: ../contrib/mod_quotatab.c:2712 ../contrib/mod_quotatab.c:2722
+#, c-format
+msgid "  Downloaded %s"
+msgstr "  ダウンロードされた %s"
+
+#: ../contrib/mod_quotatab.c:2715 ../contrib/mod_quotatab.c:2725
+#, c-format
+msgid "  Transferred %s"
+msgstr "  転送された %s"
+
+#: ../contrib/mod_quotatab.c:2731
+#, c-format
+msgid "Please contact %s if these entries are inaccurate"
+msgstr "これらのエントリが正しくなければ %s にコンタクトしてください"
+
+#: ../contrib/mod_quotatab.c:2732
+msgid "ftp-admin"
+msgstr "ftp-admin"
+
+#: ../contrib/mod_radius.c:2656 ../modules/mod_auth.c:1920
+msgid "Login with USER first"
+msgstr "まずユーザー名でログインしてください"
+
+#: ../contrib/mod_readme.c:74
+#, c-format
+msgid "Please read the file %s"
+msgstr "%sファイルを読んでください"
+
+#: ../contrib/mod_readme.c:75
+#, c-format
+msgid "   it was last modified on %.26s - %i %s ago"
+msgstr "   最終更新は %.26s - %i %s 前 です"
+
+#: ../contrib/mod_readme.c:76
+msgid "day"
+msgstr "日"
+
+#: ../contrib/mod_readme.c:76
+msgid "days"
+msgstr "日"
+
+#: ../contrib/mod_readme.c:92 ../modules/mod_ls.c:1566
+#, c-format
+msgid "Out of memory during globbing of %s"
+msgstr "%s の展開中に利用可能なメモリサイズをオーバーしました"
+
+#: ../contrib/mod_readme.c:95 ../modules/mod_ls.c:1570
+#, c-format
+msgid "Read error during globbing of %s"
+msgstr "%s の展開中に読み込みエラーが発生しました"
+
+#: ../contrib/mod_readme.c:98 ../modules/mod_ls.c:1574
+#, c-format
+msgid "Unknown error during globbing of %s"
+msgstr "%s の展開中に未知のエラーが発生しました"
+
+#: ../contrib/mod_site_misc.c:290 ../contrib/mod_site_misc.c:334
+#: ../contrib/mod_site_misc.c:386 ../contrib/mod_site_misc.c:532
+#: ../modules/mod_site.c:141 ../modules/mod_site.c:380
+#, c-format
+msgid "SITE %s command successful"
+msgstr "SITE %s コマンド 成功"
+
+#: ../contrib/mod_tls.c:4310 ../contrib/mod_tls.c:4322
+#: ../contrib/mod_tls.c:4332
+msgid "SSL/TLS required on the control channel"
+msgstr "SSL/TLS は制御チャネルで必要です"
+
+#: ../contrib/mod_tls.c:4348
+msgid "SSL/TLS required on the data channel"
+msgstr "SSL/TLS はデータチャネルで必要です"
+
+#: ../contrib/mod_tls.c:4369
+msgid "Unwilling to accept second AUTH"
+msgstr "再度 AUTH コマンドは受け付けられません"
+
+#: ../contrib/mod_tls.c:4374
+msgid "AUTH requires at least one argument"
+msgstr "AUTH コマンドは少なくとも一つの引数が必要です"
+
+#: ../contrib/mod_tls.c:4380 ../contrib/mod_tls.c:4470
+#: ../contrib/mod_tls.c:4479 ../contrib/mod_tls.c:4599
+#: ../contrib/mod_tls.c:4617 ../contrib/mod_tls.c:4637
+msgid "Unwilling to accept security parameters"
+msgstr "セキュリティパラメータは受け付けられません"
+
+#: ../contrib/mod_tls.c:4390 ../contrib/mod_tls.c:4418
+#, c-format
+msgid "AUTH %s successful"
+msgstr "AUTH %s 成功"
+
+#: ../contrib/mod_tls.c:4403 ../contrib/mod_tls.c:4431
+msgid "TLS handshake failed"
+msgstr "TLSハンドシェイクに失敗しました"
+
+#: ../contrib/mod_tls.c:4465
+msgid "CCC not allowed on insecure control connection"
+msgstr "CCC はセキュアでない制御接続を許可しません"
+
+#: ../contrib/mod_tls.c:4489
+msgid "Clearing control channel protection"
+msgstr "制御チャネルのプロテクションをクリアします"
+
+#: ../contrib/mod_tls.c:4518
+msgid "PBSZ not allowed on insecure control connection"
+msgstr "PBSZ はセキュアでない制御接続を許可しません"
+
+#: ../contrib/mod_tls.c:4524
+msgid "PBSZ 0 successful"
+msgstr "PBSZ 0 成功"
+
+#: ../contrib/mod_tls.c:4526
+msgid "PBSZ=0 successful"
+msgstr "PBSZ=0 成功"
+
+#: ../contrib/mod_tls.c:4587
+msgid "PROT not allowed on insecure control connection"
+msgstr "PROT はセキュアでない制御接続を許可しません"
+
+#: ../contrib/mod_tls.c:4593
+msgid "You must issue the PBSZ command prior to PROT"
+msgstr "PROTの前にPBSZコマンドを発行してください"
+
+#: ../contrib/mod_tls.c:4647 ../contrib/mod_tls.c:4660
+#, c-format
+msgid "PROT %s unsupported"
+msgstr "PROT %s はサポートしていません"
+
+#: ../contrib/mod_wrap.c:911 ../contrib/mod_wrap2/mod_wrap2.c:1566
+msgid "Access denied"
+msgstr "アクセスは拒否されました"
+
+#: ../include/dirtree.h:197 ../include/dirtree.h:203
+#: ../modules/mod_facts.c:603 ../modules/mod_facts.c:748
+#: ../modules/mod_facts.c:824 ../modules/mod_facts.c:937
+#: ../modules/mod_lang.c:347
+msgid "Invalid number of arguments"
+msgstr "引数の数が不正です"
+
+#: ../modules/mod_auth.c:80
+#, c-format
+msgid "Login Timeout (%d seconds): closing control connection"
+msgstr "ログインタイムアウト (%d 秒): 制御接続をクローズします"
+
+#: ../modules/mod_auth.c:91
+#, c-format
+msgid "Session Timeout (%u seconds): closing control connection"
+msgstr "セッションタイムアウト (%u 秒): 制御接続をクローズします"
+
+#: ../modules/mod_auth.c:398
+msgid "Anonymous access granted, restrictions apply"
+msgstr "Anonymous アクセスが許可されました  ただし、使用制限が適用されます"
+
+#: ../modules/mod_auth.c:400
+#, c-format
+msgid "User %s logged in"
+msgstr "%s がログインしました"
+
+#: ../modules/mod_auth.c:1020
+msgid "Unable to set anonymous privileges."
+msgstr "anonymous権限がセットできませんでした"
+
+#: ../modules/mod_auth.c:1762 ../modules/mod_auth.c:1912
+msgid "You are already logged in"
+msgstr "既にログインしています"
+
+#: ../modules/mod_auth.c:1765
+msgid "USER: command requires a parameter"
+msgstr "USER: コマンドには引数が必要です"
+
+#: ../modules/mod_auth.c:1847
+msgid "Anonymous login ok, send your complete email address as your password"
+msgstr "Anonymous ログインOK   パスワードにあなたのメールアドレスを入力してください"
+
+#: ../modules/mod_auth.c:1876
+#, c-format
+msgid "Password required for %s"
+msgstr "%s のパスワードを入力しください"
+
+#: ../modules/mod_auth.c:1989
+msgid "ACCT command not implemented"
+msgstr "ACCT コマンドは実装されていません"
+
+#: ../modules/mod_auth.c:1994
+msgid "REIN command not implemented"
+msgstr "REIN コマンドは実装されていません"
+
+#: ../modules/mod_core.c:132
+#, c-format
+msgid "Idle timeout (%d seconds): closing control connection"
+msgstr "アイドルタイムアウト (%d 秒): 制御接続をクローズします"
+
+#: ../modules/mod_core.c:2881 ../modules/mod_core.c:2892
+#, c-format
+msgid "%s: Forbidden command argument"
+msgstr "%s: 許可されないコマンド引数です"
+
+#: ../modules/mod_core.c:2932
+msgid "Goodbye."
+msgstr "さようなら."
+
+#: ../modules/mod_core.c:2972
+#, c-format
+msgid "\"%s\" is the current directory"
+msgstr "カレントディレクトリは \"%s\" です"
+
+#: ../modules/mod_core.c:2984
+msgid "Illegal PASV command, EPSV ALL in effect"
+msgstr "Illegal PASV command, EPSV ALL in effect"
+
+#: ../modules/mod_core.c:3029 ../modules/mod_core.c:3552
+msgid "Unable to build data connection: Internal error"
+msgstr "データ接続を確立できません: 内部エラー"
+
+#: ../modules/mod_core.c:3086 ../modules/mod_core.c:3226
+msgid "Illegal PORT command, EPSV ALL in effect"
+msgstr "Illegal PORT command, EPSV ALL in effect"
+
+#: ../modules/mod_core.c:3111
+msgid "Unable to service PORT commands"
+msgstr "PORTコマンドを使用できません"
+
+#: ../modules/mod_core.c:3119 ../modules/mod_core.c:3126
+#: ../modules/mod_core.c:3149 ../modules/mod_core.c:3175
+#: ../modules/mod_core.c:3184 ../modules/mod_core.c:3197
+msgid "Illegal PORT command"
+msgstr "不正なPORTコマンドです"
+
+#: ../modules/mod_core.c:3212
+msgid "PORT command successful"
+msgstr "PORTコマンド 成功"
+
+#: ../modules/mod_core.c:3254
+msgid "Unable to service EPRT commands"
+msgstr "EPRTコマンドを使用できません"
+
+#: ../modules/mod_core.c:3281 ../modules/mod_core.c:3504
+msgid "Network protocol not supported, use (1,2)"
+msgstr "ネットワークプロトコルがサポートされていません。 use (1,2)"
+
+#: ../modules/mod_core.c:3283 ../modules/mod_core.c:3285
+#: ../modules/mod_core.c:3506 ../modules/mod_core.c:3508
+msgid "Network protocol not supported, use (1)"
+msgstr "ネットワークプロトコルがサポートされていません。 use (1)"
+
+#: ../modules/mod_core.c:3301 ../modules/mod_core.c:3307
+#: ../modules/mod_core.c:3332 ../modules/mod_core.c:3348
+#: ../modules/mod_core.c:3368 ../modules/mod_core.c:3383
+#: ../modules/mod_core.c:3396
+msgid "Illegal EPRT command"
+msgstr "不正なEPRTコマンドです"
+
+#: ../modules/mod_core.c:3425
+msgid "EPRT command successful"
+msgstr "EPRTコマンド 成功"
+
+#: ../modules/mod_core.c:3453
+msgid "EPSV ALL command successful"
+msgstr "EPSV ALLコマンド 成功"
+
+#: ../modules/mod_core.c:3465
+#, c-format
+msgid "%s: unknown network protocol"
+msgstr "%s: 未知のネットワークプロトコル"
+
+#: ../modules/mod_core.c:3608
+#, c-format
+msgid "Unknown command '%s'"
+msgstr "未知のコマンド '%s'"
+
+#: ../modules/mod_core.c:3834 ../modules/mod_core.c:3896
+#: ../modules/mod_core.c:4208
+#, c-format
+msgid "%s command successful"
+msgstr "%sコマンド 成功"
+
+#: ../modules/mod_core.c:3855 ../modules/mod_core.c:3865
+#: ../modules/mod_core.c:3923 ../modules/mod_core.c:3933
+#: ../modules/mod_core.c:4147 ../modules/mod_core.c:4157
+#: ../modules/mod_core.c:4242 ../modules/mod_core.c:4252
+#: ../modules/mod_core.c:4340 ../modules/mod_core.c:4350
+#: ../modules/mod_site.c:99 ../modules/mod_site.c:109
+#: ../modules/mod_site.c:174 ../modules/mod_site.c:184
+#: ../modules/mod_xfer.c:1436 ../modules/mod_xfer.c:1453
+#, c-format
+msgid "%s: Forbidden filename"
+msgstr "%s: 許可されないファイル名"
+
+#: ../modules/mod_core.c:3910
+#, c-format
+msgid "%s: Invalid directory name"
+msgstr "%s: 不正なディレクトリ名"
+
+#: ../modules/mod_core.c:4029
+#, c-format
+msgid "\"%s\" - Directory successfully created"
+msgstr "\"%s\" - ディレクトリの作成に成功しました"
+
+#: ../modules/mod_core.c:4068
+#, c-format
+msgid "%s: not a plain file"
+msgstr "%s: プレーンなファイルではありません"
+
+#: ../modules/mod_core.c:4103
+#, c-format
+msgid "%s not allowed in ASCII mode"
+msgstr "%s ASCIIモードでは許可されません"
+
+#: ../modules/mod_core.c:4118
+#, c-format
+msgid "%s: not a regular file"
+msgstr "%s: 通常のファイルではありません"
+
+#: ../modules/mod_core.c:4229
+msgid "Bad sequence of commands"
+msgstr "コマンドの発行順序が違います"
+
+#: ../modules/mod_core.c:4268
+#, c-format
+msgid "%s: Rename permission denied"
+msgstr "%s: リネームが許可されていません"
+
+#: ../modules/mod_core.c:4283 ../modules/mod_core.c:4298
+#, c-format
+msgid "Rename %s: %s"
+msgstr "リネーム %s: %s"
+
+#: ../modules/mod_core.c:4311
+msgid "Rename successful"
+msgstr "リネーム 成功"
+
+#: ../modules/mod_core.c:4375
+msgid "File or directory exists, ready for destination name"
+msgstr "ファイルまたはディレクトリが存在します。他の名前にしてください。"
+
+#: ../modules/mod_core.c:4382
+msgid "NOOP command successful"
+msgstr "NOOPコマンド 成功"
+
+#: ../modules/mod_core.c:4399
+msgid ""
+"Features:\n"
+" "
+msgstr "機能:\n "
+
+#: ../modules/mod_core.c:4414
+msgid "End"
+msgstr "終了"
+
+#: ../modules/mod_core.c:4417
+msgid "No features supported"
+msgstr "サポートされた機能はありません"
+
+#: ../modules/mod_facts.c:623 ../modules/mod_facts.c:768
+#: ../modules/mod_facts.c:840 ../modules/mod_facts.c:848
+#: ../modules/mod_facts.c:953 ../modules/mod_lang.c:327
+#: ../modules/mod_lang.c:342
+msgid "Unable to handle command"
+msgstr "コマンドを処理できません"
+
+#: ../modules/mod_facts.c:722
+#, c-format
+msgid "Cannot modify fact '%s'"
+msgstr "fact '%s' を変更できません"
+
+#: ../modules/mod_facts.c:864
+#, c-format
+msgid "'%s' is not a directory"
+msgstr "'%s' はディレクトリではありません"
+
+#: ../modules/mod_facts.c:877 ../modules/mod_facts.c:961
+#, c-format
+msgid "'%s' cannot be listed"
+msgstr "'%s' は一覧できません"
+
+#: ../modules/mod_facts.c:970
+#, c-format
+msgid "%s- Start of list for %s"
+msgstr "%s- %sの一覧の始め"
+
+#: ../modules/mod_facts.c:972
+#, c-format
+msgid "%s End of list"
+msgstr "%s 一覧の終わり"
+
+#: ../modules/mod_facts.c:990 ../modules/mod_lang.c:429
+#: ../modules/mod_lang.c:435 ../modules/mod_xfer.c:1137
+#: ../modules/mod_xfer.c:1233 ../modules/mod_xfer.c:1741
+#: ../modules/mod_xfer.c:1812 ../modules/mod_xfer.c:2051
+#: ../modules/mod_xfer.c:2072 ../modules/mod_xfer.c:2093
+#: ../modules/mod_xfer.c:2103 ../modules/mod_xfer.c:2146
+#, c-format
+msgid "'%s' not understood"
+msgstr "'%s' は認識できません"
+
+#: ../modules/mod_lang.c:368
+#, c-format
+msgid "Using default language %s"
+msgstr "デフォルト言語 %s を使用します"
+
+#: ../modules/mod_lang.c:375
+#, c-format
+msgid "Language %s not supported"
+msgstr "言語 %s はサポートしていません"
+
+#: ../modules/mod_lang.c:408
+#, c-format
+msgid "Using language %s"
+msgstr "言語 %s を使用します"
+
+#: ../modules/mod_lang.c:446 ../modules/mod_lang.c:511
+msgid "UTF8 set to on"
+msgstr "UTF8を有効"
+
+#: ../modules/mod_lang.c:464 ../modules/mod_lang.c:495
+#: ../modules/mod_lang.c:506
+#, c-format
+msgid "Unable to accept %s"
+msgstr "%s を許可できません"
+
+#: ../modules/mod_lang.c:475 ../modules/mod_lang.c:519
+msgid "UTF8 set to off"
+msgstr "UTF8を無効"
+
+#: ../modules/mod_ls.c:1162
+#, c-format
+msgid "ERROR: %s"
+msgstr "エラー: %s"
+
+#: ../modules/mod_ls.c:1925
+#, c-format
+msgid "Status of '%s'"
+msgstr "'%s'の状態"
+
+#: ../modules/mod_ls.c:1926
+#, c-format
+msgid "Connected from %s (%s)"
+msgstr "%s (%s) から接続されました"
+
+#: ../modules/mod_ls.c:1928
+#, c-format
+msgid "Logged in as %s"
+msgstr "%s でログイン"
+
+#: ../modules/mod_ls.c:1929
+#, c-format
+msgid "TYPE: %s, STRUcture: File, Mode: Stream"
+msgstr "TYPE: %s, STRUcture: File, Mode: Stream"
+
+#: ../modules/mod_ls.c:1933
+msgid "Total bytes transferred for session: %"
+msgstr "セッションで転送された合計バイト数: %"
+
+#: ../modules/mod_ls.c:1940
+#, c-format
+msgid "%s from %s port %u"
+msgstr "%s from %s port %u"
+
+#: ../modules/mod_ls.c:1942
+msgid "Active data transfer to"
+msgstr "アクティブデータ転送 (to)"
+
+#: ../modules/mod_ls.c:1942
+msgid "Passive data transfer from"
+msgstr "パッシブデータ転送 (from)"
+
+#: ../modules/mod_ls.c:1957
+msgid "No data connection"
+msgstr "データ接続はありません"
+
+#: ../modules/mod_ls.c:1959 ../modules/mod_ls.c:2035
+msgid "End of status"
+msgstr "状態の終わり"
+
+#: ../modules/mod_ls.c:2031
+#, c-format
+msgid "Status of %s:"
+msgstr "%s の状態:"
+
+#: ../modules/mod_ls.c:2193
+msgid "No files found"
+msgstr "ファイルがみつかりません"
+
+#: ../modules/mod_ls.c:2291 ../modules/mod_xfer.c:1175
+#: ../modules/mod_xfer.c:1319 ../modules/mod_xfer.c:1836
+#, c-format
+msgid "%s: Not a regular file"
+msgstr "%s: 通常のファイルではありません"
+
+#: ../modules/mod_site.c:80 ../modules/mod_site.c:155
+#: ../modules/mod_site.c:457
+#, c-format
+msgid "'SITE %s' not understood"
+msgstr "'SITE %s' は認識できません"
+
+#: ../modules/mod_site.c:370
+#, c-format
+msgid "'%s': invalid mode"
+msgstr "'%s': 不正なモード"
+
+#: ../modules/mod_site.c:415
+#, c-format
+msgid "Syntax: SITE %s %s"
+msgstr "文法: SITE %s %s"
+
+#: ../modules/mod_site.c:420
+#, c-format
+msgid "Unknown command 'SITE %s'"
+msgstr "未知のコマンド 'SITE %s'"
+
+#: ../modules/mod_site.c:442
+msgid "'SITE' requires parameters"
+msgstr "'SITE' は引数が必要です"
+
+#: ../modules/mod_site.c:467
+msgid "The following SITE commands are recognized (* =>'s unimplemented)"
+msgstr "以下のSITEコマンドが認識できます (* =>'s unimplemented)"
+
+#: ../modules/mod_site.c:496 ../src/help.c:123
+#, c-format
+msgid "Direct comments to %s"
+msgstr "%s に対するダイレクトコメント"
+
+#: ../modules/mod_xfer.c:1035
+#, c-format
+msgid "%s: Bad file name"
+msgstr "%s: ファイル名が正しくありません"
+
+#: ../modules/mod_xfer.c:1051
+#, c-format
+msgid "%s: File name too long"
+msgstr "%s: ファイル名が長すぎます"
+
+#: ../modules/mod_xfer.c:1087
+#, c-format
+msgid "%s: Temporary hidden file %s already exists"
+msgstr "%s: 一時的な隠しファイル %s が既に存在します"
+
+#: ../modules/mod_xfer.c:1151 ../modules/mod_xfer.c:1238
+#: ../modules/mod_xfer.c:1398 ../modules/mod_xfer.c:1826
+#, c-format
+msgid "%s: Too many transfers"
+msgstr "%s: 転送数が多すぎます"
+
+#: ../modules/mod_xfer.c:1162 ../modules/mod_xfer.c:1311
+#, c-format
+msgid "%s: Overwrite permission denied"
+msgstr "%s: 上書きは許可されません"
+
+#: ../modules/mod_xfer.c:1189
+#, c-format
+msgid "%s: Append/Restart not permitted, try again"
+msgstr "%s: 追加/再開 は許可されません。再度試してください。"
+
+#: ../modules/mod_xfer.c:1247
+msgid "STOU incompatible with REST"
+msgstr "STOU incompatible with REST"
+
+#: ../modules/mod_xfer.c:1269
+#, c-format
+msgid "%s: unable to generate unique filename"
+msgstr "%s: 一意のファイル名を生成できません"
+
+#: ../modules/mod_xfer.c:1542 ../modules/mod_xfer.c:1904
+#: ../modules/mod_xfer.c:1926
+#, c-format
+msgid "%s: invalid REST argument"
+msgstr "%s: RESTの引数が不正です"
+
+#: ../modules/mod_xfer.c:1721
+#, c-format
+msgid "%s: Rename of hidden file %s failed: %s"
+msgstr "%s: 隠しファイル %s のリネームに失敗しました: %s"
+
+#: ../modules/mod_xfer.c:1750
+msgid "REST not compatible with server configuration"
+msgstr ""
+
+#: ../modules/mod_xfer.c:1759 ../modules/mod_xfer.c:1772
+msgid "REST requires a value greater than or equal to 0"
+msgstr "REST は0以上の数値が必要です"
+
+#: ../modules/mod_xfer.c:1789
+#, c-format
+msgid "%s: Resuming transfers not allowed in ASCII mode"
+msgstr "%s: ASCIIモードでは転送のレジュームは許可されません"
+
+#: ../modules/mod_xfer.c:1795
+msgid "Restarting at %"
+msgstr "再開したところ %"
+
+#: ../modules/mod_xfer.c:1796
+msgid ". Send STORE or RETRIEVE to initiate transfer"
+msgstr ". 転送を始めるために STORE または RETRIEVE を送信してください"
+
+#: ../modules/mod_xfer.c:1847
+#, c-format
+msgid "%s: Restart not permitted, try again"
+msgstr "%s: 再開は許可されません。再度試してください。"
+
+#: ../modules/mod_xfer.c:2066
+msgid "Abort successful"
+msgstr "中断に成功しました"
+
+#: ../modules/mod_xfer.c:2097
+#, c-format
+msgid "Type set to %s"
+msgstr "転送タイプを %s にセットしました"
+
+#: ../modules/mod_xfer.c:2112
+msgid "Structure set to F"
+msgstr ""
+
+#: ../modules/mod_xfer.c:2131
+#, c-format
+msgid "'%s' unsupported structure type"
+msgstr "'%s' サポートされていないストラクチャータイプ"
+
+#: ../modules/mod_xfer.c:2137
+#, c-format
+msgid "'%s' unrecognized structure type"
+msgstr "'%s' 認識できないストラクチャータイプ"
+
+#: ../modules/mod_xfer.c:2155
+msgid "Mode set to S"
+msgstr ""
+
+#: ../modules/mod_xfer.c:2163
+#, c-format
+msgid "'%s' unsupported transfer mode"
+msgstr "'%s' サポートされていない転送モード"
+
+#: ../modules/mod_xfer.c:2169
+#, c-format
+msgid "'%s' unrecognized transfer mode"
+msgstr "'%s' 認識できない転送モード"
+
+#: ../modules/mod_xfer.c:2177
+msgid "No storage allocation necessary"
+msgstr "必要なストレージ領域がありません"
+
+#: ../modules/mod_xfer.c:2182
+msgid "SMNT command not implemented"
+msgstr "SMNTコマンドは実装されていません"
+
+#: ../modules/mod_xfer.c:2244
+#, c-format
+msgid "No transfer timeout (%d seconds): closing control connection"
+msgstr "転送タイムアウト (%d 秒): 制御接続をクローズします"
+
+#: ../src/data.c:288 ../src/data.c:389
+msgid "Opening %s mode data connection for %s (%"
+msgstr "%sモードのデータ接続をオープンします %s (%"
+
+#: ../src/data.c:289 ../src/data.c:390
+msgid " bytes)"
+msgstr " バイト)"
+
+#: ../src/data.c:291 ../src/data.c:392
+#, c-format
+msgid "Opening %s mode data connection for %s"
+msgstr "%sモードのデータ接続をオープンします %s"
+
+#: ../src/data.c:326 ../src/data.c:369 ../src/data.c:425 ../src/data.c:549
+#: ../src/data.c:557
+#, c-format
+msgid "Unable to build data connection: %s"
+msgstr "データ接続を確立できません: %s"
+
+#: ../src/data.c:638
+msgid "Transfer complete"
+msgstr "転送が完了しました"
+
+#: ../src/data.c:703
+msgid "Data connection closed"
+msgstr "データ接続がクローズされました"
+
+#: ../src/data.c:709
+msgid "Unexpected streams hangup"
+msgstr "予期しないストリームのハングアップ"
+
+#: ../src/data.c:722
+msgid "Insufficient memory or file locked"
+msgstr "メモリが不足しているか、または、ファイルがロックされています"
+
+#: ../src/data.c:828
+msgid "Link to file server lost"
+msgstr "サーバーとのリンクが切れました"
+
+#: ../src/data.c:837
+#, c-format
+msgid "Unknown or out of range errno [%d]"
+msgstr "未知のエラー errno [%d]"
+
+#: ../src/data.c:848
+#, c-format
+msgid "Transfer aborted. %s"
+msgstr "転送が中断されました %s"
+
+#: ../src/data.c:916 ../src/data.c:942
+#, c-format
+msgid "%s: data transfer in progress"
+msgstr "%s: データ転送中"
+
+#: ../src/data.c:985 ../src/main.c:911
+msgid "Invalid command: try being more creative"
+msgstr "不正なコマンド: もっと創造的になろうと努めなさい"
+
+#: ../src/help.c:87
+msgid "The following commands are recognized (* =>'s unimplemented):"
+msgstr "以下のコマンドが認識できます (* =>'s unimplemented)"
+
+#: ../src/main.c:328
+#, c-format
+msgid "FTP server shutting down - %s"
+msgstr "FTPサーバーをシャットダウンします - %s"
+
+#: ../src/main.c:505
+#, c-format
+msgid "%s not understood"
+msgstr "%s は認識できません"
+
+#: ../src/main.c:872
+#, c-format
+msgid "%s FTP server ready"
+msgstr "%s FTPサーバーを起動しています"
+
+#: ../src/main.c:1336
+#, c-format
+msgid "FTP server shut down (%s) -- please try again later"
+msgstr "FTPサーバーはシャットダウンしました (%s) -- 後ほどお試しください"
+
+#: ../src/main.c:1351
+#, c-format
+msgid "Sorry, no server available to handle request on %s"
+msgstr "申し訳ありません。サーバーは、%sの要求を受けつけられません。"
+
+#: ../src/netio.c:371
+msgid "Transfer aborted. Data connection closed."
+msgstr "転送が中断されました。データ接続をクローズします。"

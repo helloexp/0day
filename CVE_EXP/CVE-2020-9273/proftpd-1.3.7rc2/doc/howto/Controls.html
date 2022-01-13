@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Controls</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Controls and <code>mod_ctrls</code></b></h2></center>
+<hr>
+
+<p>
+<b>What Controls Are</b><br>
+ProFTPD version 1.2.10rc1 introduced a new capability: Controls.  Controls
+are a way to communicate directly with a standalone <code>proftpd</code> daemon
+while it is running.  This provides administrators a way to alter the
+daemon's behavior in real time, without having to restart the daemon and
+have it re-read its configuration.  Changing log levels, kicking connected
+clients, disabling individual virtual servers, <i>etc.</i> are all possible.
+The Controls functionality includes an API that third-party modules can
+use to add new control actions.
+
+<p>
+The functionality involves a client and a server communicating over a Unix
+domain socket, using a simple text-based protocol.  A new program,
+<code>ftpdctl</code>, is distributed with ProFTPD; <code>ftpdctl</code> is a
+Controls client.  The server side of the Controls functionality is the
+<a href="../modules/mod_ctrls.html"><code>mod_ctrls</code></a> module, which is
+compiled into a <code>proftpd</code> daemon when the <em>--enable-ctrls</em>
+configure option is used.  Note, however, that the Controls functionality only
+works for <code>proftpd</code> daemons whose <code>ServerType</code> is
+<code>standalone</code>; <code>proftpd</code> daemons run via inetd/xinetd
+cannot support Controls and the <code>ftpdctl</code> program.
+
+<p>
+<b>Configuring <code>mod_ctrls</code></b><br>
+Here's an example configuration for <code>mod_ctrls</code>:
+<pre>
+  &lt;IfModule mod_ctrls.c&gt;
+    ControlsEngine        on
+    ControlsACLs          all allow group ftpadm
+    ControlsMaxClients    2
+    ControlsLog           /var/log/proftpd/controls.log
+    ControlsInterval      5
+    ControlsSocket        /tmp/ctrls.sock
+    ControlsSocketOwner   ftpd ftpd
+    ControlsSocketACL     allow group ftpadm
+  &lt;/IfModule&gt;
+</pre>
+The first configuration directive you will want to use is the
+<code>ControlsEngine</code> directive, which enables the processing of
+Controls requests by the engine within the <code>mod_ctrls</code>
+engine.
+
+<p>
+When first configuring <code>mod_ctrls</code> and its modules, you will
+probably want to configure a <code>ControlsLog</code>.  The
+<code>mod_ctrls</code> modules will log any errors they have to this
+file (unless the module has its own module-specific log), as well as all
+control requests made using <code>ftpdctl</code>.  Like most
+<code>proftpd</code> log files, the directive should use the full
+path to the log file, and the file cannot be in a world-writeable directory.
+
+<p>
+The <code>ControlsInterval</code> directive configures how often
+<code>mod_ctrls</code> checks for connecting clients such as
+<code>ftpdctl</code>.  Often when using <code>ftpdctl</code>, the system
+administrator may notice a long pause before <code>ftpdct</code> responds.
+This delay is probably caused by the configured <code>ControlsInterval</code>.
+A related directive is <code>ControlsMaxClients</code>, which sets how
+many clients are handled at one time.  If more than the configured maximum
+number of clients are attempting to send control requests,
+<code>mod_ctrls</code> will wait to handle the remaining clients until its
+next check.
+
+<p>
+The <code>ControlsSocket</code> directive is used to configure the path
+to the Unix domain socket on which <code>mod_ctrls</code> should listen.
+This path should be in a place where <code>ftpdctl</code> users have
+access to it, and should have read and write permissions.  The
+<code>ControlsSocketOwner</code> directive explicitly configures the
+ownership the created Unix domain socket file should have.  This means
+that the configuration above:
+<pre>
+  ControlsSocket        /tmp/ctrls.sock
+  ControlsSocketOwner   ftpd ftpd
+</pre>
+overrides the default location of the Unix domain socket, and tells
+<code>mod_ctrls</code> to use <code>/tmp/ctrls.sock</code>, and to make
+the socket owned by user <code>ftpd</code> and group <code>ftpd</code>.
+The default ownership of the socket is user <code>root</code>, group
+<code>root</code>.
+
+<p><a name="ACLs"></a>
+<b>Controls Access Control Lists</b><br>
+Communicating with the daemon process allows for some great features, but
+it also allows the potential to easily abuse the system.  Thus, by default,
+all users <b>including user <code>root</code></b> are denied access to all
+<code>ftpdctl</code> actions.  <b>Access for control actions must be
+explicitly granted.</b>  Also, be aware that the users and groups configured
+in these ACLs are <b>system</b> users and groups, not the virtual users
+and groups that <code>proftpd</code> may have been configured to use.
+The group will be only the primary group of the user; supplemental group
+memberships are currently ignored.
+
+<p>
+The <code>mod_ctrls</code> first checks whether the connecting client has
+been granted the ability to use the Unix domain socket itself.  This access
+list is controlled by the <code>ControlsSocketACL</code> directive.  By
+default, every Controls client can use the socket.  Thus, in the example
+configuration above:
+<pre>
+  ControlsSocketACL     allow group ftpadm
+</pre>
+only the system group <code>ftpadm</code> would be allowed to send Controls
+requests to the Unix domain socket; all other users and groups will be
+denied.
+
+<p>
+Next, ACLs on the specific control action requested by the connecting
+client will be check.  Most modules that use the Controls API will have their
+own module-specific directives for setting ACLs on the specific actions
+implemented by that module.  For <code>mod_ctrls</code>, the
+<code>ControlsACLs</code> configuration directive is used.  In the
+example configuration we see:
+<pre>
+  ControlsACLs all allow group ftpadm
+</pre>
+which allows only the system group <code>ftpadm</code> to use all of the
+control actions provided by <code>mod_ctrls</code>.  If one wanted to
+allow all users to use all of the control actions, it would be:
+<pre>
+  ControlsACLs all allow user *
+</pre>
+However, if one wanted to specify separate ACLs for separate actions, then
+the <code>ControlsACLs</code> directive would be used multiple times, like
+so:
+<pre>
+  ControlsACLs insctrl allow group wheel
+  ControlsACLs lsctrl allow user *
+  ControlsACLs rmctrl deny group ftp
+</pre>
+
+<p>
+Why is there such complexity for a simple client/server interaction?  The
+primary answer is that the running <code>proftpd</code> daemon has a lot of
+privileges, and access to the running daemon should be strictly controlled.
+Allow few people to have access via control actions; those few should be able
+to use only the control actions necessary.
+
+<p>
+<b>What Controls Do</b><br>
+The <code>mod_ctrls</code> module provides basic control <em>actions</em>,
+or commands that <code>ftpdctl</code> can send to the daemon:
+<ul>
+  <li><code>help</code><br>
+    Lists all registered control actions and a brief description for each
+  </li>
+
+  <p>
+  <li><code>insctrl</code><br>
+    Reenable a disabled control action
+  </li>
+
+  <p>
+  <li><code>lsctrl</code><br>
+    Lists all enabled control actions and the modules providing them
+  </li>
+
+  <p>
+  <li><code>rmctrl</code><br>
+    Disable a control action
+  </li>
+</ul>
+
+<p>
+<b>Denied Actions Versus Disabled Actions</b><br>
+What is the difference between an action that has been denied via an ACL
+versus an action that has been disabled using the <code>rmctrl</code> action?
+A disabled action cannot be used by any client, regardless of any ACLs that
+have been configured for that action.  Thus if a system administrator
+deemed that a particular control action should not be used by anyone, that
+action can be disabled.  The <code>rmctrl</code> action can disable <i>any</i>
+action implemented by any module using the Controls API, not just actions
+provided by <code>mod_ctrls</code>.  Once disabled, a given action can be
+re-enabled using the <code>insctrl</code> action.  The <code>insctrl</code>
+and <code>rmctrl</code> actions, in addition to <code>lsctrl</code>, cannot
+themselves be disabled.  For example, to disable an action called
+<code>foo</code>:
+<pre>
+  # ftpdctl rmctrl foo
+  ftpdctl: 'foo' control disabled
+  # ftpdctl lsctrl
+  ftpdctl: help (mod_ctrls.c)
+  ftpdctl: insctrl (mod_ctrls.c)
+  ftpdctl: lsctrl (mod_ctrls.c)
+  ftpdctl: rmctrl (mod_ctrls.c)
+</pre>
+Note that the <code>foo</code> action is not listed by <code>lsctrl</code>.
+Now, re-enable that action:
+<pre>
+  # ftpdctl insctrl foo
+  ftpdctl: 'foo' control enabled
+  # ftpdctl lsctrl
+  ftpdctl: foo (mod_foo.c)
+  ftpdctl: help (mod_ctrls.c)
+  ftpdctl: insctrl (mod_ctrls.c)
+  ftpdctl: lsctrl (mod_ctrls.c)
+  ftpdctl: permit (mod_ban.c)
+  ftpdctl: rmctrl (mod_ctrls.c)
+</pre>
+And now the <code>foo</code> action, provided by the module
+<code>mod_foo.c</code>, appears in the <code>lsctrl</code> listing.
+
+<p>
+The following shows an example of attempting to disable the <code>lsctrl</code>
+action.  It demonstrates the use of the <code>-v</code> command-line
+option for <code>ftpdctl</code>, for showing a verbose interaction with
+<code>mod_ctrls</code>:
+<pre>
+  # ftpdctl -v lsctrl
+  ftpdctl: adding &quot;lsctrl&quot; to reqargv
+  ftpdctl: contacting server
+  ftpdctl: sending control request
+  ftpdctl: receiving control response
+  ftpdctl: debug (mod_ctrls_admin.c)
+  ...
+
+  # ftpdctl rmctrl lsctrl
+
+  # ftpdctl -v lsctrl
+  ftpdctl: adding "lsctrl" to reqargv
+  ftpdctl: contacting server
+  ftpdctl: sending control request
+  ftpdctl: receiving control response
+  ftpdctl: access denied
+</pre>
+The &quot;access denied&quot; message happens because of the special status
+of the <code>lsctrl</code> action which keeps it from being disablable.
+
+<p>
+<b>Admin Controls</b><br>
+The <code>mod_ctrls</code> module, by itself, is rather unexciting.  Other
+modules, such as <code>mod_ctrls_admin</code>, provide more interesting
+and useful control actions, including:
+<ul>
+  <li><code>debug</code>
+  <li><code>dump</code>
+  <li><code>kick</code>
+  <li><code>restart</code>
+  <li><code>shutdown</code>
+  <li><code>start</code>
+  <li><code>status</code>
+  <li><code>stop</code>
+  <li><code>trace</code>
+</ul>
+These actions provide basic administrative control over the running
+<code>proftpd</code> daemon; see the <code>mod_ctrls_admin</code>
+<a href="../contrib/mod_ctrls_admin.html">documentation</a> for more details.
+
+<p>
+A basic <code>mod_ctrls_admin</code> configuration is:
+<pre>
+  &lt;IfModule mod_ctrls_admin.c&gt;
+    AdminControlsACLs all allow user *
+  &lt;/IfModule&gt;
+</pre>
+will allows anyone to use any <code>mod_ctrls_admin</code> control action.
+
+<p>
+Here is another configuration, encompassing both <code>mod_ctrls</code>
+and <code>mod_ctrls_admin</code>:
+<pre>
+  &lt;IfModule mod_ctrls.c&gt;
+    ControlsEngine        on
+    ControlsACLs          all allow group ftpadm
+    ControlsMaxClients    2
+    ControlsLog           /var/log/proftpd/controls.log
+    ControlsInterval      5
+    ControlsSocketACL     allow group ftpadm
+    ControlsSocket        /tmp/ctrls.sock
+    ControlsSocketOwner   ftpd ftpd
+
+    &lt;IfModule mod_ctrls_admin.c&gt;
+      AdminControlsACLs all allow user dave,bob,lisa
+    &lt;/IfModule&gt;
+  &lt;/IfModule&gt;
+</pre>
+In this configuration, users <code>dave</code>, <code>bob</code>, and
+<code>lisa</code> are allowed to use all of the control actions supplied
+by <code>mod_ctrls_admin</code>.  However, unless these users are members
+of group <code>ftpadm</code>, access will be denied.  Only group
+<code>ftpadm</code> has been allowed access to the <code>mod_ctrls</code>
+socket itself by the <code>ControlsSocketACL</code> directive.
+
+<p>
+What about configuring an ACL for a given control that includes both
+users <i>and</i> groups?  Use:
+<pre>
+  AdminControlsACLs restart allow user dave,lisa
+  AdminControlsACLs restart allow group ftpadm
+</pre>
+What if user <code>dave</code> is not a member of group <code>ftpadm</code>?
+If configured, <b>both</b> user <b>and</b> group ACLs must deny the client.
+If either allows access, the client can use that control action.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017-2019 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Configuring FTP over SSH</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b><i>ProFTPD: Configuring FTP over SSH</i></b></h2></center>
+<hr>
+<i><b>IMPORTANT NOTICE</b>: the original instructions listed on this page,
+based on <a href="http://www.proftpd.org/proftpd-l-archive/98-11/msg00066.html">http://www.proftpd.org/proftpd-l-archive/98-11/msg00066.html</a> were
+incorrect, and did <b>not</b> lead to the proper encryption of the FTP control
+channel.  Many, many thanks to Michael Jochimsen for pointing out the
+incorrect use of ssh port forwarding!</i><br>
+<hr>
+
+<p>
+<b>Premise</b><br>
+The File Transfer Protocol is an old protocol, and like many of the older
+protocols it was developed in a time when security was not of such a paramount
+concern.  One aspect of FTP that reflects this is the transmission of
+passwords, used to prove to the server that the client is who they say they
+are, &quot;in the clear&quot;, unencrypted, visible to any packet sniffer.
+Protocols like SSH, and its <code>scp</code> program, are replacing FTP
+as a means to securely transfer files among hosts.
+
+<p>
+However, many people still prefer to use their standard FTP clients.  What
+would be easiest would be a way to allow such clients to function while
+transparently providing the encryption necessary for today's networks.  Can
+this be done?  Yes - after a fashion.  This document aims to describe how
+to tunnel FTP over an SSH channel, providing for secure transmission of
+the user's password.
+
+<p>
+<b>Client Configuration</b><br>
+The trick to encrypting the password is to make use of ssh's local port
+forwarding capability.  It works by creating a sort of proxy on the local host
+that listens to some high-numbered port.  Any traffic sent to that port
+is encrypted, and forwarded to the configured remote address and port.
+(<b>Note</b>: the prior instructions' flaw was that the local port forwarding
+request was sent to localhost, rather than to the remote server, which
+effectively set up the encrypted channel between localhost and itself).
+Here's how to set up a local port forward:
+<pre>
+  $ ssh -L<i>local-port</i>:<i>remote-addr</i>:<i>remote-port</i> <i>user</i>@<i>host</i>
+</pre>
+This says to listen on port <i>local-port</i> on localhost, and to send that
+encrypted traffic to <i>host</i>'s <i>remote-addr</i> at port
+<i>remote-port</i>.  To use this trick to secure an FTP session (to be
+specific, the control channel, through which passwords are transmitted, will
+be encrypted; the data channel will not), it would look like:
+<pre>
+  $ ssh -f -L3000:ftpserver:21 ftpserver 'exec sleep 10' &amp;&amp; ftp localhost 3000
+</pre>
+Note that the choice of <i>local-port</i> is arbitrary.  Using port
+<code>3000</code> is not a requirement.  This trick also requires that
+the ftp client use passive mode data transfers, so make sure to use a client
+that understands FTP passive mode.
+
+<p>
+<b>Remember that only the control connection is encrypted, not the data
+connection: any data you transfer (<i>e.g.</i> directory listings, files
+uploaded or downloaded) are still sent &quot;in the clear&quot;.</b> Your
+password (and the other FTP commands sent by the client) is not.
+
+<p>
+<b>Server Configuration</b><br>
+The server side of the connection needs some configuration to make the ssh
+tunneling work as well.  First, the client need a valid account on the remote
+host is necessary in order to support the ssh tunnel.  A valid shell is not
+strictly necessary for these ssh tunnels, though; something like:
+<pre>
+  #!/bin/sh
+  sleep 10
+</pre>
+would suffice. This would prevent the FTP users from logging in, yet give them
+enough time to establish a port forwarded ssh connection.  With this sort
+of quasi-shell (although, strictly speaking, there are better, more restrictive
+shells than this example, as it could be escaped from), one can ssh over any
+command:
+<pre>
+  $ ssh -l test -f -L3000:ftpserver:21 ftpserver true &amp;&amp; ftp localhost 3000
+</pre>
+You'll also need to use the
+<a href="../modules/mod_core.html#AllowForeignAddress"><code>AllowForeignAddress</code></a> configuration directive in your
+configuration file:
+<pre>
+   AllowForeignAddress on
+</pre>
+or <code>proftpd</code> will reject the passive transfer connections and log:
+<pre>
+  SECURITY VIOLATION: Passive connection from {host} rejected
+</pre>
+
+<p>
+Note that the use of the server host's DNS name, or its IP address, in the
+setting up of the ssh tunnel assumes that the routing of traffic to the
+host's own IP address will be short-circuited in the kernel and thus not
+actually be transmitted on the wire.  On modern kernels this is a fair
+assumption, but may not always be the case.  For the truly paranoid, use
+of <code>localhost</code> or <code>127.0.0.1</code> as the <i>remote-addr</i>
+parameter in the ssh tunnel command would cause traffic on <i>host</i> to
+be sent over its loopback address, and not over the network.  However, this
+will prevent data transfers from working altogether.  The author has a 
+patch for scenarios like this; if interested, please contact him directly via
+email.<br>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

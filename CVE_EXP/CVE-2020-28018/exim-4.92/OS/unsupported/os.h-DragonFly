@@ -1,0 +1,13 @@
+/* Exim: OS-specific C header file for DragonFly */
+
+#define HAVE_BSD_GETLOADAVG
+#define HAVE_MMAP
+#define HAVE_SYS_MOUNT_H
+#define SIOCGIFCONF_GIVES_ADDR
+
+typedef struct flock flock_t;
+
+/* default is non-const */
+#define ICONV_ARG2_TYPE const char **
+
+/* End */

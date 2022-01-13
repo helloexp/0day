@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Supported FTP Commands</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Supported FTP Commands</b></h2></center>
+<hr>
+
+<p>
+<b>Supported FTP Commands</b><br>
+<ul>
+  <li><a name="ABOR"><b><code>ABOR</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="ALLO"><b><code>ALLO</code></b></a><br>
+    Short for <b>ALLO</b>cate.<br>
+  </li>
+
+  <p>
+  <li><a name="APPE"><b><code>APPE</code></b></a><br>
+    Short for <b>APPE</b>nd.<br>
+  </li>
+
+  <p>
+  <li><a name="AUTH"><b><code>AUTH</code></b></a><br>
+    Short for <b>AUTH</b>enticate (supported by <a href="../contrib/mod_tls.html"><code>mod_tls</code></a>)<br>
+  </li>
+
+  <p>
+  <li><a name="CDUP"><b><code>CDUP</code></b></a><br>
+    Short for <b>C</b>hange <b>D</b>irectory <b>UP</b>, this command is used
+    to move the client's &quot;location&quot; on the server up one level in
+    the filesystem hierarchy.<br>
+  </li>
+
+  <p>
+  <li><a name="CLNT"><b><code>CLNT</code></b></a><br>
+    Short for <b>CL</b>ie<b>NT</b>, this command is used by clients to
+    offer/provide any freeform identification they desire to the server.
+  </li>
+
+  <p>
+  <li><a name="CWD"><b><code>CWD</code></b></a><br>
+    Short for <b>C</b>hange <b>W</b>orking <b>D</b>irectory.<br>
+  </li>
+
+  <p>
+  <li><a name="DELE"><b><code>DELE</code></b></a><br>
+    Short for <b>DELE</b>te, this command is used by the client to tell the
+    server to delete a file.<br>
+  </li>
+
+  <p>
+  <li><a name="EPRT"><b><code>EPRT</code></b></a><br>
+    Short for <b>E</b>xtended <b>P</b>o<b>RT</b>, an enhanced version of
+    the <a href="#PORT"><code>PORT</code></a> command that can handle IPv6
+    addresses.<br>
+  </li>
+
+  <p>
+  <li><a name="EPSV"><b><code>EPSV</code></b></a><br>
+    Short for <b>E</b>xtended <b>P</b>a<b>S</b>si<b>V</b>e, an enhanced
+    version of the <a href="#PASV"><code>PASV</code></a> command that can
+    handle IPv6 addresses.<br>
+  </li>
+
+  <p>
+  <li><a name="FEAT"><b><code>FEAT</code></b></a><br>
+    Short for <b>FEAT</b>ures, this command is used by the client to request
+    a descriptive list of server-supported features.<br>
+  </li>
+
+  <p>
+  <li><a name="HASH"><b><code>HASH</code></b></a><br>
+    This command is used by clients to request the checksum, or "hash", of
+    a file on the server.  This command is available when the
+    <a href="../contrib/mod_digest.html"><code>mod_digest</code></a> module
+    is compiled/loaded.<br>
+  </li>
+
+  <p>
+  <li><a name="HELP"><b><code>HELP</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="HOST"><b><code>HOST</code></b></a><br>
+    This command is the equivalent of HTTP's "Host" header for FTP, providing
+    the ability to have name-based virtual hosting.
+  </li>
+
+  <p>
+  <li><a name="LANG"><b><code>LANG</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="LIST"><b><code>LIST</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="MDTM"><b><code>MDTM</code></b></a><br>
+    Short for <b>M</b>o<b>D</b>ification <b>T</b>i<b>M</b>e, this command
+    is used by the client to request the modification time of a file on the
+    server.  This command is defined formally in <a href="http://www.faqs.org/rfcs/rfc3659.html">RFC 3659</a>, and is a commonly implemented FTP command.
+    <i>Note</i> that this command <b>cannot</b> be used to change the
+    modification time of the file on the server; it only <i>reports</i> on the
+    file's modification time.  The <a href="#MFMT"><code>MFMT</code></a>
+    command is used to <i>change</i> a file's modification time.<br> 
+  </li>
+
+  <p>
+  <li><a name="MFMT"><b><code>MFMT</code></b></a><br>
+    Short for <b>M</b>odify <b>F</b>act: Last <b>M</b>odified <b>T</b>ime,
+    supported by <a href="../modules/mod_facts.html"><code>mod_facts</code></a>.
+    Some clients use this command to change the last modified timestamp on
+    a newly uploaded file so that the timestamp on the server matches the
+    timestamp of that file on the client.
+  </li>
+
+  <p>
+  <li><a name="MKD"><b><code>MKD</code></b></a><br>
+    Short for <b>M</b>a<b>K</b>e <b>D</b>irectory.<br>
+  </li>
+
+  <p>
+  <li><a name="MLSD"><b><code>MLSD</code></b></a><br>
+    Short for <b>M</b>achine <b>L</b>i<b>S</b>ting, <b>D</b>irectory, supported
+    by <a href="../modules/mod_facts.html"><code>mod_facts</code></a>.  Unlike
+    the <a href="#LIST"><code>LIST</code></a> command, whose response format
+    was never specified, the <code>MLSD</code> command has a strictly defined
+    response format (see <a href="http://www.faqs.org/rfcs/rfc3659.html">RFC 3659</a> for details).  This format was designed to be easily machine parseable,
+    for automated processing of directory listing formats; the format was also
+    designed to be platform-agnostic, and thus portable.
+  </li>
+
+  <p>
+  <li><a name="MLST"><b><code>MLST</code></b></a><br>
+    Short for <b>M</b>achine <b>L</b>i<b>ST</b>ing, supported by
+    <a href="../modules/mod_facts.html"><code>mod_facts</code></a>.  This
+    command is similar to <a href="#MLSD"><code>MLSD</code></a> in that it
+    uses the same response format.  Unlike <code>MLSD</code>, the response for a
+    <code>MLST</code> is sent back on the control connection rather than
+    using a data connection, and <b>is for a single file only</b>.
+  </li>
+
+  <p>
+  <li><a name="MODE"><b><code>MODE</code></b></a><br>
+    There are three mode types defined by <a href="http://www.faqs.org/rfcs/rfc969.html">RFC 959</a>; <code>proftpd</code> only supports one (<i>i.e.</i> <b>S</b>tream).
+  </li>
+
+  <p>
+  <li><a name="NLST"><b><code>NLST</code></b></a><br>
+    Short for <b>N</b>ame <b>L</b>i<b>ST</b>.<br>
+  </li>
+
+  <p>
+  <li><a name="NOOP"><b><code>NOOP</code></b></a><br>
+    Short for <b>NO OP</b>eration.  This command has no functionality, and
+    is often used as a session keepalive mechanism.<br>
+  </li>
+
+  <p>
+  <li><a name="OPTS"><b><code>OPTS</code></b></a><br>
+    Short for <b>OPT</b>ion<b>S</b>.  This command is used to specify
+    optional parameters for the command to follow the <code>OPTS</code>
+    command, if that command supports such optional parameters.<br>
+  </li>
+
+  <p>
+  <li><a name="PASS"><b><code>PASS</code></b></a><br>
+    Short for <b>PASS</b>word, the client uses this command to convey the
+    password of the user attempting to log into the server.<br>
+  </li>
+
+  <p>
+  <li><a name="PASV"><b><code>PASV</code></b></a><br>
+    Short for <b>PAS</b>si<b>V</b>e, the client uses this command to ask the
+    server for a port to which the client should connect, indicating a
+    passive data transfer.<br>
+  </li>
+
+  <p>
+  <li><a name="PBSZ"><b><code>PBSZ</code></b></a><br>
+    Short for <b>P</b>rotection <b>B</b>uffer <b>S</b>i<b>Z</b>e.  Used
+    to determine the size of a buffer needed for secure handshaking (supported
+    by <a href="../contrib/mod_tls.html"><code>mod_tls</code></a>)<br>
+  </li>
+
+  <p>
+  <li><a name="PORT"><b><code>PORT</code></b></a><br>
+    The client uses this command to tell the server to what client-side port
+    the server should contact; use of this command indicates an active data
+    transfer.<br>
+  </li>
+
+  <p>
+  <li><a name="PROT"><b><code>PROT</code></b></a><br>
+    Short for <b>PROT</b>ection.  Used to set the protection level on the
+    data channel (supported by
+    <a href="../contrib/mod_tls.html"><code>mod_tls</code></a>)<br>
+  </li>
+
+  <p>
+  <li><a name="PWD"><b><code>PWD</code></b></a><br>
+    Short for <b>P</b>rint <b>W</b>orking <b>D</b>irectory.<br>
+  </li>
+
+  <p>
+  <li><a name="QUIT"><b><code>QUIT</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="RANG"><b><code>RANG</code></b></a><br>
+    Short for <b>RANG</b>e, this command is used by clients to request
+    that a specific <em>range</em> of bytes be transferred for files, including
+    uploads and downloads; supported by
+    <a href="../modules/mod_xfer.html"><code>mod_xfer</code></a> and defined by
+    <a href="https://tools.ietf.org/html/draft-bryan-ftp-range-08">this IETF
+    Draft</a>.
+  </li>
+
+  <p>
+  <li><a name="REST"><b><code>REST</code></b></a><br>
+    Short for <b>REST</b>art, this command is used by the client to tell the
+    server that it would like to restart a previous data transfer, either
+    upload or download.<br>
+  </li>
+
+  <p>
+  <li><a name="RETR"><b><code>RETR</code></b></a><br>
+    Short for <b>RETR</b>ieve, this command is used by the client to inform
+    the server of the file the client would like to download.  On many FTP
+    client, this is implemented using the client-specfic &quot;get&quot;
+    command.<br>
+  </li>
+
+  <p>
+  <li><a name="RMD"><b><code>RMD</code></b></a><br>
+    Short for <b>R</b>e<b>M</b>ove <b>D</b>irectory, this command is used
+    to have the server delete the requested directory from its filesystem.<br>
+  </li>
+
+  <p>
+  <li><a name="RNFR"><b><code>RNFR</code></b></a><br>
+    Short for <b>R</b>e<b>N</b>ame <b>FR</b>om.<br>
+  </li>
+
+  <p>
+  <li><a name="RNTO"><b><code>RNTO</code></b></a><br>
+    Short for <b>R</b>e<b>N</b>ame <b>TO</b>.<br>
+  </li>
+
+  <p>
+  <li><a name="SITE"><b><code>SITE</code></b></a><br>
+    This command is used for site-specific commands.  See below for descriptions
+    of <code>proftpd</code>'s SITE commands.<br>
+  </li>
+
+  <p>
+  <li><a name="SIZE"><b><code>SIZE</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="SSCN"><b><code>SSCN</code></b></a><br>
+    Short for <b>S</b>et <b>S</b>ecured <b>C</b>lient <b>N</b>egotiation, this
+    non-standard command is used by FTPS clients to tell a server to use TLS
+    when performing a site-to-site transfer.  For more details, see
+    <a href="http://www.raidenftpd.com/kb/kb000000037.htm">here</a>.
+  </li>
+
+  <p>
+  <li><a name="STAT"><b><code>STAT</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="STOR"><b><code>STOR</code></b></a><br>
+    Short for <b>STOR</b>e, this command is used by the client to tell the
+    the server that the client will be uploading data for a file to stored
+    on the server using the filename given.  On many FTP clients, this
+    is implemented using the client-specific &quot;put&quot; command.<br>
+  </li>
+
+  <p>
+  <li><a name="STOU"><b><code>STOU</code></b></a><br>
+    Short for <b>STO</b>re <b>U</b>unique, it requests that the file being
+    stored on the server be given a unique filename.  The server chooses the
+    unique name for the stored file, and reports the name chosen back to
+    the client. On some FTP clients, this ability is enabled using the
+    client-specific &quot;sunique&quot; command.<br>
+  </li>
+
+  <p>
+  <li><a name="SYST"><b><code>SYST</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="TYPE"><b><code>TYPE</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="USER"><b><code>USER</code></b></a><br>
+    An FTP client uses this command to inform the server of the name of the
+    user requesting an FTP session.<br>
+  </li>
+
+  <p>
+  <li><a name="XCUP"><b><code>XCUP</code></b></a><br>
+    This is an X-variant of the <a href="#CDUP"><code>CDUP</code></a> command,
+    and has the same functionality.<br>
+  </li>
+
+  <p>
+  <li><a name="XCWD"><b><code>XCWD</code></b></a><br>
+    This is an X-variant of the <a href="#CWD"><code>CWD</code></a> command,
+    and has the same functionality.<br>
+  </li>
+
+  <p>
+  <li><a name="XMKD"><b><code>XMKD</code></b></a><br>
+    This is an X-variant of the <a href="#MKD"><code>MKD</code></a> command,
+    and has the same functionality.<br>
+  </li>
+
+  <p>
+  <li><a name="XPWD"><b><code>XPWD</code></b></a><br>
+    This is an X-variant of the <a href="#PWD"><code>PWD</code></a> command,
+    and has the same functionality.<br>
+  </li>
+
+  <p>
+  <li><a name="XRMD"><b><code>XRMD</code></b></a><br>
+    This is an X-variant of the <a href="#RMD"><code>RMD</code></a> command,
+    and has the same functionality.<br>
+  </li>
+</ul>
+
+<p>
+<b>Supported <code>SITE</code> commands</b><br>
+<ul>
+  <li><a name="SITE_CHGRP"><b><code>CHGRP</code></b></a><br>
+    Short for <b>CH</b>ange <b>GR</b>ou<b>P</b>.
+    <p>
+    Example:
+<pre>
+    SITE CHGRP ftpgroup script.cgi
+</pre>
+  </li>
+
+  <p>
+  <li><a name="SITE_CHMOD"><b><code>CHMOD</code></b></a><br>
+    Short for <b>CH</b>ange <b>MOD</b>e.
+    <p>
+    Example:
+<pre>
+    SITE CHMOD 755 script.cgi
+</pre>
+  </li>
+
+  <p>
+  <li><a name="SITE_HELP"><b><code>HELP</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="SITE_MKDIR"><b><code>MKDIR</code></b></a><br>
+    Similar to the <a href="#MKD"><code>MKD</code></a> command, this
+    <code>SITE</code> can be used to create a directory.  It will, unlike
+    <code>MKD</code>, also create any directories in the path that do
+    not exist.
+    <p>
+    Example:
+<pre>
+  SITE MKDIR /path/to/some/dir/that/is/not/there/
+</pre>
+    Supported by the <a href="../contrib/mod_site_misc.html"><code>mod_site_misc</code></a> module.
+  </li>
+
+  <p>
+  <li><a name="SITE_RMDIR"><b><code>RMDIR</code></b></a><br>
+    Similar to the <a href="#RMD"><code>RMD</code></a> command, this
+    <code>SITE</code> can be used to remove a directory.  It will, unlike
+    <code>RMD</code>, also delete any files in the directory.
+    <p>
+    Example:
+<pre>
+  SITE RMDIR /path/to/some/dir/with/files/
+</pre>
+    Supported by the <a href="../contrib/mod_site_misc.html"><code>mod_site_misc</code></a> module.
+  </li>
+
+  <p>
+  <li><a name="SITE_SYMLINK"><b><code>SYMLINK</code></b></a><br>
+    Used to create a symbolic link (<i>a.k.a.</i> a symlink) from
+    the source path (<em>src</em>) to the destination path (<em>dest</em>).
+    <p>
+    Example:
+<pre>
+  SITE SYMLINK src dest
+</pre>
+    Supported by the <a href="../contrib/mod_site_misc.html"><code>mod_site_misc</code></a> module.
+  </li>
+
+  <p>
+  <li><a name="SITE_UTIME"><b><code>UTIME</code></b></a><br>
+    Used to update the access and modification timestamps on a file.
+    <p>
+    Example:
+<pre>
+  SITE UTIME 200412312359 /path/to/some/file.txt
+</pre>
+    Supported by the <a href="../contrib/mod_site_misc.html"><code>mod_site_misc</code></a> module.
+  </li>
+</ul>
+
+<p>
+<b>Unsupported FTP Commands</b><br>
+<ul>
+  <li><a name="ACCT"><b><code>ACCT</code></b></a><br>
+    Short for <b>ACC</b>oun<b>T</b><br>
+  </li>
+
+  <p>
+  <li><a name="MACB"><b><code>MACB</code></b></a><br>
+    Short for <b>MAC</b>intosh <b>B</b>inary.  This command is not defined in
+    any RFC, and is something of a hack added by Apple in order to support
+    transfers of the resource forks of Mac files.<br>
+  </li>
+
+  <p>
+  <li><a name="REIN"><b><code>REIN</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="SMNT"><b><code>SMNT</code></b></a><br>
+  </li>
+
+  <p>
+  <li><a name="STRU"><b><code>STRU</code></b></a><br>
+    Short for <b>STRU</b>cture.  <code>proftpd</code> only supports a
+    <code>STRU</code> parameter of type <b>F</b> (for &quot;file&quot;),
+    and so does not support this command.<br>
+  </li>
+</ul>
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b>
+
+<p><a name="MoveDirectoriesAcrossDevices">
+<font color=red>Question</font>: I can use the <code>RNFR</code> and
+<code>RNTO</code> commands to <i>move</i> a file, even across different
+disks/mount points.  And I can use <code>RNFR</code>/<code>RNTO</code> to move
+a directory, <b>but</b> I <b>cannot</b> move a directory across different
+disks/mount points.  Is this a bug?<br>
+<font color=blue>Answer</font>: No, it is not a bug.  Why not?  Ultimately,
+it is because the FTP specifications do not guarantee (or even <i>discuss</i>)
+that an FTP implementation must support renaming of directories across
+mount points.
+<p>
+
+<p>
+ProFTPD implements the <code>RNFR</code>/<code>RNTO</code> functionality
+by using the <code>rename(2)</code> system call.  And <code>rename(2)</code>
+is documented to <b>not</b> work across mount points.
+
+<p>
+"But then why does it work when I rename a file across mount points?" you
+ask.  Good question.  The answer is that for <b>files only</b>, ProFTPD
+detects the <code>rename(2)</code> error for renaming across mount points,
+and then <i>copies</i> the file in question to the new location, deleting
+the old location when the copy completes successfully.
+
+<p>
+"Great!" you say, "Now do the same thing for directories!" Unfortunately, for
+directories, the answer is not that simple.  Here are some things to consider
+when copying directories: what if the directory contains sockets, FIFOs,
+devices, and other irregular file types which cannot be easily copied/moved?
+Should copying/moving of directories automatically use root privileges in
+order to preserve the ownership on files that do not belong to the logged-in
+user?  What if the copying/deleting of files fails in the midde: what should
+then happen to the copied (and remaining) files/directories?
+
+<p>
+Since there are no easy answers as yet to the above questions, ProFTPD now
+detects the <code>rename(2)</code> error for renaming across mount points
+for a <b>directory</b>, and rejects the <code>RNTO</code> command, showing
+something like:
+<pre>
+  RNFR directory
+  350 File or directory exists, ready for destination name
+  RNTO /other/mount/directory
+  550 Rename /other/mount/directory: Is a directory
+</pre>
+That "Is a directory" error indicates that ProFTPD cannot rename a directory
+across the mount points you requested.  (That particular error message can,
+and will, be made more informative.)
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

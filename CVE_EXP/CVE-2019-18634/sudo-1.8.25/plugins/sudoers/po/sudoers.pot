@@ -1,0 +1,2272 @@
+# Portable object template file for the sudoers plugin
+# This file is put in the public domain.
+# Todd C. Miller <Todd.Miller@sudo.ws>, 2011-2018
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: sudo 1.8.25\n"
+"Report-Msgid-Bugs-To: https://bugzilla.sudo.ws\n"
+"POT-Creation-Date: 2018-09-02 06:27-0600\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: confstr.sh:1
+msgid "syntax error"
+msgstr ""
+
+#: confstr.sh:2
+msgid "%p's password: "
+msgstr ""
+
+#: confstr.sh:3
+msgid "[sudo] password for %p: "
+msgstr ""
+
+#: confstr.sh:4
+msgid "Password: "
+msgstr ""
+
+#: confstr.sh:5
+msgid "*** SECURITY information for %h ***"
+msgstr ""
+
+#: confstr.sh:6
+msgid "Sorry, try again."
+msgstr ""
+
+#: gram.y:194 gram.y:242 gram.y:249 gram.y:256 gram.y:263 gram.y:270 gram.y:286
+#: gram.y:310 gram.y:317 gram.y:324 gram.y:331 gram.y:338 gram.y:401 gram.y:409
+#: gram.y:419 gram.y:452 gram.y:459 gram.y:466 gram.y:473 gram.y:555 gram.y:562
+#: gram.y:571 gram.y:580 gram.y:597 gram.y:709 gram.y:716 gram.y:723 gram.y:731
+#: gram.y:831 gram.y:838 gram.y:845 gram.y:852 gram.y:859 gram.y:885 gram.y:892
+#: gram.y:899 gram.y:1022 gram.y:1296 plugins/sudoers/alias.c:122
+#: plugins/sudoers/alias.c:129 plugins/sudoers/alias.c:145
+#: plugins/sudoers/auth/bsdauth.c:141 plugins/sudoers/auth/kerb5.c:119
+#: plugins/sudoers/auth/kerb5.c:145 plugins/sudoers/auth/pam.c:519
+#: plugins/sudoers/auth/rfc1938.c:109 plugins/sudoers/auth/sia.c:59
+#: plugins/sudoers/cvtsudoers.c:117 plugins/sudoers/cvtsudoers.c:158
+#: plugins/sudoers/cvtsudoers.c:175 plugins/sudoers/cvtsudoers.c:186
+#: plugins/sudoers/cvtsudoers.c:279 plugins/sudoers/cvtsudoers.c:406
+#: plugins/sudoers/cvtsudoers.c:539 plugins/sudoers/cvtsudoers.c:556
+#: plugins/sudoers/cvtsudoers.c:619 plugins/sudoers/cvtsudoers.c:734
+#: plugins/sudoers/cvtsudoers.c:742 plugins/sudoers/cvtsudoers.c:1152
+#: plugins/sudoers/cvtsudoers.c:1156 plugins/sudoers/cvtsudoers.c:1258
+#: plugins/sudoers/cvtsudoers_ldif.c:147 plugins/sudoers/cvtsudoers_ldif.c:190
+#: plugins/sudoers/cvtsudoers_ldif.c:237 plugins/sudoers/cvtsudoers_ldif.c:256
+#: plugins/sudoers/cvtsudoers_ldif.c:327 plugins/sudoers/cvtsudoers_ldif.c:382
+#: plugins/sudoers/cvtsudoers_ldif.c:390 plugins/sudoers/cvtsudoers_ldif.c:407
+#: plugins/sudoers/cvtsudoers_ldif.c:416 plugins/sudoers/cvtsudoers_ldif.c:563
+#: plugins/sudoers/defaults.c:656 plugins/sudoers/defaults.c:957
+#: plugins/sudoers/defaults.c:1128 plugins/sudoers/editor.c:65
+#: plugins/sudoers/editor.c:83 plugins/sudoers/editor.c:94
+#: plugins/sudoers/env.c:246 plugins/sudoers/filedigest.c:61
+#: plugins/sudoers/filedigest.c:77 plugins/sudoers/gc.c:52
+#: plugins/sudoers/group_plugin.c:131 plugins/sudoers/interfaces.c:71
+#: plugins/sudoers/iolog.c:936 plugins/sudoers/iolog_path.c:167
+#: plugins/sudoers/iolog_util.c:86 plugins/sudoers/iolog_util.c:125
+#: plugins/sudoers/iolog_util.c:134 plugins/sudoers/iolog_util.c:144
+#: plugins/sudoers/iolog_util.c:152 plugins/sudoers/iolog_util.c:156
+#: plugins/sudoers/ldap.c:178 plugins/sudoers/ldap.c:409
+#: plugins/sudoers/ldap.c:413 plugins/sudoers/ldap.c:425
+#: plugins/sudoers/ldap.c:716 plugins/sudoers/ldap.c:880
+#: plugins/sudoers/ldap.c:1228 plugins/sudoers/ldap.c:1655
+#: plugins/sudoers/ldap.c:1692 plugins/sudoers/ldap.c:1773
+#: plugins/sudoers/ldap.c:1908 plugins/sudoers/ldap.c:2009
+#: plugins/sudoers/ldap.c:2025 plugins/sudoers/ldap_conf.c:214
+#: plugins/sudoers/ldap_conf.c:245 plugins/sudoers/ldap_conf.c:297
+#: plugins/sudoers/ldap_conf.c:333 plugins/sudoers/ldap_conf.c:422
+#: plugins/sudoers/ldap_conf.c:437 plugins/sudoers/ldap_conf.c:533
+#: plugins/sudoers/ldap_conf.c:566 plugins/sudoers/ldap_conf.c:647
+#: plugins/sudoers/ldap_conf.c:729 plugins/sudoers/ldap_util.c:498
+#: plugins/sudoers/ldap_util.c:554 plugins/sudoers/linux_audit.c:76
+#: plugins/sudoers/logging.c:190 plugins/sudoers/logging.c:506
+#: plugins/sudoers/logging.c:527 plugins/sudoers/logging.c:568
+#: plugins/sudoers/logging.c:745 plugins/sudoers/logging.c:1003
+#: plugins/sudoers/match.c:693 plugins/sudoers/match.c:740
+#: plugins/sudoers/match.c:781 plugins/sudoers/match.c:809
+#: plugins/sudoers/match.c:897 plugins/sudoers/match.c:977
+#: plugins/sudoers/parse.c:192 plugins/sudoers/parse.c:204
+#: plugins/sudoers/parse.c:219 plugins/sudoers/parse.c:231
+#: plugins/sudoers/parse_ldif.c:135 plugins/sudoers/parse_ldif.c:162
+#: plugins/sudoers/parse_ldif.c:231 plugins/sudoers/parse_ldif.c:238
+#: plugins/sudoers/parse_ldif.c:243 plugins/sudoers/parse_ldif.c:319
+#: plugins/sudoers/parse_ldif.c:330 plugins/sudoers/parse_ldif.c:336
+#: plugins/sudoers/parse_ldif.c:361 plugins/sudoers/parse_ldif.c:373
+#: plugins/sudoers/parse_ldif.c:377 plugins/sudoers/parse_ldif.c:391
+#: plugins/sudoers/parse_ldif.c:554 plugins/sudoers/parse_ldif.c:586
+#: plugins/sudoers/parse_ldif.c:611 plugins/sudoers/parse_ldif.c:640
+#: plugins/sudoers/parse_ldif.c:690 plugins/sudoers/parse_ldif.c:736
+#: plugins/sudoers/parse_ldif.c:746 plugins/sudoers/policy.c:497
+#: plugins/sudoers/policy.c:739 plugins/sudoers/prompt.c:93
+#: plugins/sudoers/pwutil.c:192 plugins/sudoers/pwutil.c:264
+#: plugins/sudoers/pwutil.c:341 plugins/sudoers/pwutil.c:515
+#: plugins/sudoers/pwutil.c:581 plugins/sudoers/pwutil.c:651
+#: plugins/sudoers/pwutil.c:809 plugins/sudoers/pwutil.c:866
+#: plugins/sudoers/pwutil.c:911 plugins/sudoers/pwutil.c:969
+#: plugins/sudoers/sssd.c:147 plugins/sudoers/sssd.c:393
+#: plugins/sudoers/sssd.c:456 plugins/sudoers/sssd.c:500
+#: plugins/sudoers/sssd.c:547 plugins/sudoers/sssd.c:738
+#: plugins/sudoers/stubs.c:96 plugins/sudoers/stubs.c:104
+#: plugins/sudoers/sudoers.c:264 plugins/sudoers/sudoers.c:274
+#: plugins/sudoers/sudoers.c:282 plugins/sudoers/sudoers.c:324
+#: plugins/sudoers/sudoers.c:647 plugins/sudoers/sudoers.c:773
+#: plugins/sudoers/sudoers.c:817 plugins/sudoers/sudoers.c:1091
+#: plugins/sudoers/sudoers_debug.c:107 plugins/sudoers/sudoreplay.c:1224
+#: plugins/sudoers/sudoreplay.c:1424 plugins/sudoers/sudoreplay.c:1428
+#: plugins/sudoers/testsudoers.c:131 plugins/sudoers/testsudoers.c:231
+#: plugins/sudoers/testsudoers.c:248 plugins/sudoers/testsudoers.c:582
+#: plugins/sudoers/timestamp.c:432 plugins/sudoers/timestamp.c:476
+#: plugins/sudoers/timestamp.c:954 plugins/sudoers/toke_util.c:55
+#: plugins/sudoers/toke_util.c:108 plugins/sudoers/toke_util.c:145
+#: plugins/sudoers/tsdump.c:125 plugins/sudoers/visudo.c:145
+#: plugins/sudoers/visudo.c:307 plugins/sudoers/visudo.c:313
+#: plugins/sudoers/visudo.c:423 plugins/sudoers/visudo.c:601
+#: plugins/sudoers/visudo.c:921 plugins/sudoers/visudo.c:1008
+#: plugins/sudoers/visudo.c:1097 toke.l:847 toke.l:948 toke.l:1105
+msgid "unable to allocate memory"
+msgstr ""
+
+#: gram.y:484
+msgid "a digest requires a path name"
+msgstr ""
+
+#: gram.y:610
+msgid "invalid notbefore value"
+msgstr ""
+
+#: gram.y:618
+msgid "invalid notafter value"
+msgstr ""
+
+#: gram.y:627 plugins/sudoers/policy.c:313
+msgid "timeout value too large"
+msgstr ""
+
+#: gram.y:629 plugins/sudoers/policy.c:315
+msgid "invalid timeout value"
+msgstr ""
+
+#: gram.y:1296 plugins/sudoers/auth/pam.c:349 plugins/sudoers/auth/pam.c:519
+#: plugins/sudoers/auth/rfc1938.c:109 plugins/sudoers/cvtsudoers.c:117
+#: plugins/sudoers/cvtsudoers.c:157 plugins/sudoers/cvtsudoers.c:174
+#: plugins/sudoers/cvtsudoers.c:185 plugins/sudoers/cvtsudoers.c:278
+#: plugins/sudoers/cvtsudoers.c:405 plugins/sudoers/cvtsudoers.c:538
+#: plugins/sudoers/cvtsudoers.c:555 plugins/sudoers/cvtsudoers.c:619
+#: plugins/sudoers/cvtsudoers.c:734 plugins/sudoers/cvtsudoers.c:741
+#: plugins/sudoers/cvtsudoers.c:1152 plugins/sudoers/cvtsudoers.c:1156
+#: plugins/sudoers/cvtsudoers.c:1258 plugins/sudoers/cvtsudoers_ldif.c:146
+#: plugins/sudoers/cvtsudoers_ldif.c:189 plugins/sudoers/cvtsudoers_ldif.c:236
+#: plugins/sudoers/cvtsudoers_ldif.c:255 plugins/sudoers/cvtsudoers_ldif.c:326
+#: plugins/sudoers/cvtsudoers_ldif.c:381 plugins/sudoers/cvtsudoers_ldif.c:389
+#: plugins/sudoers/cvtsudoers_ldif.c:406 plugins/sudoers/cvtsudoers_ldif.c:415
+#: plugins/sudoers/cvtsudoers_ldif.c:562 plugins/sudoers/defaults.c:656
+#: plugins/sudoers/defaults.c:957 plugins/sudoers/defaults.c:1128
+#: plugins/sudoers/editor.c:65 plugins/sudoers/editor.c:83
+#: plugins/sudoers/editor.c:94 plugins/sudoers/env.c:246
+#: plugins/sudoers/filedigest.c:61 plugins/sudoers/filedigest.c:77
+#: plugins/sudoers/gc.c:52 plugins/sudoers/group_plugin.c:131
+#: plugins/sudoers/interfaces.c:71 plugins/sudoers/iolog.c:936
+#: plugins/sudoers/iolog_path.c:167 plugins/sudoers/iolog_util.c:86
+#: plugins/sudoers/iolog_util.c:125 plugins/sudoers/iolog_util.c:134
+#: plugins/sudoers/iolog_util.c:144 plugins/sudoers/iolog_util.c:152
+#: plugins/sudoers/iolog_util.c:156 plugins/sudoers/ldap.c:178
+#: plugins/sudoers/ldap.c:409 plugins/sudoers/ldap.c:413
+#: plugins/sudoers/ldap.c:425 plugins/sudoers/ldap.c:716
+#: plugins/sudoers/ldap.c:880 plugins/sudoers/ldap.c:1228
+#: plugins/sudoers/ldap.c:1655 plugins/sudoers/ldap.c:1692
+#: plugins/sudoers/ldap.c:1773 plugins/sudoers/ldap.c:1908
+#: plugins/sudoers/ldap.c:2009 plugins/sudoers/ldap.c:2025
+#: plugins/sudoers/ldap_conf.c:214 plugins/sudoers/ldap_conf.c:245
+#: plugins/sudoers/ldap_conf.c:297 plugins/sudoers/ldap_conf.c:333
+#: plugins/sudoers/ldap_conf.c:422 plugins/sudoers/ldap_conf.c:437
+#: plugins/sudoers/ldap_conf.c:533 plugins/sudoers/ldap_conf.c:566
+#: plugins/sudoers/ldap_conf.c:646 plugins/sudoers/ldap_conf.c:729
+#: plugins/sudoers/ldap_util.c:498 plugins/sudoers/ldap_util.c:554
+#: plugins/sudoers/linux_audit.c:76 plugins/sudoers/logging.c:190
+#: plugins/sudoers/logging.c:506 plugins/sudoers/logging.c:527
+#: plugins/sudoers/logging.c:567 plugins/sudoers/logging.c:1003
+#: plugins/sudoers/match.c:692 plugins/sudoers/match.c:739
+#: plugins/sudoers/match.c:781 plugins/sudoers/match.c:809
+#: plugins/sudoers/match.c:897 plugins/sudoers/match.c:976
+#: plugins/sudoers/parse.c:191 plugins/sudoers/parse.c:203
+#: plugins/sudoers/parse.c:218 plugins/sudoers/parse.c:230
+#: plugins/sudoers/parse_ldif.c:134 plugins/sudoers/parse_ldif.c:161
+#: plugins/sudoers/parse_ldif.c:230 plugins/sudoers/parse_ldif.c:237
+#: plugins/sudoers/parse_ldif.c:242 plugins/sudoers/parse_ldif.c:318
+#: plugins/sudoers/parse_ldif.c:329 plugins/sudoers/parse_ldif.c:335
+#: plugins/sudoers/parse_ldif.c:360 plugins/sudoers/parse_ldif.c:372
+#: plugins/sudoers/parse_ldif.c:376 plugins/sudoers/parse_ldif.c:390
+#: plugins/sudoers/parse_ldif.c:554 plugins/sudoers/parse_ldif.c:585
+#: plugins/sudoers/parse_ldif.c:610 plugins/sudoers/parse_ldif.c:639
+#: plugins/sudoers/parse_ldif.c:689 plugins/sudoers/parse_ldif.c:735
+#: plugins/sudoers/parse_ldif.c:745 plugins/sudoers/policy.c:127
+#: plugins/sudoers/policy.c:136 plugins/sudoers/policy.c:145
+#: plugins/sudoers/policy.c:171 plugins/sudoers/policy.c:298
+#: plugins/sudoers/policy.c:313 plugins/sudoers/policy.c:315
+#: plugins/sudoers/policy.c:341 plugins/sudoers/policy.c:351
+#: plugins/sudoers/policy.c:395 plugins/sudoers/policy.c:405
+#: plugins/sudoers/policy.c:414 plugins/sudoers/policy.c:423
+#: plugins/sudoers/policy.c:497 plugins/sudoers/policy.c:739
+#: plugins/sudoers/prompt.c:93 plugins/sudoers/pwutil.c:192
+#: plugins/sudoers/pwutil.c:264 plugins/sudoers/pwutil.c:341
+#: plugins/sudoers/pwutil.c:515 plugins/sudoers/pwutil.c:581
+#: plugins/sudoers/pwutil.c:651 plugins/sudoers/pwutil.c:809
+#: plugins/sudoers/pwutil.c:866 plugins/sudoers/pwutil.c:911
+#: plugins/sudoers/pwutil.c:969 plugins/sudoers/set_perms.c:387
+#: plugins/sudoers/set_perms.c:766 plugins/sudoers/set_perms.c:1150
+#: plugins/sudoers/set_perms.c:1476 plugins/sudoers/set_perms.c:1641
+#: plugins/sudoers/sssd.c:146 plugins/sudoers/sssd.c:393
+#: plugins/sudoers/sssd.c:456 plugins/sudoers/sssd.c:500
+#: plugins/sudoers/sssd.c:547 plugins/sudoers/sssd.c:738
+#: plugins/sudoers/stubs.c:96 plugins/sudoers/stubs.c:104
+#: plugins/sudoers/sudoers.c:264 plugins/sudoers/sudoers.c:274
+#: plugins/sudoers/sudoers.c:282 plugins/sudoers/sudoers.c:324
+#: plugins/sudoers/sudoers.c:647 plugins/sudoers/sudoers.c:773
+#: plugins/sudoers/sudoers.c:817 plugins/sudoers/sudoers.c:1091
+#: plugins/sudoers/sudoers_debug.c:106 plugins/sudoers/sudoreplay.c:1224
+#: plugins/sudoers/sudoreplay.c:1424 plugins/sudoers/sudoreplay.c:1428
+#: plugins/sudoers/testsudoers.c:131 plugins/sudoers/testsudoers.c:231
+#: plugins/sudoers/testsudoers.c:248 plugins/sudoers/testsudoers.c:582
+#: plugins/sudoers/timestamp.c:432 plugins/sudoers/timestamp.c:476
+#: plugins/sudoers/timestamp.c:954 plugins/sudoers/toke_util.c:55
+#: plugins/sudoers/toke_util.c:108 plugins/sudoers/toke_util.c:145
+#: plugins/sudoers/tsdump.c:125 plugins/sudoers/visudo.c:145
+#: plugins/sudoers/visudo.c:307 plugins/sudoers/visudo.c:313
+#: plugins/sudoers/visudo.c:423 plugins/sudoers/visudo.c:601
+#: plugins/sudoers/visudo.c:921 plugins/sudoers/visudo.c:1008
+#: plugins/sudoers/visudo.c:1097 toke.l:847 toke.l:948 toke.l:1105
+#, c-format
+msgid "%s: %s"
+msgstr ""
+
+#: plugins/sudoers/alias.c:140
+#, c-format
+msgid "Alias \"%s\" already defined"
+msgstr ""
+
+#: plugins/sudoers/auth/bsdauth.c:68
+#, c-format
+msgid "unable to get login class for user %s"
+msgstr ""
+
+#: plugins/sudoers/auth/bsdauth.c:73
+msgid "unable to begin bsd authentication"
+msgstr ""
+
+#: plugins/sudoers/auth/bsdauth.c:81
+msgid "invalid authentication type"
+msgstr ""
+
+#: plugins/sudoers/auth/bsdauth.c:90
+msgid "unable to initialize BSD authentication"
+msgstr ""
+
+#: plugins/sudoers/auth/bsdauth.c:178
+msgid "your account has expired"
+msgstr ""
+
+#: plugins/sudoers/auth/bsdauth.c:180
+msgid "approval failed"
+msgstr ""
+
+#: plugins/sudoers/auth/fwtk.c:52
+msgid "unable to read fwtk config"
+msgstr ""
+
+#: plugins/sudoers/auth/fwtk.c:57
+msgid "unable to connect to authentication server"
+msgstr ""
+
+#: plugins/sudoers/auth/fwtk.c:63 plugins/sudoers/auth/fwtk.c:87
+#: plugins/sudoers/auth/fwtk.c:119
+msgid "lost connection to authentication server"
+msgstr ""
+
+#: plugins/sudoers/auth/fwtk.c:67
+#, c-format
+msgid ""
+"authentication server error:\n"
+"%s"
+msgstr ""
+
+#: plugins/sudoers/auth/kerb5.c:111
+#, c-format
+msgid "%s: unable to convert principal to string ('%s'): %s"
+msgstr ""
+
+#: plugins/sudoers/auth/kerb5.c:161
+#, c-format
+msgid "%s: unable to parse '%s': %s"
+msgstr ""
+
+#: plugins/sudoers/auth/kerb5.c:170
+#, c-format
+msgid "%s: unable to resolve credential cache: %s"
+msgstr ""
+
+#: plugins/sudoers/auth/kerb5.c:217
+#, c-format
+msgid "%s: unable to allocate options: %s"
+msgstr ""
+
+#: plugins/sudoers/auth/kerb5.c:232
+#, c-format
+msgid "%s: unable to get credentials: %s"
+msgstr ""
+
+#: plugins/sudoers/auth/kerb5.c:245
+#, c-format
+msgid "%s: unable to initialize credential cache: %s"
+msgstr ""
+
+#: plugins/sudoers/auth/kerb5.c:248
+#, c-format
+msgid "%s: unable to store credential in cache: %s"
+msgstr ""
+
+#: plugins/sudoers/auth/kerb5.c:312
+#, c-format
+msgid "%s: unable to get host principal: %s"
+msgstr ""
+
+#: plugins/sudoers/auth/kerb5.c:326
+#, c-format
+msgid "%s: Cannot verify TGT! Possible attack!: %s"
+msgstr ""
+
+#: plugins/sudoers/auth/pam.c:108
+msgid "unable to initialize PAM"
+msgstr ""
+
+#: plugins/sudoers/auth/pam.c:199
+#, c-format
+msgid "PAM authentication error: %s"
+msgstr ""
+
+#: plugins/sudoers/auth/pam.c:216
+msgid "account validation failure, is your account locked?"
+msgstr ""
+
+#: plugins/sudoers/auth/pam.c:224
+msgid "Account or password is expired, reset your password and try again"
+msgstr ""
+
+#: plugins/sudoers/auth/pam.c:233
+#, c-format
+msgid "unable to change expired password: %s"
+msgstr ""
+
+#: plugins/sudoers/auth/pam.c:241
+msgid "Password expired, contact your system administrator"
+msgstr ""
+
+#: plugins/sudoers/auth/pam.c:245
+msgid ""
+"Account expired or PAM config lacks an \"account\" section for sudo, contact "
+"your system administrator"
+msgstr ""
+
+#: plugins/sudoers/auth/pam.c:252 plugins/sudoers/auth/pam.c:257
+#, c-format
+msgid "PAM account management error: %s"
+msgstr ""
+
+#: plugins/sudoers/auth/rfc1938.c:97 plugins/sudoers/visudo.c:227
+#, c-format
+msgid "you do not exist in the %s database"
+msgstr ""
+
+#: plugins/sudoers/auth/securid5.c:73
+msgid "failed to initialise the ACE API library"
+msgstr ""
+
+#: plugins/sudoers/auth/securid5.c:99
+msgid "unable to contact the SecurID server"
+msgstr ""
+
+#: plugins/sudoers/auth/securid5.c:108
+msgid "User ID locked for SecurID Authentication"
+msgstr ""
+
+#: plugins/sudoers/auth/securid5.c:112 plugins/sudoers/auth/securid5.c:163
+msgid "invalid username length for SecurID"
+msgstr ""
+
+#: plugins/sudoers/auth/securid5.c:116 plugins/sudoers/auth/securid5.c:168
+msgid "invalid Authentication Handle for SecurID"
+msgstr ""
+
+#: plugins/sudoers/auth/securid5.c:120
+msgid "SecurID communication failed"
+msgstr ""
+
+#: plugins/sudoers/auth/securid5.c:124 plugins/sudoers/auth/securid5.c:213
+msgid "unknown SecurID error"
+msgstr ""
+
+#: plugins/sudoers/auth/securid5.c:158
+msgid "invalid passcode length for SecurID"
+msgstr ""
+
+#: plugins/sudoers/auth/sia.c:69 plugins/sudoers/auth/sia.c:124
+msgid "unable to initialize SIA session"
+msgstr ""
+
+#: plugins/sudoers/auth/sudo_auth.c:131
+msgid "invalid authentication methods"
+msgstr ""
+
+#: plugins/sudoers/auth/sudo_auth.c:133
+msgid ""
+"Invalid authentication methods compiled into sudo!  You may not mix "
+"standalone and non-standalone authentication."
+msgstr ""
+
+#: plugins/sudoers/auth/sudo_auth.c:254 plugins/sudoers/auth/sudo_auth.c:304
+msgid "no authentication methods"
+msgstr ""
+
+#: plugins/sudoers/auth/sudo_auth.c:256
+msgid ""
+"There are no authentication methods compiled into sudo!  If you want to turn "
+"off authentication, use the --disable-authentication configure option."
+msgstr ""
+
+#: plugins/sudoers/auth/sudo_auth.c:306
+msgid "Unable to initialize authentication methods."
+msgstr ""
+
+#: plugins/sudoers/auth/sudo_auth.c:472
+msgid "Authentication methods:"
+msgstr ""
+
+#: plugins/sudoers/bsm_audit.c:118 plugins/sudoers/bsm_audit.c:210
+msgid "Could not determine audit condition"
+msgstr ""
+
+#: plugins/sudoers/bsm_audit.c:183 plugins/sudoers/bsm_audit.c:274
+msgid "unable to commit audit record"
+msgstr ""
+
+#: plugins/sudoers/check.c:262
+msgid ""
+"\n"
+"We trust you have received the usual lecture from the local System\n"
+"Administrator. It usually boils down to these three things:\n"
+"\n"
+"    #1) Respect the privacy of others.\n"
+"    #2) Think before you type.\n"
+"    #3) With great power comes great responsibility.\n"
+"\n"
+msgstr ""
+
+#: plugins/sudoers/check.c:305 plugins/sudoers/check.c:315
+#: plugins/sudoers/sudoers.c:690 plugins/sudoers/sudoers.c:735
+#: plugins/sudoers/tsdump.c:121
+#, c-format
+msgid "unknown uid: %u"
+msgstr ""
+
+#: plugins/sudoers/check.c:310 plugins/sudoers/iolog.c:250
+#: plugins/sudoers/policy.c:910 plugins/sudoers/sudoers.c:1130
+#: plugins/sudoers/testsudoers.c:222 plugins/sudoers/testsudoers.c:395
+#, c-format
+msgid "unknown user: %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:192
+#, c-format
+msgid "order increment: %s: %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:208
+#, c-format
+msgid "starting order: %s: %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:219 plugins/sudoers/sudoreplay.c:280
+#: plugins/sudoers/visudo.c:177
+#, c-format
+msgid "%s version %s\n"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:221 plugins/sudoers/visudo.c:179
+#, c-format
+msgid "%s grammar version %d\n"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:238 plugins/sudoers/testsudoers.c:170
+#, c-format
+msgid "unsupported input format %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:253
+#, c-format
+msgid "unsupported output format %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:293
+#, c-format
+msgid "%s: input and output files must be different"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:309 plugins/sudoers/sudoers.c:167
+#: plugins/sudoers/testsudoers.c:261 plugins/sudoers/visudo.c:233
+#: plugins/sudoers/visudo.c:589 plugins/sudoers/visudo.c:912
+msgid "unable to initialize sudoers default values"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:394 plugins/sudoers/ldap_conf.c:412
+#, c-format
+msgid "%s: %s: %s: %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:453
+#, c-format
+msgid "%s: unknown key word: %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:499
+#, c-format
+msgid "invalid defaults type: %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:522
+#, c-format
+msgid "invalid suppression type: %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:562 plugins/sudoers/cvtsudoers.c:576
+#, c-format
+msgid "invalid filter: %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:595 plugins/sudoers/cvtsudoers.c:612
+#: plugins/sudoers/cvtsudoers.c:1218 plugins/sudoers/cvtsudoers_json.c:1122
+#: plugins/sudoers/cvtsudoers_ldif.c:632 plugins/sudoers/iolog.c:408
+#: plugins/sudoers/iolog_util.c:75 plugins/sudoers/sudoers.c:897
+#: plugins/sudoers/sudoreplay.c:326 plugins/sudoers/sudoreplay.c:1390
+#: plugins/sudoers/timestamp.c:441 plugins/sudoers/tsdump.c:130
+#: plugins/sudoers/visudo.c:908
+#, c-format
+msgid "unable to open %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:615 plugins/sudoers/visudo.c:917
+#, c-format
+msgid "failed to parse %s file, unknown error"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:623 plugins/sudoers/visudo.c:934
+#, c-format
+msgid "parse error in %s near line %d\n"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:626 plugins/sudoers/visudo.c:937
+#, c-format
+msgid "parse error in %s\n"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:1265 plugins/sudoers/iolog.c:495
+#: plugins/sudoers/sudoreplay.c:1094 plugins/sudoers/timestamp.c:325
+#: plugins/sudoers/timestamp.c:328
+#, c-format
+msgid "unable to write to %s"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:1288
+#, c-format
+msgid ""
+"%s - convert between sudoers file formats\n"
+"\n"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers.c:1290
+msgid ""
+"\n"
+"Options:\n"
+"  -b, --base=dn              the base DN for sudo LDAP queries\n"
+"  -d, --defaults=deftypes    only convert Defaults of the specified types\n"
+"  -e, --expand-aliases       expand aliases when converting\n"
+"  -f, --output-format=format set output format: JSON, LDIF or sudoers\n"
+"  -i, --input-format=format  set input format: LDIF or sudoers\n"
+"  -I, --increment=num        amount to increase each sudoOrder by\n"
+"  -h, --help                 display help message and exit\n"
+"  -m, --match=filter         only convert entries that match the filter\n"
+"  -M, --match-local          match filter uses passwd and group databases\n"
+"  -o, --output=output_file   write converted sudoers to output_file\n"
+"  -O, --order-start=num      starting point for first sudoOrder\n"
+"  -p, --prune-matches        prune non-matching users, groups and hosts\n"
+"  -s, --suppress=sections    suppress output of certain sections\n"
+"  -V, --version              display version information and exit"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers_json.c:676 plugins/sudoers/cvtsudoers_json.c:712
+#: plugins/sudoers/cvtsudoers_json.c:930
+#, c-format
+msgid "unknown defaults entry \"%s\""
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers_json.c:850 plugins/sudoers/cvtsudoers_json.c:865
+#: plugins/sudoers/cvtsudoers_ldif.c:301 plugins/sudoers/cvtsudoers_ldif.c:312
+#: plugins/sudoers/ldap.c:475
+msgid "unable to get GMT time"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers_json.c:853 plugins/sudoers/cvtsudoers_json.c:868
+#: plugins/sudoers/cvtsudoers_ldif.c:304 plugins/sudoers/cvtsudoers_ldif.c:315
+#: plugins/sudoers/ldap.c:481
+msgid "unable to format timestamp"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers_ldif.c:519 plugins/sudoers/env.c:308
+#: plugins/sudoers/env.c:315 plugins/sudoers/env.c:420
+#: plugins/sudoers/ldap.c:489 plugins/sudoers/ldap.c:720
+#: plugins/sudoers/ldap.c:1047 plugins/sudoers/ldap_conf.c:218
+#: plugins/sudoers/ldap_conf.c:308 plugins/sudoers/linux_audit.c:82
+#: plugins/sudoers/logging.c:1008 plugins/sudoers/policy.c:618
+#: plugins/sudoers/policy.c:628 plugins/sudoers/prompt.c:161
+#: plugins/sudoers/sudoers.c:839 plugins/sudoers/testsudoers.c:252
+#: plugins/sudoers/toke_util.c:157
+#, c-format
+msgid "internal error, %s overflow"
+msgstr ""
+
+#: plugins/sudoers/cvtsudoers_ldif.c:627
+msgid ""
+"the SUDOERS_BASE environment variable is not set and the -b option was not "
+"specified."
+msgstr ""
+
+#: plugins/sudoers/def_data.c:42
+#, c-format
+msgid "Syslog facility if syslog is being used for logging: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:46
+#, c-format
+msgid "Syslog priority to use when user authenticates successfully: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:50
+#, c-format
+msgid "Syslog priority to use when user authenticates unsuccessfully: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:54
+msgid "Put OTP prompt on its own line"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:58
+msgid "Ignore '.' in $PATH"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:62
+msgid "Always send mail when sudo is run"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:66
+msgid "Send mail if user authentication fails"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:70
+msgid "Send mail if the user is not in sudoers"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:74
+msgid "Send mail if the user is not in sudoers for this host"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:78
+msgid "Send mail if the user is not allowed to run a command"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:82
+msgid "Send mail if the user tries to run a command"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:86
+msgid "Use a separate timestamp for each user/tty combo"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:90
+msgid "Lecture user the first time they run sudo"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:94
+#, c-format
+msgid "File containing the sudo lecture: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:98
+msgid "Require users to authenticate by default"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:102
+msgid "Root may run sudo"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:106
+msgid "Log the hostname in the (non-syslog) log file"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:110
+msgid "Log the year in the (non-syslog) log file"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:114
+msgid "If sudo is invoked with no arguments, start a shell"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:118
+msgid "Set $HOME to the target user when starting a shell with -s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:122
+msgid "Always set $HOME to the target user's home directory"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:126
+msgid "Allow some information gathering to give useful error messages"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:130
+msgid "Require fully-qualified hostnames in the sudoers file"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:134
+msgid "Insult the user when they enter an incorrect password"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:138
+msgid "Only allow the user to run sudo if they have a tty"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:142
+msgid "Visudo will honor the EDITOR environment variable"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:146
+msgid "Prompt for root's password, not the users's"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:150
+msgid "Prompt for the runas_default user's password, not the users's"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:154
+msgid "Prompt for the target user's password, not the users's"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:158
+msgid "Apply defaults in the target user's login class if there is one"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:162
+msgid "Set the LOGNAME and USER environment variables"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:166
+msgid "Only set the effective uid to the target user, not the real uid"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:170
+msgid "Don't initialize the group vector to that of the target user"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:174
+#, c-format
+msgid "Length at which to wrap log file lines (0 for no wrap): %u"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:178
+#, c-format
+msgid "Authentication timestamp timeout: %.1f minutes"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:182
+#, c-format
+msgid "Password prompt timeout: %.1f minutes"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:186
+#, c-format
+msgid "Number of tries to enter a password: %u"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:190
+#, c-format
+msgid "Umask to use or 0777 to use user's: 0%o"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:194
+#, c-format
+msgid "Path to log file: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:198
+#, c-format
+msgid "Path to mail program: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:202
+#, c-format
+msgid "Flags for mail program: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:206
+#, c-format
+msgid "Address to send mail to: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:210
+#, c-format
+msgid "Address to send mail from: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:214
+#, c-format
+msgid "Subject line for mail messages: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:218
+#, c-format
+msgid "Incorrect password message: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:222
+#, c-format
+msgid "Path to lecture status dir: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:226
+#, c-format
+msgid "Path to authentication timestamp dir: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:230
+#, c-format
+msgid "Owner of the authentication timestamp dir: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:234
+#, c-format
+msgid "Users in this group are exempt from password and PATH requirements: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:238
+#, c-format
+msgid "Default password prompt: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:242
+msgid "If set, passprompt will override system prompt in all cases."
+msgstr ""
+
+#: plugins/sudoers/def_data.c:246
+#, c-format
+msgid "Default user to run commands as: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:250
+#, c-format
+msgid "Value to override user's $PATH with: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:254
+#, c-format
+msgid "Path to the editor for use by visudo: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:258
+#, c-format
+msgid "When to require a password for 'list' pseudocommand: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:262
+#, c-format
+msgid "When to require a password for 'verify' pseudocommand: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:266
+msgid "Preload the dummy exec functions contained in the sudo_noexec library"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:270
+msgid "If LDAP directory is up, do we ignore local sudoers file"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:274
+#, c-format
+msgid "File descriptors >= %d will be closed before executing a command"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:278
+msgid "If set, users may override the value of `closefrom' with the -C option"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:282
+msgid "Allow users to set arbitrary environment variables"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:286
+msgid "Reset the environment to a default set of variables"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:290
+msgid "Environment variables to check for sanity:"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:294
+msgid "Environment variables to remove:"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:298
+msgid "Environment variables to preserve:"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:302
+#, c-format
+msgid "SELinux role to use in the new security context: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:306
+#, c-format
+msgid "SELinux type to use in the new security context: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:310
+#, c-format
+msgid "Path to the sudo-specific environment file: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:314
+#, c-format
+msgid "Path to the restricted sudo-specific environment file: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:318
+#, c-format
+msgid "Locale to use while parsing sudoers: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:322
+msgid "Allow sudo to prompt for a password even if it would be visible"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:326
+msgid "Provide visual feedback at the password prompt when there is user input"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:330
+msgid ""
+"Use faster globbing that is less accurate but does not access the filesystem"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:334
+msgid ""
+"The umask specified in sudoers will override the user's, even if it is more "
+"permissive"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:338
+msgid "Log user's input for the command being run"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:342
+msgid "Log the output of the command being run"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:346
+msgid "Compress I/O logs using zlib"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:350
+msgid "Always run commands in a pseudo-tty"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:354
+#, c-format
+msgid "Plugin for non-Unix group support: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:358
+#, c-format
+msgid "Directory in which to store input/output logs: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:362
+#, c-format
+msgid "File in which to store the input/output log: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:366
+msgid "Add an entry to the utmp/utmpx file when allocating a pty"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:370
+msgid "Set the user in utmp to the runas user, not the invoking user"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:374
+#, c-format
+msgid "Set of permitted privileges: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:378
+#, c-format
+msgid "Set of limit privileges: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:382
+msgid "Run commands on a pty in the background"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:386
+#, c-format
+msgid "PAM service name to use: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:390
+#, c-format
+msgid "PAM service name to use for login shells: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:394
+msgid "Attempt to establish PAM credentials for the target user"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:398
+msgid "Create a new PAM session for the command to run in"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:402
+#, c-format
+msgid "Maximum I/O log sequence number: %u"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:406
+msgid "Enable sudoers netgroup support"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:410
+msgid ""
+"Check parent directories for writability when editing files with sudoedit"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:414
+msgid "Follow symbolic links when editing files with sudoedit"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:418
+msgid "Query the group plugin for unknown system groups"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:422
+msgid "Match netgroups based on the entire tuple: user, host and domain"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:426
+msgid "Allow commands to be run even if sudo cannot write to the audit log"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:430
+msgid "Allow commands to be run even if sudo cannot write to the I/O log"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:434
+msgid "Allow commands to be run even if sudo cannot write to the log file"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:438
+msgid "Resolve groups in sudoers and match on the group ID, not the name"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:442
+#, c-format
+msgid ""
+"Log entries larger than this value will be split into multiple syslog "
+"messages: %u"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:446
+#, c-format
+msgid "User that will own the I/O log files: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:450
+#, c-format
+msgid "Group that will own the I/O log files: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:454
+#, c-format
+msgid "File mode to use for the I/O log files: 0%o"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:458
+#, c-format
+msgid "Execute commands by file descriptor instead of by path: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:462
+msgid ""
+"Ignore unknown Defaults entries in sudoers instead of producing a warning"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:466
+#, c-format
+msgid "Time in seconds after which the command will be terminated: %u"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:470
+msgid "Allow the user to specify a timeout on the command line"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:474
+msgid "Flush I/O log data to disk immediately instead of buffering it"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:478
+msgid "Include the process ID when logging via syslog"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:482
+#, c-format
+msgid "Type of authentication timestamp record: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:486
+#, c-format
+msgid "Authentication failure message: %s"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:490
+msgid "Ignore case when matching user names"
+msgstr ""
+
+#: plugins/sudoers/def_data.c:494
+msgid "Ignore case when matching group names"
+msgstr ""
+
+#: plugins/sudoers/defaults.c:224
+#, c-format
+msgid "%s:%d unknown defaults entry \"%s\""
+msgstr ""
+
+#: plugins/sudoers/defaults.c:227
+#, c-format
+msgid "%s: unknown defaults entry \"%s\""
+msgstr ""
+
+#: plugins/sudoers/defaults.c:270
+#, c-format
+msgid "%s:%d no value specified for \"%s\""
+msgstr ""
+
+#: plugins/sudoers/defaults.c:273
+#, c-format
+msgid "%s: no value specified for \"%s\""
+msgstr ""
+
+#: plugins/sudoers/defaults.c:293
+#, c-format
+msgid "%s:%d values for \"%s\" must start with a '/'"
+msgstr ""
+
+#: plugins/sudoers/defaults.c:296
+#, c-format
+msgid "%s: values for \"%s\" must start with a '/'"
+msgstr ""
+
+#: plugins/sudoers/defaults.c:318
+#, c-format
+msgid "%s:%d option \"%s\" does not take a value"
+msgstr ""
+
+#: plugins/sudoers/defaults.c:321
+#, c-format
+msgid "%s: option \"%s\" does not take a value"
+msgstr ""
+
+#: plugins/sudoers/defaults.c:346
+#, c-format
+msgid "%s:%d invalid Defaults type 0x%x for option \"%s\""
+msgstr ""
+
+#: plugins/sudoers/defaults.c:349
+#, c-format
+msgid "%s: invalid Defaults type 0x%x for option \"%s\""
+msgstr ""
+
+#: plugins/sudoers/defaults.c:359
+#, c-format
+msgid "%s:%d value \"%s\" is invalid for option \"%s\""
+msgstr ""
+
+#: plugins/sudoers/defaults.c:362
+#, c-format
+msgid "%s: value \"%s\" is invalid for option \"%s\""
+msgstr ""
+
+#: plugins/sudoers/env.c:389
+msgid "sudo_putenv: corrupted envp, length mismatch"
+msgstr ""
+
+#: plugins/sudoers/env.c:1090
+msgid "unable to rebuild the environment"
+msgstr ""
+
+#: plugins/sudoers/env.c:1164
+#, c-format
+msgid ""
+"sorry, you are not allowed to set the following environment variables: %s"
+msgstr ""
+
+#: plugins/sudoers/file.c:111
+#, c-format
+msgid "parse error in %s near line %d"
+msgstr ""
+
+#: plugins/sudoers/file.c:114
+#, c-format
+msgid "parse error in %s"
+msgstr ""
+
+#: plugins/sudoers/filedigest.c:56
+#, c-format
+msgid "unsupported digest type %d for %s"
+msgstr ""
+
+#: plugins/sudoers/filedigest.c:85
+#, c-format
+msgid "%s: read error"
+msgstr ""
+
+#: plugins/sudoers/group_plugin.c:83
+#, c-format
+msgid "%s must be owned by uid %d"
+msgstr ""
+
+#: plugins/sudoers/group_plugin.c:87
+#, c-format
+msgid "%s must only be writable by owner"
+msgstr ""
+
+#: plugins/sudoers/group_plugin.c:95 plugins/sudoers/sssd.c:556
+#, c-format
+msgid "unable to load %s: %s"
+msgstr ""
+
+#: plugins/sudoers/group_plugin.c:101
+#, c-format
+msgid "unable to find symbol \"group_plugin\" in %s"
+msgstr ""
+
+#: plugins/sudoers/group_plugin.c:106
+#, c-format
+msgid "%s: incompatible group plugin major version %d, expected %d"
+msgstr ""
+
+#: plugins/sudoers/interfaces.c:79 plugins/sudoers/interfaces.c:96
+#, c-format
+msgid "unable to parse IP address \"%s\""
+msgstr ""
+
+#: plugins/sudoers/interfaces.c:84 plugins/sudoers/interfaces.c:101
+#, c-format
+msgid "unable to parse netmask \"%s\""
+msgstr ""
+
+#: plugins/sudoers/interfaces.c:129
+msgid "Local IP address and netmask pairs:\n"
+msgstr ""
+
+#: plugins/sudoers/iolog.c:112 plugins/sudoers/mkdir_parents.c:75
+#, c-format
+msgid "%s exists but is not a directory (0%o)"
+msgstr ""
+
+#: plugins/sudoers/iolog.c:137 plugins/sudoers/iolog.c:177
+#: plugins/sudoers/mkdir_parents.c:64 plugins/sudoers/timestamp.c:205
+#, c-format
+msgid "unable to mkdir %s"
+msgstr ""
+
+#: plugins/sudoers/iolog.c:181 plugins/sudoers/visudo.c:718
+#: plugins/sudoers/visudo.c:729
+#, c-format
+msgid "unable to change mode of %s to 0%o"
+msgstr ""
+
+#: plugins/sudoers/iolog.c:289 plugins/sudoers/sudoers.c:1161
+#: plugins/sudoers/testsudoers.c:419
+#, c-format
+msgid "unknown group: %s"
+msgstr ""
+
+#: plugins/sudoers/iolog.c:459 plugins/sudoers/sudoers.c:901
+#: plugins/sudoers/sudoreplay.c:827 plugins/sudoers/sudoreplay.c:1501
+#: plugins/sudoers/tsdump.c:140
+#, c-format
+msgid "unable to read %s"
+msgstr ""
+
+#: plugins/sudoers/iolog.c:574 plugins/sudoers/iolog.c:794
+#, c-format
+msgid "unable to create %s"
+msgstr ""
+
+#: plugins/sudoers/iolog.c:817 plugins/sudoers/iolog.c:1032
+#: plugins/sudoers/iolog.c:1107 plugins/sudoers/iolog.c:1190
+#, c-format
+msgid "unable to write to I/O log file: %s"
+msgstr ""
+
+#: plugins/sudoers/iolog.c:1066
+#, c-format
+msgid "%s: internal error, file index %d not open"
+msgstr ""
+
+#: plugins/sudoers/iolog_util.c:90
+#, c-format
+msgid "%s: invalid log file"
+msgstr ""
+
+#: plugins/sudoers/iolog_util.c:108
+#, c-format
+msgid "%s: time stamp field is missing"
+msgstr ""
+
+#: plugins/sudoers/iolog_util.c:114
+#, c-format
+msgid "%s: time stamp %s: %s"
+msgstr ""
+
+#: plugins/sudoers/iolog_util.c:121
+#, c-format
+msgid "%s: user field is missing"
+msgstr ""
+
+#: plugins/sudoers/iolog_util.c:130
+#, c-format
+msgid "%s: runas user field is missing"
+msgstr ""
+
+#: plugins/sudoers/iolog_util.c:139
+#, c-format
+msgid "%s: runas group field is missing"
+msgstr ""
+
+#: plugins/sudoers/ldap.c:171 plugins/sudoers/ldap_conf.c:287
+msgid "starttls not supported when using ldaps"
+msgstr ""
+
+#: plugins/sudoers/ldap.c:242
+#, c-format
+msgid "unable to initialize SSL cert and key db: %s"
+msgstr ""
+
+#: plugins/sudoers/ldap.c:245
+#, c-format
+msgid "you must set TLS_CERT in %s to use SSL"
+msgstr ""
+
+#: plugins/sudoers/ldap.c:1607
+#, c-format
+msgid "unable to initialize LDAP: %s"
+msgstr ""
+
+#: plugins/sudoers/ldap.c:1643
+msgid ""
+"start_tls specified but LDAP libs do not support ldap_start_tls_s() or "
+"ldap_start_tls_s_np()"
+msgstr ""
+
+#: plugins/sudoers/ldap.c:1780 plugins/sudoers/parse_ldif.c:727
+#, c-format
+msgid "invalid sudoOrder attribute: %s"
+msgstr ""
+
+#: plugins/sudoers/ldap_conf.c:196
+msgid "sudo_ldap_conf_add_ports: port too large"
+msgstr ""
+
+#: plugins/sudoers/ldap_conf.c:256
+#, c-format
+msgid "unsupported LDAP uri type: %s"
+msgstr ""
+
+#: plugins/sudoers/ldap_conf.c:283
+msgid "unable to mix ldap and ldaps URIs"
+msgstr ""
+
+#: plugins/sudoers/ldap_util.c:448 plugins/sudoers/ldap_util.c:450
+#, c-format
+msgid "unable to convert sudoOption: %s%s%s"
+msgstr ""
+
+#: plugins/sudoers/linux_audit.c:52
+msgid "unable to open audit system"
+msgstr ""
+
+#: plugins/sudoers/linux_audit.c:93
+msgid "unable to send audit message"
+msgstr ""
+
+#: plugins/sudoers/logging.c:108
+#, c-format
+msgid "%8s : %s"
+msgstr ""
+
+#: plugins/sudoers/logging.c:136
+#, c-format
+msgid "%8s : (command continued) %s"
+msgstr ""
+
+#: plugins/sudoers/logging.c:165
+#, c-format
+msgid "unable to open log file: %s"
+msgstr ""
+
+#: plugins/sudoers/logging.c:173
+#, c-format
+msgid "unable to lock log file: %s"
+msgstr ""
+
+#: plugins/sudoers/logging.c:206
+#, c-format
+msgid "unable to write log file: %s"
+msgstr ""
+
+#: plugins/sudoers/logging.c:235
+msgid "No user or host"
+msgstr ""
+
+#: plugins/sudoers/logging.c:237
+msgid "validation failure"
+msgstr ""
+
+#: plugins/sudoers/logging.c:244
+msgid "user NOT in sudoers"
+msgstr ""
+
+#: plugins/sudoers/logging.c:246
+msgid "user NOT authorized on host"
+msgstr ""
+
+#: plugins/sudoers/logging.c:248
+msgid "command not allowed"
+msgstr ""
+
+#: plugins/sudoers/logging.c:283
+#, c-format
+msgid "%s is not in the sudoers file.  This incident will be reported.\n"
+msgstr ""
+
+#: plugins/sudoers/logging.c:286
+#, c-format
+msgid "%s is not allowed to run sudo on %s.  This incident will be reported.\n"
+msgstr ""
+
+#: plugins/sudoers/logging.c:290
+#, c-format
+msgid "Sorry, user %s may not run sudo on %s.\n"
+msgstr ""
+
+#: plugins/sudoers/logging.c:293
+#, c-format
+msgid "Sorry, user %s is not allowed to execute '%s%s%s' as %s%s%s on %s.\n"
+msgstr ""
+
+#: plugins/sudoers/logging.c:330 plugins/sudoers/sudoers.c:432
+#: plugins/sudoers/sudoers.c:434 plugins/sudoers/sudoers.c:436
+#: plugins/sudoers/sudoers.c:438 plugins/sudoers/sudoers.c:593
+#: plugins/sudoers/sudoers.c:595
+#, c-format
+msgid "%s: command not found"
+msgstr ""
+
+#: plugins/sudoers/logging.c:332 plugins/sudoers/sudoers.c:428
+#, c-format
+msgid ""
+"ignoring \"%s\" found in '.'\n"
+"Use \"sudo ./%s\" if this is the \"%s\" you wish to run."
+msgstr ""
+
+#: plugins/sudoers/logging.c:349
+msgid "authentication failure"
+msgstr ""
+
+#: plugins/sudoers/logging.c:375
+msgid "a password is required"
+msgstr ""
+
+#: plugins/sudoers/logging.c:438
+#, c-format
+msgid "%u incorrect password attempt"
+msgid_plural "%u incorrect password attempts"
+msgstr[0] ""
+msgstr[1] ""
+
+#: plugins/sudoers/logging.c:659
+msgid "unable to fork"
+msgstr ""
+
+#: plugins/sudoers/logging.c:667 plugins/sudoers/logging.c:719
+#, c-format
+msgid "unable to fork: %m"
+msgstr ""
+
+#: plugins/sudoers/logging.c:709
+#, c-format
+msgid "unable to open pipe: %m"
+msgstr ""
+
+#: plugins/sudoers/logging.c:734
+#, c-format
+msgid "unable to dup stdin: %m"
+msgstr ""
+
+#: plugins/sudoers/logging.c:772
+#, c-format
+msgid "unable to execute %s: %m"
+msgstr ""
+
+#: plugins/sudoers/match.c:842
+#, c-format
+msgid "digest for %s (%s) is not in %s form"
+msgstr ""
+
+#: plugins/sudoers/mkdir_parents.c:70 plugins/sudoers/sudoers.c:912
+#: plugins/sudoers/visudo.c:416 plugins/sudoers/visudo.c:712
+#, c-format
+msgid "unable to stat %s"
+msgstr ""
+
+#: plugins/sudoers/parse.c:441
+#, c-format
+msgid ""
+"\n"
+"LDAP Role: %s\n"
+msgstr ""
+
+#: plugins/sudoers/parse.c:444
+#, c-format
+msgid ""
+"\n"
+"Sudoers entry:\n"
+msgstr ""
+
+#: plugins/sudoers/parse.c:446
+#, c-format
+msgid "    RunAsUsers: "
+msgstr ""
+
+#: plugins/sudoers/parse.c:461
+#, c-format
+msgid "    RunAsGroups: "
+msgstr ""
+
+#: plugins/sudoers/parse.c:471
+#, c-format
+msgid "    Options: "
+msgstr ""
+
+#: plugins/sudoers/parse.c:525
+#, c-format
+msgid "    Commands:\n"
+msgstr ""
+
+#: plugins/sudoers/parse.c:716
+#, c-format
+msgid "Matching Defaults entries for %s on %s:\n"
+msgstr ""
+
+#: plugins/sudoers/parse.c:734
+#, c-format
+msgid "Runas and Command-specific defaults for %s:\n"
+msgstr ""
+
+#: plugins/sudoers/parse.c:752
+#, c-format
+msgid "User %s may run the following commands on %s:\n"
+msgstr ""
+
+#: plugins/sudoers/parse.c:767
+#, c-format
+msgid "User %s is not allowed to run sudo on %s.\n"
+msgstr ""
+
+#: plugins/sudoers/parse_ldif.c:139
+#, c-format
+msgid "ignoring invalid attribute value: %s"
+msgstr ""
+
+#: plugins/sudoers/parse_ldif.c:575
+#, c-format
+msgid "ignoring incomplete sudoRole: cn: %s"
+msgstr ""
+
+#: plugins/sudoers/policy.c:83 plugins/sudoers/policy.c:109
+#, c-format
+msgid "invalid %.*s set by sudo front-end"
+msgstr ""
+
+#: plugins/sudoers/policy.c:288 plugins/sudoers/testsudoers.c:275
+msgid "unable to parse network address list"
+msgstr ""
+
+#: plugins/sudoers/policy.c:432
+msgid "user name not set by sudo front-end"
+msgstr ""
+
+#: plugins/sudoers/policy.c:436
+msgid "user ID not set by sudo front-end"
+msgstr ""
+
+#: plugins/sudoers/policy.c:440
+msgid "group ID not set by sudo front-end"
+msgstr ""
+
+#: plugins/sudoers/policy.c:444
+msgid "host name not set by sudo front-end"
+msgstr ""
+
+#: plugins/sudoers/policy.c:797 plugins/sudoers/visudo.c:215
+#: plugins/sudoers/visudo.c:846
+#, c-format
+msgid "unable to execute %s"
+msgstr ""
+
+#: plugins/sudoers/policy.c:928
+#, c-format
+msgid "Sudoers policy plugin version %s\n"
+msgstr ""
+
+#: plugins/sudoers/policy.c:930
+#, c-format
+msgid "Sudoers file grammar version %d\n"
+msgstr ""
+
+#: plugins/sudoers/policy.c:934
+#, c-format
+msgid ""
+"\n"
+"Sudoers path: %s\n"
+msgstr ""
+
+#: plugins/sudoers/policy.c:937
+#, c-format
+msgid "nsswitch path: %s\n"
+msgstr ""
+
+#: plugins/sudoers/policy.c:939
+#, c-format
+msgid "ldap.conf path: %s\n"
+msgstr ""
+
+#: plugins/sudoers/policy.c:940
+#, c-format
+msgid "ldap.secret path: %s\n"
+msgstr ""
+
+#: plugins/sudoers/policy.c:973
+#, c-format
+msgid "unable to register hook of type %d (version %d.%d)"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:215 plugins/sudoers/pwutil.c:234
+#, c-format
+msgid "unable to cache uid %u, out of memory"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:228
+#, c-format
+msgid "unable to cache uid %u, already exists"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:288 plugins/sudoers/pwutil.c:306
+#: plugins/sudoers/pwutil.c:368 plugins/sudoers/pwutil.c:413
+#, c-format
+msgid "unable to cache user %s, out of memory"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:301
+#, c-format
+msgid "unable to cache user %s, already exists"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:532 plugins/sudoers/pwutil.c:551
+#, c-format
+msgid "unable to cache gid %u, out of memory"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:545
+#, c-format
+msgid "unable to cache gid %u, already exists"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:599 plugins/sudoers/pwutil.c:617
+#: plugins/sudoers/pwutil.c:664 plugins/sudoers/pwutil.c:706
+#, c-format
+msgid "unable to cache group %s, out of memory"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:612
+#, c-format
+msgid "unable to cache group %s, already exists"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:832 plugins/sudoers/pwutil.c:884
+#: plugins/sudoers/pwutil.c:935 plugins/sudoers/pwutil.c:988
+#, c-format
+msgid "unable to cache group list for %s, already exists"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:838 plugins/sudoers/pwutil.c:889
+#: plugins/sudoers/pwutil.c:941 plugins/sudoers/pwutil.c:993
+#, c-format
+msgid "unable to cache group list for %s, out of memory"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:878
+#, c-format
+msgid "unable to parse groups for %s"
+msgstr ""
+
+#: plugins/sudoers/pwutil.c:982
+#, c-format
+msgid "unable to parse gids for %s"
+msgstr ""
+
+#: plugins/sudoers/set_perms.c:113 plugins/sudoers/set_perms.c:469
+#: plugins/sudoers/set_perms.c:912 plugins/sudoers/set_perms.c:1239
+#: plugins/sudoers/set_perms.c:1556
+msgid "perm stack overflow"
+msgstr ""
+
+#: plugins/sudoers/set_perms.c:121 plugins/sudoers/set_perms.c:400
+#: plugins/sudoers/set_perms.c:477 plugins/sudoers/set_perms.c:779
+#: plugins/sudoers/set_perms.c:920 plugins/sudoers/set_perms.c:1163
+#: plugins/sudoers/set_perms.c:1247 plugins/sudoers/set_perms.c:1489
+#: plugins/sudoers/set_perms.c:1564 plugins/sudoers/set_perms.c:1654
+msgid "perm stack underflow"
+msgstr ""
+
+#: plugins/sudoers/set_perms.c:180 plugins/sudoers/set_perms.c:523
+#: plugins/sudoers/set_perms.c:1298 plugins/sudoers/set_perms.c:1596
+msgid "unable to change to root gid"
+msgstr ""
+
+#: plugins/sudoers/set_perms.c:269 plugins/sudoers/set_perms.c:620
+#: plugins/sudoers/set_perms.c:1049 plugins/sudoers/set_perms.c:1375
+msgid "unable to change to runas gid"
+msgstr ""
+
+#: plugins/sudoers/set_perms.c:274 plugins/sudoers/set_perms.c:625
+#: plugins/sudoers/set_perms.c:1054 plugins/sudoers/set_perms.c:1380
+msgid "unable to set runas group vector"
+msgstr ""
+
+#: plugins/sudoers/set_perms.c:285 plugins/sudoers/set_perms.c:636
+#: plugins/sudoers/set_perms.c:1063 plugins/sudoers/set_perms.c:1389
+msgid "unable to change to runas uid"
+msgstr ""
+
+#: plugins/sudoers/set_perms.c:303 plugins/sudoers/set_perms.c:654
+#: plugins/sudoers/set_perms.c:1079 plugins/sudoers/set_perms.c:1405
+msgid "unable to change to sudoers gid"
+msgstr ""
+
+#: plugins/sudoers/set_perms.c:387 plugins/sudoers/set_perms.c:766
+#: plugins/sudoers/set_perms.c:1150 plugins/sudoers/set_perms.c:1476
+#: plugins/sudoers/set_perms.c:1641
+msgid "too many processes"
+msgstr ""
+
+#: plugins/sudoers/solaris_audit.c:51
+msgid "unable to get current working directory"
+msgstr ""
+
+#: plugins/sudoers/solaris_audit.c:59
+#, c-format
+msgid "truncated audit path user_cmnd: %s"
+msgstr ""
+
+#: plugins/sudoers/solaris_audit.c:66
+#, c-format
+msgid "truncated audit path argv[0]: %s"
+msgstr ""
+
+#: plugins/sudoers/solaris_audit.c:115
+msgid "audit_failure message too long"
+msgstr ""
+
+#: plugins/sudoers/sssd.c:558
+msgid "unable to initialize SSS source. Is SSSD installed on your machine?"
+msgstr ""
+
+#: plugins/sudoers/sssd.c:566 plugins/sudoers/sssd.c:575
+#: plugins/sudoers/sssd.c:584 plugins/sudoers/sssd.c:593
+#: plugins/sudoers/sssd.c:602
+#, c-format
+msgid "unable to find symbol \"%s\" in %s"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:203 plugins/sudoers/sudoers.c:858
+msgid "problem with defaults entries"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:207
+msgid "no valid sudoers sources found, quitting"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:245
+msgid "sudoers specifies that root is not allowed to sudo"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:302
+msgid "you are not permitted to use the -C option"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:349
+#, c-format
+msgid "timestamp owner (%s): No such user"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:364
+msgid "no tty"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:365
+msgid "sorry, you must have a tty to run sudo"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:427
+msgid "command in current directory"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:446
+msgid "sorry, you are not allowed set a command timeout"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:454
+msgid "sorry, you are not allowed to preserve the environment"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:802
+msgid "command too long"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:916
+#, c-format
+msgid "%s is not a regular file"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:920 plugins/sudoers/timestamp.c:252 toke.l:968
+#, c-format
+msgid "%s is owned by uid %u, should be %u"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:924 toke.l:973
+#, c-format
+msgid "%s is world writable"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:928 toke.l:976
+#, c-format
+msgid "%s is owned by gid %u, should be %u"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:961
+#, c-format
+msgid "only root can use \"-c %s\""
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:980
+#, c-format
+msgid "unknown login class: %s"
+msgstr ""
+
+#: plugins/sudoers/sudoers.c:1063 plugins/sudoers/sudoers.c:1077
+#, c-format
+msgid "unable to resolve host %s"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:244
+#, c-format
+msgid "invalid filter option: %s"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:257
+#, c-format
+msgid "invalid max wait: %s"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:277
+#, c-format
+msgid "invalid speed factor: %s"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:312
+#, c-format
+msgid "%s/%.2s/%.2s/%.2s/timing: %s"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:318
+#, c-format
+msgid "%s/%s/timing: %s"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:334
+#, c-format
+msgid "Replaying sudo session: %s"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:532 plugins/sudoers/sudoreplay.c:579
+#: plugins/sudoers/sudoreplay.c:775 plugins/sudoers/sudoreplay.c:865
+#: plugins/sudoers/sudoreplay.c:944 plugins/sudoers/sudoreplay.c:959
+#: plugins/sudoers/sudoreplay.c:966 plugins/sudoers/sudoreplay.c:973
+#: plugins/sudoers/sudoreplay.c:980 plugins/sudoers/sudoreplay.c:987
+#: plugins/sudoers/sudoreplay.c:1133
+msgid "unable to add event to queue"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:647
+msgid "unable to set tty to raw mode"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:698
+#, c-format
+msgid "Warning: your terminal is too small to properly replay the log.\n"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:699
+#, c-format
+msgid "Log geometry is %d x %d, your terminal's geometry is %d x %d."
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:727
+msgid "Replay finished, press any key to restore the terminal."
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:759
+#, c-format
+msgid "invalid timing file line: %s"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1167 plugins/sudoers/sudoreplay.c:1192
+#, c-format
+msgid "ambiguous expression \"%s\""
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1214
+msgid "unmatched ')' in expression"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1218
+#, c-format
+msgid "unknown search term \"%s\""
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1233
+#, c-format
+msgid "%s requires an argument"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1236 plugins/sudoers/sudoreplay.c:1477
+#, c-format
+msgid "invalid regular expression: %s"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1240
+#, c-format
+msgid "could not parse date \"%s\""
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1249
+msgid "unmatched '(' in expression"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1251
+msgid "illegal trailing \"or\""
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1253
+msgid "illegal trailing \"!\""
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1303
+#, c-format
+msgid "unknown search type %d"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1570
+#, c-format
+msgid "usage: %s [-hnR] [-d dir] [-m num] [-s num] ID\n"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1573
+#, c-format
+msgid "usage: %s [-h] [-d dir] -l [search expression]\n"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1582
+#, c-format
+msgid ""
+"%s - replay sudo session logs\n"
+"\n"
+msgstr ""
+
+#: plugins/sudoers/sudoreplay.c:1584
+msgid ""
+"\n"
+"Options:\n"
+"  -d, --directory=dir  specify directory for session logs\n"
+"  -f, --filter=filter  specify which I/O type(s) to display\n"
+"  -h, --help           display help message and exit\n"
+"  -l, --list           list available session IDs, with optional expression\n"
+"  -m, --max-wait=num   max number of seconds to wait between events\n"
+"  -s, --speed=num      speed up or slow down output\n"
+"  -V, --version        display version information and exit"
+msgstr ""
+
+#: plugins/sudoers/testsudoers.c:357
+msgid "\thost  unmatched"
+msgstr ""
+
+#: plugins/sudoers/testsudoers.c:360
+msgid ""
+"\n"
+"Command allowed"
+msgstr ""
+
+#: plugins/sudoers/testsudoers.c:361
+msgid ""
+"\n"
+"Command denied"
+msgstr ""
+
+#: plugins/sudoers/testsudoers.c:361
+msgid ""
+"\n"
+"Command unmatched"
+msgstr ""
+
+#: plugins/sudoers/timestamp.c:260
+#, c-format
+msgid "%s is group writable"
+msgstr ""
+
+#: plugins/sudoers/timestamp.c:336
+#, c-format
+msgid "unable to truncate time stamp file to %lld bytes"
+msgstr ""
+
+#: plugins/sudoers/timestamp.c:823 plugins/sudoers/timestamp.c:915
+#: plugins/sudoers/visudo.c:477 plugins/sudoers/visudo.c:483
+msgid "unable to read the clock"
+msgstr ""
+
+#: plugins/sudoers/timestamp.c:834
+msgid "ignoring time stamp from the future"
+msgstr ""
+
+#: plugins/sudoers/timestamp.c:857
+#, c-format
+msgid "time stamp too far in the future: %20.20s"
+msgstr ""
+
+#: plugins/sudoers/timestamp.c:979
+#, c-format
+msgid "unable to lock time stamp file %s"
+msgstr ""
+
+#: plugins/sudoers/timestamp.c:1023 plugins/sudoers/timestamp.c:1043
+#, c-format
+msgid "lecture status path too long: %s/%s"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:211
+msgid "the -x option will be removed in a future release"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:212
+msgid "please consider using the cvtsudoers utility instead"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:263 plugins/sudoers/visudo.c:645
+#, c-format
+msgid "press return to edit %s: "
+msgstr ""
+
+#: plugins/sudoers/visudo.c:324
+#, c-format
+msgid "specified editor (%s) doesn't exist"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:326
+#, c-format
+msgid "no editor found (editor path = %s)"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:436 plugins/sudoers/visudo.c:444
+msgid "write error"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:490
+#, c-format
+msgid "unable to stat temporary file (%s), %s unchanged"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:497
+#, c-format
+msgid "zero length temporary file (%s), %s unchanged"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:503
+#, c-format
+msgid "editor (%s) failed, %s unchanged"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:525
+#, c-format
+msgid "%s unchanged"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:584
+#, c-format
+msgid "unable to re-open temporary file (%s), %s unchanged."
+msgstr ""
+
+#: plugins/sudoers/visudo.c:596
+#, c-format
+msgid "unabled to parse temporary file (%s), unknown error"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:634
+#, c-format
+msgid "internal error, unable to find %s in list!"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:714 plugins/sudoers/visudo.c:723
+#, c-format
+msgid "unable to set (uid, gid) of %s to (%u, %u)"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:746
+#, c-format
+msgid "%s and %s not on the same file system, using mv to rename"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:760
+#, c-format
+msgid "command failed: '%s %s %s', %s unchanged"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:770
+#, c-format
+msgid "error renaming %s, %s unchanged"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:791
+msgid "What now? "
+msgstr ""
+
+#: plugins/sudoers/visudo.c:805
+msgid ""
+"Options are:\n"
+"  (e)dit sudoers file again\n"
+"  e(x)it without saving changes to sudoers file\n"
+"  (Q)uit and save changes to sudoers file (DANGER!)\n"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:851
+#, c-format
+msgid "unable to run %s"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:881
+#, c-format
+msgid "%s: wrong owner (uid, gid) should be (%u, %u)\n"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:888
+#, c-format
+msgid "%s: bad permissions, should be mode 0%o\n"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:945 plugins/sudoers/visudo.c:952
+#, c-format
+msgid "%s: parsed OK\n"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:971
+#, c-format
+msgid "%s busy, try again later"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:974
+#, c-format
+msgid "unable to lock %s"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:975
+msgid "Edit anyway? [y/N]"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:1059
+#, c-format
+msgid "Error: %s:%d cycle in %s \"%s\""
+msgstr ""
+
+#: plugins/sudoers/visudo.c:1060
+#, c-format
+msgid "Warning: %s:%d cycle in %s \"%s\""
+msgstr ""
+
+#: plugins/sudoers/visudo.c:1064
+#, c-format
+msgid "Error: %s:%d %s \"%s\" referenced but not defined"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:1065
+#, c-format
+msgid "Warning: %s:%d %s \"%s\" referenced but not defined"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:1156
+#, c-format
+msgid "Warning: %s:%d unused %s \"%s\""
+msgstr ""
+
+#: plugins/sudoers/visudo.c:1271
+#, c-format
+msgid ""
+"%s - safely edit the sudoers file\n"
+"\n"
+msgstr ""
+
+#: plugins/sudoers/visudo.c:1273
+msgid ""
+"\n"
+"Options:\n"
+"  -c, --check              check-only mode\n"
+"  -f, --file=sudoers       specify sudoers file location\n"
+"  -h, --help               display help message and exit\n"
+"  -q, --quiet              less verbose (quiet) syntax error messages\n"
+"  -s, --strict             strict syntax checking\n"
+"  -V, --version            display version information and exit\n"
+msgstr ""
+
+#: toke.l:942
+msgid "too many levels of includes"
+msgstr ""

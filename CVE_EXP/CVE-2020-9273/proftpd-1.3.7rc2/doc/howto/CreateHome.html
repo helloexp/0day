@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: CreateHome</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD's <code>CreateHome</code></b></h2></center>
+<hr>
+
+<p>
+<b>What is <code>CreateHome</code>?</b><br>
+When a site has many user accounts, with users being added and removed
+constantly, there is always the associated procedure of creating and removing
+those user's home directories.  And often, in such situations, the user
+account information is stored in a SQL database or an LDAP server.  A
+<code>proftpd</code> daemon can be configured to authenticate against the
+SQL database or the LDAP server; this would still leave the task of creating
+the actual home directory for that user to be done..  What would help ease this
+particular burden on system administrators, though, is the ability to add the
+account information and have the new user's home directory created <i>on
+demand</i>.  That is, to have a daemon such as <code>proftpd</code> create
+the home directory for the user, if that directory did not already exist.
+
+<p>
+Now, <code>proftpd</code> already has some modules, such as <code>mod_sql</code>
+and <code>mod_ldap</code> that already support this home-on-demand creation
+capability.  Each module implements it slightly differently, though.  And
+other authentication modules, such as <code>mod_radius</code>, do not support
+it at all.  It was decided then, rather than having authentication modules
+have largely duplicated code for this feature, to have home-on-demand
+creation in the core <code>daemon</code> itself.  And so it is.
+As of 1.2.8rc2, <code>proftpd</code> has the
+<a href="../modules/mod_auth.html#CreateHome"><code>CreateHome</code></a>
+configuration directive.
+
+<p>
+<b>How to use <code>CreateHome</code></b><br>
+The description for this configuration directive shows its parameters to be:
+<pre>
+  CreateHome off|on [&lt;mode&gt;] [skel &lt;path&gt;] [dirmode &lt;mode&gt;] [uid &lt;uid&gt;] [gid &lt;gid&gt;] [homegid &lt;gid&gt;] [NoRootPrivs]
+</pre>
+The first parameter is a simple Boolean, enabling or disabling the
+<code>proftpd</code> daemon's run-time support for home directory creation.
+The rest of the parameters are optional, and only apply if
+<code>CreateHomde</code> is <em>on</em>.
+
+<p>
+There is the first <em>mode</em> parameter, used to set the directory mode on
+the home directory being created.  As described in the documentation, if this
+parameter is omitted the mode used will default to 0700.  There is also the
+<code>dirmode</code> <em>mode</em> parameter, which is slightly different.
+The <code>dirmode</code> keyword informs the daemon that the following mode
+is to be used on directories that may need to be created in order to create
+the home directory.  For example, let's assume that a new user, david, is
+logging in.  User david has been given the home directory
+<code>/home/users/d/da/david</code>.  Since this is a new user, the
+directory does not exist.  In fact, <code>/home/users/d</code> does not exist.
+When this happens, <code>proftpd</code> will create the <code>d</code>,
+<code>da</code>, and <code>david</code> directories.  A <code>dirmode</code>
+mode would be applied to the <code>d</code> and <code>da</code> directories,
+and the <em>mode</em> (no <code>dirmode</code> keyword) would be applied to
+the final <code>david</code> directory.  To illustrate this, assume that
+the following <code>CreateHome</code> configuration is in use:
+<pre>
+  CreateHome on 700 dirmode 711
+</pre>
+A directory listing would show only the <code>/home/users</code> directory:
+<pre>
+  drwxr-xr-x    6 root     root         4096 Jan 31 13:23 /home/users
+</pre>
+After user david logs in, a directory listing might show the new directories
+that have been created:
+<pre>
+  drwxr-xr-x    6 root     root         4096 Jan 31 13:23 /home/users
+  drwx--x--x    6 root     root         4096 Jan 31 13:23 /home/users/d
+  drwx--x--x    6 root     root         4096 Jan 31 13:23 /home/users/d/da
+  drwx------    6 david    david        4096 Jan 31 13:23 /home/users/d/da/david
+</pre>
+Notice how <code>/home/users/d</code> and <code>/home/users/d/da</code> have
+<code>dirmode</code> mode of 711 (<code>rwx--x--x</code>) while
+<code>/home/users/d/da/david</code> has the mode of 700
+(<code>rwx------</code>).
+
+<p>
+As an added feature, <code>CreateHome</code> also supports the ability to
+populate these newly created home directories.  This is done by configuring
+a &quot;skeleton&quot; directory that will contain files (<i>e.g.</i>
+shell initialization files, documentation, notices, subdirectories, etc)
+that should be in every new user's home directory.  This is done using
+the <code>skel</code> <em>path</em> parameter.
+
+<p>
+Be sure to read the documentation for the <code>CreateHome</code> directive,
+for there are some restrictions and caveats to both the <code>dirmode</code>
+and <code>skel</code> parameters.
+
+<p>
+The <code>uid</code> and <code>gid</code> parameters can be used to set the
+ownership of the newly created parent directories, up to <b>but not
+including</b> the home directory.  By default, those created parent directories
+are owned by root (UID 0 and GID 0).
+
+<p>
+The <code>homegid</code> parameter can be used to specify the group ownership
+of the target home directory itself.  By default, this home directory will
+be owned by the user's primary GID.
+
+<p>
+The <code>NoRootPrivs</code> parameter can be used to prevent ProFTPD from
+using root privileges when creating the home directory and parents. This can be
+useful for <i>e.g.</i> the case where home directories are on NFS mounts which
+have root squashing enabled.  When the <code>NoRootPrivs</code> option is
+used, the home directory in question will be <i>created using the identity
+of the logging-in user</i>.
+
+<p>
+Here are some examples (from the documentation) to help illustrate how one
+might use the <code>CreateHome</code> configuration directive:
+<pre>
+  <font color=green># Use the CreateHome default settings</font>
+  CreateHome on
+
+  <font color=green># Specify a mode of 711 for the created home directory</font>
+  CreateHome on 711
+
+  <font color=green># Specify a mode of 711, and have the parent directories owned by a specific non-root UID/GID</font>
+  CreateHome on 711 uid 100 gid 100
+
+  <font color=green># Specify a mode of 711, and have the parent directories owned by the UID/GID of the logging-in user</font>
+  CreateHome on 711 uid ~ gid ~
+
+  <font color=green># Specify a skeleton directory</font>
+  CreateHome on skel /etc/ftpd/skel
+
+  <font color=green># No skeleton, but make sure that intermediate directories have 755
+  # permissions.</font>
+  CreateHome on dirmode 755
+
+  <font color=green># Skeleton directory, with 700 intermediate directories</font>
+  CreateHome on skel /etc/ftpd/skel dirmode 700
+
+  <font color=green># Explicitly configure everything, CreateHome-wise</font>
+  CreateHome on 711 skel /etc/ftpd/skel dirmode 700
+
+  <font color=green># Explicitly configure everything, CreateHome-wise.  And do NOT use root privileges when
+  # creating the parent directories.</font>
+  CreateHome on 711 skel /etc/ftpd/skel dirmode 700 NoRootPrivs
+</pre>
+
+<p>
+<b>When to use <code>CreateHome</code></b><br>
+&quot;What about the prior configuration directives for <code>mod_sql</code>
+and <code>mod_ldap</code>?&quot; one asks.  The <code>CreateHome</code>
+configuration directive supersedes them.  Those previous module-specific
+directives may well be deprecated in the future, in favor of
+<code>CreateHome</code>.  Future authentication modules need not try to
+reinvent this particular wheel.  <code>CreateHome</code> was designed for
+large sites in mind, but can be used any time home-on-demand creation is
+desired from the FTP daemon.
+
+<p><a name="FAQ"></a>
+<b>FAQ</b>
+
+<p>
+<font color=red>Question</font>: Is it possible to have different permissions
+for the <code>CreateHome</code> <em>mode</em> and <em>dirmode</em> based on the
+group of the connecting user?<br>
+<font color=blue>Answer</font>: Yes, if you use the <a href="../contrib/mod_ifsession.html"><code>mod_ifsession</code></a> module.
+For example:
+<pre>
+  &lt;IfGroup special&gt;
+    CreateHome on 755 dirmode 755
+  &lt;/IfGroup&gt;
+
+  &lt;IfGroup !special&gt;
+    CreateHome on 711 dirmode 711
+  &lt;/IfGroup&gt;
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

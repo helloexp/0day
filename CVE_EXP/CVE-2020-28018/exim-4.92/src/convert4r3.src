@@ -1,0 +1,1382 @@
+#! PERL_COMMAND
+
+# This is a Perl script that reads an Exim run-time configuration file and
+# checks for settings that were valid prior to release 3.00 but which were
+# obsoleted by that release. It writes a new file with suggested changes to
+# the standard output, and commentary about what it has done to stderr.
+
+# It is assumed that the input is a valid Exim configuration file.
+
+use warnings;
+BEGIN { pop @INC if $INC[-1] eq '.' };
+
+use Getopt::Long;
+use File::Basename;
+
+GetOptions(
+    'version' => sub {
+        print basename($0) . ": $0\n",
+            "build: EXIM_RELEASE_VERSIONEXIM_VARIANT_VERSION\n",
+            "perl(runtime): $^V\n";
+            exit 0;
+    },
+);
+
+##################################################
+#             Analyse one line                   #
+##################################################
+
+# This is called for the main and the driver sections, not for retry
+# or rewrite sections (which are unmodified).
+
+sub checkline{
+my($line) = $_[0];
+
+return "comment" if $line =~ /^\s*(#|$)/;
+return "end"     if $line =~ /^\s*end\s*$/;
+
+# Macros are recognized only in the first section of the file.
+
+return "macro" if $prefix eq "" && $line =~ /^\s*[A-Z]/;
+
+# Pick out the name at the start and the rest of the line (into global
+# variables) and return whether the start of a driver or not.
+
+($i1,$name,$i2,$rest) = $line =~ /^(\s*)([a-z0-9_]+)(\s*)(.*?)\s*$/;
+return ($rest =~ /^:/)? "driver" : "option";
+}
+
+
+
+
+##################################################
+#       Add transport setting to a director      #
+##################################################
+
+# This function adds a transport setting to an aliasfile or forwardfile
+# director if a global setting exists and a local one does not. If neither
+# exist, it adds file/pipe/reply, but not the directory ones.
+
+sub add_transport{
+my($option) = @_;
+
+my($key) = "$prefix$driver.${option}_transport";
+if (!exists $o{$key})
+  {
+  if (exists $o{"address_${option}_transport"})
+    {
+    print STDOUT "# >> Option added by convert4r3\n";
+    printf STDOUT "${i1}${option}_transport = %s\n",
+      $o{"address_${option}_transport"};
+    printf STDERR
+      "\n%03d ${option}_transport added to $driver director.\n",
+      ++$count;
+    }
+  else
+    {
+    if ($option eq "pipe" || $option eq "file" || $option eq "reply")
+      {
+      print STDOUT "# >> Option added by convert4r3\n";
+      printf STDOUT "${i1}${option}_transport = address_${option}\n";
+      printf STDERR
+        "\n%03d ${option}_transport added to $driver director.\n",
+        ++$count;
+      }
+    }
+  }
+}
+
+
+
+
+##################################################
+#       Negate a list of things                  #
+##################################################
+
+sub negate {
+my($list) = $_[0];
+
+return $list if ! defined $list;
+
+($list) = $list =~ /^"?(.*?)"?\s*$/s;
+
+# Under Perl 5.005 we can split very nicely at colons, ignoring double
+# colons, like this:
+#
+# @split = split /\s*(?<!:):(?!:)\s*(?:\\\s*)?/s, $list;
+#
+# However, we'd better make this work under Perl 5.004, since there is
+# a lot of that about.
+
+$list =~ s/::/>%%%%</g;
+@split = split /\s*:\s*(?:\\\s*)?/s, $list;
+foreach $item (@split)
+  {
+  $item =~ s/>%%%%</::/g;
+  }
+
+$" = " : \\\n    ! ";
+return "! @split";
+}
+
+
+
+
+
+##################################################
+#          Skip blank lines                      #
+##################################################
+
+# This function is called after we have generated no output for an option;
+# it skips subsequent blank lines if the previous line was blank.
+
+sub skipblanks {
+my($i) = $_[0];
+if ($last_was_blank)
+  {
+  $i++ while $c[$i+1] =~ /^\s*$/;
+  }
+return $i;
+}
+
+
+
+
+
+##################################################
+#       Get base name of data key                #
+##################################################
+
+sub base {
+return "$_[0]" if $_[0] !~ /^(?:d|r|t)\.[^.]+\.(.*)/;
+return $1;
+}
+
+
+
+##################################################
+#     Amalgamate accept/reject/reject_except     #
+##################################################
+
+# This function amalgamates the three previous kinds of
+# option into a single list, using negation for the middle one if
+# the final argument is "+", or for the outer two if the final
+# argument is "-".
+
+sub amalgamate {
+my($accept,$reject,$reject_except,$name);
+my($last_was_negated) = 0;
+my($join) = "";
+
+$accept = $o{$_[0]};
+$reject = $o{$_[1]};
+$reject_except = $o{$_[2]};
+$name = $_[3];
+
+if ($_[4] eq "+")
+  {
+  ($accept) = $accept =~ /^"?(.*?)"?\s*$/s if defined $accept;
+  $reject = &negate($reject) if defined $reject;
+  ($reject_except) = $reject_except =~ /^"?(.*?)"?\s*$/s if defined $reject_except;
+  }
+else
+  {
+  $accept = &negate($accept) if defined $accept;
+  ($reject) = $reject =~ /^"?(.*?)"?\s*$/s if defined $reject;
+  $reject_except = &negate($reject_except) if defined $reject_except;
+  }
+
+print STDOUT "# >> Option rewritten by convert4r3\n";
+print STDOUT "${i1}$name = \"";
+
+if (defined $reject_except)
+  {
+  print STDOUT "$reject_except";
+  $join = " : \\\n    ";
+  $last_was_negated = ($_[4] ne "+");
+  }
+if (defined $reject)
+  {
+  print STDOUT "$join$reject";
+  $join = " : \\\n    ";
+  $last_was_negated = ($_[4] eq "+");
+  }
+if (defined $accept)
+  {
+  print STDOUT "$join$accept";
+  $last_was_negated = ($_[4] ne "+");
+  $join = " : \\\n    ";
+  }
+
+print STDOUT "$join*" if $last_was_negated;
+
+print STDOUT "\"\n";
+
+my($driver_name);
+my($driver_type) = "";
+
+if ($_[0] =~ /^(d|r|t)\.([^.]+)\./ ||
+    $_[1] =~ /^(d|r|t)\.([^.]+)\./ ||
+    $_[2] =~ /^(d|r|t)\.([^.]+)\./)
+  {
+  $driver_type = ($1 eq 'd')? "director" : ($1 eq 'r')? "router" : "transport";
+  $driver_name = $2;
+  }
+
+my($x) = ($driver_type ne "")? " in \"$driver_name\" $driver_type" : "";
+
+my($l0) = &base($_[0]);
+my($l1) = &base($_[1]);
+my($l2) = &base($_[2]);
+
+
+if ($l2 eq "")
+  {
+  if ($l0 eq "")
+    {
+    printf STDERR "\n%03d $l1 converted to $name$x.\n", ++$count;
+    }
+  else
+    {
+    printf STDERR "\n%03d $l0 and $l1\n    amalgamated into $name$x.\n",
+      ++$count;
+    }
+  }
+else
+  {
+  if ($l1 eq "")
+    {
+    printf STDERR "\n%03d $l0 and $l2\n    amalgamated into $name$x.\n",
+      ++$count;
+    }
+  else
+    {
+    printf STDERR "\n%03d $l0, $l1 and $l2\n    amalgamated into " .
+      "$name$x.\n", ++$count;
+    }
+  }
+}
+
+
+
+
+##################################################
+#         Join two lists, if they exist          #
+##################################################
+
+sub pair{
+my($l1) = $o{"$_[0]"};
+my($l2) = $o{"$_[1]"};
+
+return $l2 if (!defined $l1);
+return $l1 if (!defined $l2);
+
+($l1) = $l1 =~ /^"?(.*?)"?\s*$/s;
+($l2) = $l2 =~ /^"?(.*?)"?\s*$/s;
+
+return "$l1 : $l2";
+}
+
+
+
+
+##################################################
+#  Amalgamate accept/reject/reject_except pairs  #
+##################################################
+
+# This is like amalgamate, but it combines pairs of arguments, and
+# doesn't output commentary (easier to write a generic one for the few
+# cases).
+
+sub amalgamatepairs {
+my($accept) = &pair($_[0], $_[1]);
+my($reject) = &pair($_[2], $_[3]);
+my($reject_except) = &pair($_[4], $_[5]);
+my($last_was_negated) = 0;
+my($join) = "";
+
+if ($_[7] eq "+")
+  {
+  ($accept) = $accept =~ /^"?(.*?)"?\s*$/s if defined $accept;
+  $reject = &negate($reject) if defined $reject;
+  ($reject_except) = $reject_except =~ /^"?(.*?)"?\s*$/s if defined $reject_except;
+  }
+else
+  {
+  $accept = &negate($accept) if defined $accept;
+  ($reject) = $reject =~ /^"?(.*?)"?$/s if defined $reject;
+  $reject_except = &negate($reject_except) if defined $reject_except;
+  }
+
+print STDOUT "# >> Option rewritten by convert4r3\n";
+print STDOUT "${i1}$_[6] = \"";
+
+if (defined $reject_except)
+  {
+  print STDOUT "$reject_except";
+  $join = " : \\\n    ";
+  $last_was_negated = ($_[7] ne "+");
+  }
+if (defined $reject)
+  {
+  print STDOUT "$join$reject";
+  $join = " : \\\n    ";
+  $last_was_negated = ($_[7] eq "+");
+  }
+if (defined $accept)
+  {
+  print STDOUT "$join$accept";
+  $last_was_negated = ($_[7] ne "+");
+  $join = " : \\\n    ";
+  }
+
+print STDOUT "$join*" if $last_was_negated;
+print STDOUT "\"\n";
+}
+
+
+
+##################################################
+#      Amalgamate boolean and exception list(s)  #
+##################################################
+
+sub amalgboolandlist {
+my($name,$bool,$e1,$e2) = @_;
+
+print STDOUT "# >> Option rewritten by convert4r3\n";
+if ($bool eq "false")
+  {
+  printf STDOUT "$i1$name =\n";
+  }
+else
+  {
+  printf STDOUT "$i1$name = ";
+  my($n1) = &negate($o{$e1});
+  my($n2) = &negate($o{$e2});
+  if (!defined $n1 && !defined $n2)
+    {
+    print STDOUT "*\n";
+    }
+  elsif (!defined $n1)
+    {
+    print STDOUT "\"$n2 : \\\n    *\"\n";
+    }
+  elsif (!defined $n2)
+    {
+    print STDOUT "\"$n1 : \\\n    *\"\n";
+    }
+  else
+    {
+    print STDOUT "\"$n1 : \\\n    $n2 : \\\n    *\"\n";
+    }
+  }
+}
+
+
+
+##################################################
+#             Convert mask format                #
+##################################################
+
+# This function converts an address and mask in old-fashioned dotted-quad
+# format into an address plus a new format mask.
+
+@byte_list = (0, 128, 192, 224, 240, 248, 252, 254, 255);
+
+sub mask {
+my($address,$mask) = @_;
+my($length) = 0;
+my($i, $j);
+
+my(@bytes) = split /\./, $mask;
+
+for ($i = 0; $i < 4; $i++)
+  {
+  for ($j = 0; $j <= 8; $j++)
+    {
+    if ($bytes[$i] == $byte_list[$j])
+      {
+      $length += $j;
+      if ($j != 8)
+        {
+        for ($i++; $i < 4; $i++)
+          {
+          $j = 9 if ($bytes[$i] != 0);
+          }
+        }
+      last;
+      }
+    }
+
+  if ($j > 8)
+    {
+    print STDERR "*** IP mask $mask cannot be converted to /n format. ***\n";
+    return "$address/$mask";
+    }
+  }
+
+if (!defined $masks{$mask})
+  {
+  printf STDERR "\n%03d IP address mask $mask converted to /$length\n",
+    ++$count, $mask, $length;
+  $masks{$mask} = 1;
+  }
+
+return sprintf "$address/%d", $length;
+}
+
+
+
+
+
+##################################################
+#                  Main program                  #
+##################################################
+
+print STDERR "Exim pre-release 3.00 configuration file converter.\n";
+
+$count = 0;
+$seen_helo_accept_junk = 0;
+$seen_hold_domains = 0;
+$seen_receiver_unqualified = 0;
+$seen_receiver_verify_except = 0;
+$seen_receiver_verify_senders = 0;
+$seen_rfc1413_except = 0;
+$seen_sender_accept = 0;
+$seen_sender_accept_recipients = 0;
+$seen_sender_host_accept = 0;
+$seen_sender_host_accept_recipients = 0;
+$seen_sender_host_accept_relay = 0;
+$seen_sender_unqualified = 0;
+$seen_sender_verify_except_hosts = 0;
+$seen_smtp_etrn = 0;
+$seen_smtp_expn = 0;
+$seen_smtp_reserve = 0;
+$semicomma = 0;
+
+# Read the entire file into an array
+
+chomp(@c = <STDIN>);
+
+# First, go through the input and covert any net masks in the old dotted-quad
+# style into the new /n style.
+
+for ($i = 0; $i < scalar(@c); $i++)
+  {
+  $c[$i] =~
+    s"((?:\d{1,3}\.){3}\d{1,3})/((?:\d{1,3}\.){3}\d{1,3})"&mask($1,$2)"eg;
+  }
+
+# We now make two more passes over the input. In the first pass, we place all
+# the option values into an associative array. Main options are keyed by their
+# names; options for drivers are keyed by a driver type letter, the driver
+# name, and the option name, dot-separated. In the second pass we modify
+# the options if necessary, and write the output file.
+
+for ($pass = 1; $pass < 3; $pass++)
+  {
+  $prefix = "";
+  $driver = "";
+  $last_was_blank = 0;
+
+  for ($i = 0; $i < scalar(@c); $i++)
+    {
+    # Everything after the router section is just copied in pass 2 and
+    # ignored in pass 1.
+
+    if ($prefix eq "end")
+      {
+      print STDOUT "$c[$i]\n" if $pass == 2;
+      next;
+      }
+
+    # Analyze the line
+
+    $type = &checkline($c[$i]);
+
+    # Skip comments in pass 1; copy in pass 2
+
+    if ($type eq "comment")
+      {
+      $last_was_blank = ($c[$i] =~ /^\s*$/)? 1 : 0;
+      print STDOUT "$c[$i]\n" if $pass == 2;
+      next;
+      }
+
+    # Skip/copy macro definitions, but must handle continuations
+
+    if ($type eq "macro")
+      {
+      print STDOUT "$c[$i]\n" if $pass == 2;
+      while ($c[$i] =~ /\\\s*$/)
+        {
+        $i++;
+        print STDOUT "$c[$i]\n" if $pass == 2;
+        }
+      $last_was_blank = 0;
+      next;
+      }
+
+    # Handle end of section
+
+    if ($type eq "end")
+      {
+      $prefix = "end"if $prefix eq "r.";
+      $prefix = "r." if $prefix eq "d.";
+      $prefix = "d." if $prefix eq "t.";
+      $prefix = "t." if $prefix eq "";
+      print STDOUT "$c[$i]\n" if $pass == 2;
+      $last_was_blank = 0;
+      next;
+      }
+
+    # Handle start of a new driver
+
+    if ($type eq "driver")
+      {
+      $driver = $name;
+      print STDOUT "$c[$i]\n" if $pass == 2;
+      $last_was_blank = 0;
+      $seen_domains = 0;
+      $seen_local_parts = 0;
+      $seen_senders = 0;
+      $seen_mx_domains = 0;
+      $seen_serialize = 0;
+      next;
+      }
+
+    # Handle definition of an option
+
+    if ($type eq "option")
+      {
+      # Handle continued strings
+
+      if ($rest =~ /^=\s*".*\\$/)
+        {
+        for (;;)
+          {
+          $rest .= "\n$c[++$i]";
+          last unless $c[$i] =~ /(\\\s*$|^\s*#)/;
+          }
+        }
+
+      # Remove any terminating commas and semicolons in pass 2
+
+      if ($pass == 2 && $rest =~ /[;,]\s*$/)
+        {
+        $rest =~ s/\s*[;,]\s*$//;
+        if (!$semicomma)
+          {
+          printf STDERR
+            "\n%03d Terminating semicolons and commas removed from driver " .
+            "options.\n", ++$count;
+          $semicomma = 1;
+          }
+        }
+
+      # Convert all booleans to "x = true/false" format, but save the
+      # original so that it can be reproduced unchanged for options that
+      # are not of interest.
+
+      $origname = $name;
+      $origrest = $rest;
+
+      if ($name =~ /^not?_(.*)/)
+        {
+        $name = $1;
+        $rest = "= false";
+        }
+      elsif ($rest !~ /^=/)
+        {
+        $rest = "= true";
+        }
+
+      # Set up the associative array key, and get rid of the = on the data
+
+      $key = ($prefix eq "")? "$name" : "$prefix$driver.$name";
+      ($rest) = $rest =~ /^=\s*(.*)/s;
+
+      # Create the associative array of values in pass 1
+
+      if ($pass == 1)
+        {
+        $o{$key} = $rest;
+        }
+
+      # In pass 2, test for interesting options and do the necessary; copy
+      # all the rest.
+
+      else
+        {
+        ##########  Global configuration ##########
+
+        # These global options are abolished
+
+        if ($name eq "address_directory_transport" ||
+            $name eq "address_directory2_transport" ||
+            $name eq "address_file_transport" ||
+            $name eq "address_pipe_transport" ||
+            $name eq "address_reply_transport")
+          {
+          ($n2) = $name =~ /^address_(.*)/;
+          printf STDERR "\n%03d $name option deleted.\n", ++$count;
+          printf STDERR "    $n2 will be added to appropriate directors.\n";
+          $i = &skipblanks($i);
+          next;
+          }
+
+        # This debugging option is abolished
+
+        elsif ($name eq "sender_verify_log_details")
+          {
+          printf STDERR "\n%03d $name option deleted.\n", ++$count;
+          printf STDERR "    (Little used facility abolished.)\n";
+          }
+
+        # This option has been renamed
+
+        elsif ($name eq "check_dns_names")
+          {
+          $origname =~ s/check_dns/dns_check/;
+          print STDOUT "# >> Option rewritten by convert4r3\n";
+          print STDOUT "$i1$origname$i2$origrest\n";
+          printf STDERR "\n%03d check_dns_names renamed as dns_check_names.\n",
+            ++$count;
+          }
+
+        # helo_accept_junk_nets is abolished
+
+        elsif ($name eq "helo_accept_junk_nets" ||
+               $name eq "helo_accept_junk_hosts")
+          {
+          if (!$seen_helo_accept_junk)
+            {
+            &amalgamate("helo_accept_junk_nets", "",
+              "helo_accept_junk_hosts", "helo_accept_junk_hosts", "+");
+            $seen_helo_accept_junk = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # helo_verify_except_{hosts,nets} are abolished, and helo_verify
+        # is now a host list instead of a boolean.
+
+        elsif ($name eq "helo_verify")
+          {
+          &amalgboolandlist("helo_verify", $rest, "helo_verify_except_hosts",
+            "helo_verify_except_nets");
+          printf STDERR "\n%03d helo_verify converted to host list.\n",
+            ++$count;
+          }
+        elsif ($name eq "helo_verify_except_hosts" ||
+               $name eq "helo_verify_except_nets")
+          {
+          $i = &skipblanks($i);
+          next;
+          }
+
+        # helo_verify_nets was an old synonym for host_lookup_nets; only
+        # one of them will be encountered. Change to a new name.
+
+        elsif ($name eq "helo_verify_nets" ||
+               $name eq "host_lookup_nets")
+          {
+          print STDOUT "# >> Option rewritten by convert4r3\n";
+          print STDOUT "${i1}host_lookup$i2$origrest\n";
+          printf STDERR "\n%03d $name renamed as host_lookup.\n", ++$count;
+          }
+
+        # hold_domains_except is abolished; add as negated items to
+        # hold_domains.
+
+        elsif ($name eq "hold_domains_except" ||
+               $name eq "hold_domains")
+          {
+          if ($seen_hold_domains)         # If already done with these
+            {                             # omit, and following blanks.
+            $i = &skipblanks($i);
+            next;
+            }
+          $seen_hold_domains = 1;
+
+          if (exists $o{"hold_domains_except"})
+            {
+            &amalgamate("hold_domains", "hold_domains_except", "",
+              "hold_domains", "+");
+            }
+          else
+            {
+            print STDOUT "$i1$origname$i2$origrest\n";
+            }
+          }
+
+        # ignore_fromline_nets is renamed as ignore_fromline_hosts
+
+        elsif ($name eq "ignore_fromline_nets")
+          {
+          $origname =~ s/_nets/_hosts/;
+          print STDOUT "# >> Option rewritten by convert4r3\n";
+          print STDOUT "$i1$origname$i2$origrest\n";
+          printf STDERR
+            "\n%03d ignore_fromline_nets renamed as ignore_fromline_hosts.\n",
+            ++$count;
+          }
+
+        # Output a warning for message filters with no transports set
+
+        elsif ($name eq "message_filter")
+          {
+          print STDOUT "$i1$origname$i2$origrest\n";
+
+          if (!exists $o{"message_filter_directory_transport"} &&
+              !exists $o{"message_filter_directory2_transport"} &&
+              !exists $o{"message_filter_file_transport"} &&
+              !exists $o{"message_filter_pipe_transport"} &&
+              !exists $o{"message_filter_reply_transport"})
+            {
+            printf STDERR
+              "\n%03d message_filter is set, but no message_filter transports "
+              . "are defined.\n"
+              . "    If your filter generates file or pipe deliveries, or "
+              . "auto-replies,\n"
+              . "    you will need to define "
+              . "message_filter_{file,pipe,reply}_transport\n"
+              . "    options, as required.\n", ++$count;
+            }
+          }
+
+        # queue_remote_except is abolished, and queue_remote is replaced by
+        # queue_remote_domains, which is a host list.
+
+        elsif ($name eq "queue_remote")
+          {
+          &amalgboolandlist("queue_remote_domains", $rest,
+            "queue_remote_except", "");
+          printf STDERR
+            "\n%03d queue_remote converted to domain list queue_remote_domains.\n",
+            ++$count;
+          }
+        elsif ($name eq "queue_remote_except")
+          {
+          $i = &skipblanks($i);
+          next;
+          }
+
+        # queue_smtp_except is abolished, and queue_smtp is replaced by
+        # queue_smtp_domains, which is a host list.
+
+        elsif ($name eq "queue_smtp")
+          {
+          &amalgboolandlist("queue_smtp_domains", $rest,
+            "queue_smtp_except", "");
+          printf STDERR
+            "\n%03d queue_smtp converted to domain list queue_smtp_domains.\n",
+            ++$count;
+          }
+        elsif ($name eq "queue_smtp_except")
+          {
+          $i = &skipblanks($i);
+          next;
+          }
+
+        # rbl_except_nets is replaced by rbl_hosts
+
+        elsif ($name eq "rbl_except_nets")
+          {
+          &amalgamate("", "rbl_except_nets", "", "rbl_hosts", "+");
+          }
+
+        # receiver_unqualified_nets is abolished
+
+        elsif ($name eq "receiver_unqualified_nets" ||
+               $name eq "receiver_unqualified_hosts")
+          {
+          if (!$seen_receiver_unqualified)
+            {
+            &amalgamate("receiver_unqualified_nets", "",
+              "receiver_unqualified_hosts", "receiver_unqualified_hosts", "+");
+            $seen_receiver_unqualified = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # receiver_verify_except_{hosts,nets} are replaced by
+        # receiver_verify_hosts.
+
+        elsif ($name eq "receiver_verify_except_hosts" ||
+               $name eq "receiver_verify_except_nets")
+          {
+          if (!$seen_receiver_verify_except)
+            {
+            &amalgboolandlist("receiver_verify_hosts", "true",
+              "receiver_verify_except_hosts", "receiver_verify_except_nets");
+            printf STDERR
+              "\n%03d receiver_verify_except_{hosts,nets} converted to " .
+              "receiver_verify_hosts.\n",
+              ++$count;
+            $seen_receiver_verify_except = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # receiver_verify_senders_except is abolished
+
+        elsif ($name eq "receiver_verify_senders" ||
+               $name eq "receiver_verify_senders_except")
+          {
+          if (defined $o{"receiver_verify_senders_except"})
+            {
+            if (!$seen_receiver_verify_senders)
+              {
+              &amalgamate("receiver_verify_senders",
+                "receiver_verify_senders_except", "",
+                "receiver_verify_senders", "+");
+              $seen_receiver_verify_senders = 1;
+              }
+            else
+              {
+              $i = &skipblanks($i);
+              next;
+              }
+            }
+          else
+            {
+            print STDOUT "$i1$origname$i2$origrest\n";
+            }
+          }
+
+        # rfc1413_except_{hosts,nets} are replaced by rfc1413_hosts.
+
+        elsif ($name eq "rfc1413_except_hosts" ||
+               $name eq "rfc1413_except_nets")
+          {
+          if (!$seen_rfc1413_except)
+            {
+            &amalgboolandlist("rfc1413_hosts", "true",
+              "rfc1413_except_hosts", "rfc1413_except_nets");
+            printf STDERR
+              "\n%03d rfc1413_except_{hosts,nets} converted to rfc1413_hosts.\n",
+              ++$count;
+            $seen_rfc1413_except = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # sender_accept and sender_reject_except are abolished
+
+        elsif ($name eq "sender_accept" ||
+               $name eq "sender_reject")
+          {
+          if (!$seen_sender_accept)
+            {
+            &amalgamate("sender_accept", "sender_reject",
+              "sender_reject_except", "sender_reject", "-");
+            $seen_sender_accept = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # sender_accept_recipients is also abolished; sender_reject_except
+        # also used to apply to this, so we include it here as well.
+
+        elsif ($name eq "sender_accept_recipients" ||
+               $name eq "sender_reject_recipients")
+          {
+          if (!$seen_sender_accept_recipients)
+            {
+            &amalgamate("sender_accept_recipients", "sender_reject_recipients",
+              "sender_reject_except", "sender_reject_recipients", "-");
+            $seen_sender_accept_recipients = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # sender_reject_except must be removed
+
+        elsif ($name eq "sender_reject_except")
+          {
+          $i = &skipblanks($i);
+          next;
+          }
+
+        # sender_{host,net}_{accept,reject}[_except] all collapse into
+        # host_reject.
+
+        elsif ($name eq "sender_host_accept" ||
+               $name eq "sender_net_accept" ||
+               $name eq "sender_host_reject" ||
+               $name eq "sender_net_reject")
+          {
+          if (!$seen_sender_host_accept)
+            {
+            &amalgamatepairs("sender_host_accept", "sender_net_accept",
+              "sender_host_reject", "sender_net_reject",
+              "sender_host_reject_except", "sender_net_reject_except",
+              "host_reject", "-");
+            printf STDERR "\n%03d sender_{host,net}_{accept,reject} and " .
+              "sender_{host_net}_reject_except\n" .
+              "    amalgamated into host_reject.\n", ++$count;
+            $seen_sender_host_accept = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # sender_{host,net}_{accept,reject}_recipients all collapse into
+        # host_reject_recipients.
+
+        elsif ($name eq "sender_host_accept_recipients" ||
+               $name eq "sender_net_accept_recipients" ||
+               $name eq "sender_host_reject_recipients" ||
+               $name eq "sender_net_reject_recipients")
+          {
+          if (!$seen_sender_host_accept_recipients)
+            {
+            &amalgamatepairs("sender_host_accept_recipients",
+              "sender_net_accept_recipients",
+              "sender_host_reject_recipients",
+              "sender_net_reject_recipients",
+              "sender_host_reject_except", "sender_net_reject_except",
+              "host_reject_recipients", "-");
+            printf STDERR "\n%03d sender_{host,net}_{accept,reject}_recipients"
+              . "\n    and sender_{host_net}_reject_except"
+              . "\n    amalgamated into host_reject_recipients.\n", ++$count;
+            $seen_sender_host_accept_recipients = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # sender_{host,net}_reject_except must be removed
+
+        elsif ($name eq "sender_host_reject_except" ||
+               $name eq "sender_net_reject_except")
+          {
+          $i = &skipblanks($i);
+          next;
+          }
+
+        # sender_{host,net}_{accept,reject}_relay all collapse into
+        # host_accept_relay.
+
+        elsif ($name eq "sender_host_accept_relay" ||
+               $name eq "sender_net_accept_relay" ||
+               $name eq "sender_host_reject_relay" ||
+               $name eq "sender_net_reject_relay")
+          {
+          if (!$seen_sender_host_accept_relay)
+            {
+            &amalgamatepairs("sender_host_accept_relay",
+              "sender_net_accept_relay",
+              "sender_host_reject_relay",
+              "sender_net_reject_relay",
+              "sender_host_reject_relay_except",
+              "sender_net_reject_relay_except",
+              "host_accept_relay", "+");
+            printf STDERR "\n%03d sender_{host,net}_{accept,reject}_relay"
+              . "\n    and sender_{host_net}_reject_relay_except"
+              . "\n    amalgamated into host_accept_relay.\n", ++$count;
+            $seen_sender_host_accept_relay = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # sender_{host,net}_reject_relay_except must be removed
+
+        elsif ($name eq "sender_host_reject_relay_except" ||
+               $name eq "sender_net_reject_relay_except")
+          {
+          $i = &skipblanks($i);
+          next;
+          }
+
+
+        # sender_unqualified_nets is abolished
+
+        elsif ($name eq "sender_unqualified_nets" ||
+               $name eq "sender_unqualified_hosts")
+          {
+          if (!$seen_sender_unqualified)
+            {
+            &amalgamate("sender_unqualified_nets", "",
+              "sender_unqualified_hosts", "sender_unqualified_hosts", "+");
+            $seen_sender_unqualified = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # sender_verify_except_{hosts,nets} are replaced by sender_verify_hosts.
+
+        elsif ($name eq "sender_verify_except_hosts" ||
+               $name eq "sender_verify_except_nets")
+          {
+          if (!$seen_sender_verify_except_hosts)
+            {
+            &amalgboolandlist("sender_verify_hosts", "true",
+              "sender_verify_except_hosts", "sender_verify_except_nets");
+            printf STDERR
+              "\n%03d sender_verify_except_{hosts,nets} converted to " .
+              "sender_verify_hosts.\n",
+              ++$count;
+            $seen_sender_verify_except_hosts = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # smtp_etrn_nets is abolished
+
+        elsif ($name eq "smtp_etrn_nets" ||
+               $name eq "smtp_etrn_hosts")
+          {
+          if (!$seen_smtp_etrn)
+            {
+            &amalgamate("smtp_etrn_nets", "",
+              "smtp_etrn_hosts", "smtp_etrn_hosts", "+");
+            $seen_smtp_etrn = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # smtp_expn_nets is abolished
+
+        elsif ($name eq "smtp_expn_nets" ||
+               $name eq "smtp_expn_hosts")
+          {
+          if (!$seen_smtp_expn)
+            {
+            &amalgamate("smtp_expn_nets", "",
+              "smtp_expn_hosts", "smtp_expn_hosts", "+");
+            $seen_smtp_expn = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        # This option has been renamed
+
+        elsif ($name eq "smtp_log_connections")
+          {
+          $origname =~ s/smtp_log/log_smtp/;
+          print STDOUT "# >> Option rewritten by convert4r3\n";
+          print STDOUT "$i1$origname$i2$origrest\n";
+          printf STDERR "\n%03d smtp_log_connections renamed as " .
+            "log_smtp_connections.\n",
+            ++$count;
+          }
+
+        # smtp_reserve_nets is abolished
+
+        elsif ($name eq "smtp_reserve_nets" ||
+               $name eq "smtp_reserve_hosts")
+          {
+          if (!$seen_smtp_reserve)
+            {
+            &amalgamate("smtp_reserve_nets", "",
+              "smtp_reserve_hosts", "smtp_reserve_hosts", "+");
+            $seen_smtp_reserve = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+        ###########  Driver configurations  ##########
+
+        # For aliasfile and forwardfile directors, add file, pipe, and
+        # reply transports - copying from the globals if they are set.
+
+        elsif ($name eq "driver")
+          {
+          $driver_type = $rest;
+          print STDOUT "$i1$origname$i2$origrest\n";
+          if ($rest eq "aliasfile" || $rest eq "forwardfile")
+            {
+            &add_transport("directory");
+            &add_transport("directory2");
+            &add_transport("file");
+            &add_transport("pipe");
+            &add_transport("reply") if $rest eq "forwardfile";
+            }
+          }
+
+        # except_domains is abolished; add as negated items to domains.
+
+        elsif ($name eq "except_domains" ||
+               $name eq "domains")
+          {
+          if ($seen_domains)              # If already done with these
+            {                             # omit, and following blanks.
+            $i = &skipblanks($i);
+            next;
+            }
+          $seen_domains = 1;
+
+          if (exists $o{"$prefix$driver.except_domains"})
+            {
+            &amalgamate("$prefix$driver.domains",
+                         "$prefix$driver.except_domains", "",
+              "domains", "+");
+            }
+          else
+            {
+            print STDOUT "$i1$origname$i2$origrest\n";
+            }
+          }
+
+        # except_local_parts is abolished; add as negated items to
+        # local_parts.
+
+        elsif ($name eq "except_local_parts" ||
+               $name eq "local_parts")
+          {
+          if ($seen_local_parts)              # If already done with these
+            {                             # omit, and following blanks.
+            $i = &skipblanks($i);
+            next;
+            }
+          $seen_local_parts = 1;
+
+          if (exists $o{"$prefix$driver.except_local_parts"})
+            {
+            &amalgamate("$prefix$driver.local_parts",
+                         "$prefix$driver.except_local_parts", "",
+              "local_parts", "+");
+            }
+          else
+            {
+            print STDOUT "$i1$origname$i2$origrest\n";
+            }
+          }
+
+        # except_senders is abolished; add as negated items to senders
+
+        elsif ($name eq "except_senders" ||
+               $name eq "senders")
+          {
+          if ($seen_senders)              # If already done with these
+            {                             # omit, and following blanks.
+            $i = &skipblanks($i);
+            next;
+            }
+          $seen_senders = 1;
+
+          if (exists $o{"$prefix$driver.except_senders"})
+            {
+            &amalgamate("$prefix$driver.senders",
+                         "$prefix$driver.except_senders", "",
+              "senders", "+");
+            }
+          else
+            {
+            print STDOUT "$i1$origname$i2$origrest\n";
+            }
+          }
+
+        # This option has been renamed
+
+        elsif ($name eq "directory" && $driver_type eq "aliasfile")
+          {
+          $origname =~ s/directory/home_directory/;
+          print STDOUT "# >> Option rewritten by convert4r3\n";
+          print STDOUT "$i1$origname$i2$origrest\n";
+          printf STDERR "\n%03d directory renamed as " .
+            "home_directory in \"$driver\" director.\n",
+            ++$count;
+          }
+
+        # This option has been renamed
+
+        elsif ($name eq "directory" && $driver_type eq "forwardfile")
+          {
+          $origname =~ s/directory/file_directory/;
+          print STDOUT "# >> Option rewritten by convert4r3\n";
+          print STDOUT "$i1$origname$i2$origrest\n";
+          printf STDERR "\n%03d directory renamed as " .
+            "file_directory in \"$driver\" director.\n",
+            ++$count;
+          }
+
+        # This option has been renamed
+
+        elsif ($name eq "forbid_filter_log" && $driver_type eq "forwardfile")
+          {
+          $origname =~ s/log/logwrite/;
+          print STDOUT "# >> Option rewritten by convert4r3\n";
+          print STDOUT "$i1$origname$i2$origrest\n";
+          printf STDERR "\n%03d forbid_filter_log renamed as " .
+            "forbid_filter_logwrite in \"$driver\" director.\n",
+            ++$count;
+          }
+
+        # This option has been renamed
+
+        elsif ($name eq "directory" && $driver_type eq "localuser")
+          {
+          $origname =~ s/directory/match_directory/;
+          print STDOUT "# >> Option rewritten by convert4r3\n";
+          print STDOUT "$i1$origname$i2$origrest\n";
+          printf STDERR "\n%03d directory renamed as " .
+            "match_directory in \"$driver\" director.\n",
+            ++$count;
+          }
+
+        # mx_domains_except (and old synonym non_mx_domains) are abolished
+        # (both lookuphost router and smtp transport)
+
+        elsif ($name eq "mx_domains" ||
+               $name eq "mx_domains_except" ||
+               $name eq "non_mx_domains")
+          {
+          if ($seen_mx_domains)              # If already done with these
+            {                             # omit, and following blanks.
+            $i = &skipblanks($i);
+            next;
+            }
+          $seen_mx_domains = 1;
+
+          if (exists $o{"$prefix$driver.mx_domains_except"} ||
+              exists $o{"$prefix$driver.non_mx_domains"})
+            {
+            $o{"$prefix$driver.mx_domains_except"} =
+              &pair("$prefix$driver.mx_domains_except",
+                    "$prefix$driver.non_mx_domains");
+
+            &amalgamate("$prefix$driver.mx_domains",
+                        "$prefix$driver.mx_domains_except", "",
+              "mx_domains", "+");
+            }
+          else
+            {
+            print STDOUT "$i1$origname$i2$origrest\n";
+            }
+          }
+
+        # This option has been renamed
+
+        elsif ($name eq "directory" && $driver_type eq "pipe")
+          {
+          $origname =~ s/directory/home_directory/;
+          print STDOUT "# >> Option rewritten by convert4r3\n";
+          print STDOUT "$i1$origname$i2$origrest\n";
+          printf STDERR "\n%03d directory renamed as " .
+            "home_directory in \"$driver\" director.\n",
+            ++$count;
+          }
+
+        # serialize_nets is abolished
+
+        elsif ($name eq "serialize_nets" ||
+               $name eq "serialize_hosts")
+          {
+          if (!$seen_serialize)
+            {
+            &amalgamate("$prefix$driver.serialize_nets", "",
+              "$prefix$driver.serialize_hosts", "serialize_hosts", "+");
+            $seen_serialize = 1;
+            }
+          else
+            {
+            $i = &skipblanks($i);
+            next;
+            }
+          }
+
+
+        # Option not of interest; reproduce verbatim
+
+        else
+          {
+          print STDOUT "$i1$origname$i2$origrest\n";
+          }
+
+
+        $last_was_blank = 0;
+        }
+      }
+    }
+
+  }
+
+# Debugging: show the associative array
+# foreach $key (sort keys %o) { print STDERR "$key = $o{$key}\n"; }
+
+print STDERR "\nEnd of configuration file conversion.\n";
+print STDERR "\n*******************************************************\n";
+print STDERR   "***** Please review the generated file carefully. *****\n";
+print STDERR   "*******************************************************\n\n";
+
+print STDERR "In particular:\n\n";
+
+print STDERR "(1) If you use regular expressions in any options that have\n";
+print STDERR "    been rewritten by this script, they might have been put\n";
+print STDERR "    inside quotes, when then were not previously quoted. This\n";
+print STDERR "    means that any backslashes in them must now be escaped.\n\n";
+
+print STDERR "(2) If your configuration refers to any external files that\n";
+print STDERR "    contain lists of network addresses, check that the masks\n";
+print STDERR "    are specified as single numbers, e.g. /24 and NOT as dotted\n";
+print STDERR "    quads (e.g. 255.255.255.0) because Exim release 3.00 does\n";
+print STDERR "    not recognize the dotted quad form.\n\n";
+
+print STDERR "(3) If your configuration uses macros for lists of domains or\n";
+print STDERR "    hosts or addresses, check to see if any of the references\n";
+print STDERR "    have been negated. If so, you will have to rework things,\n";
+print STDERR "    because the negation will apply only to the first item in\n";
+print STDERR "    the macro-generated list.\n\n";
+
+print STDERR "(4) If you do not generate deliveries to pipes, files, or\n";
+print STDERR "    auto-replies in your aliasfile and forwardfile directors,\n";
+print STDERR "    you can remove the added transport settings.\n\n";
+
+# End of convert4r3

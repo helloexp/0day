@@ -1,0 +1,12 @@
+# Exim: OS-specific make file for HI-UX
+
+CC=cc -Aa -D_HIUX_SOURCE
+HAVE_SETRESUID=YES
+HAVE_SETEUID=NO
+XINCLUDE=-I/usr/include/X11R5
+XLFLAGS=-L/usr/lib/X11R5
+DBMLIB = -lndbm
+NEED_H_ERRNO=1
+RANLIB=@true
+
+# End

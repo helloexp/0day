@@ -1,0 +1,490 @@
+#!/usr/bin/env perl
+# ---------------------------------------------------------------------------
+# Copyright (C) 2008-2017 TJ Saunders <tj@castaglia.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA.
+# ---------------------------------------------------------------------------
+
+use strict;
+
+use File::Basename qw(basename);
+use Getopt::Long;
+use Mail::Sendmail;
+use MIME::Base64 qw(encode_base64);
+use Time::HiRes qw(usleep);
+
+my $program = basename($0);
+
+my $opts = {};
+GetOptions($opts, 'attach-file', 'fifo=s', 'from=s', 'help', 'ignore-users=s',
+  'log=s', 'recipient=s@', 'upload-recipient=s@', 'download-recipient=s@',
+  'sleep=s', 'smtp-server=s', 'subject=s', 'watch-users=s', 'auth=s');
+
+if ($opts->{help}) {
+  usage();
+  exit 0;
+}
+
+unless ($opts->{fifo}) {
+  print STDERR "$program: missing required --fifo parameter\n";
+  exit 1;
+}
+my $fifo = $opts->{fifo};
+
+unless ($opts->{from}) {
+  print STDERR "$program: missing required --from parameter\n";
+  exit 1;
+}
+my $from = $opts->{from};
+
+unless ($opts->{recipient} ||
+        $opts->{'upload-recipient'}) {
+  print STDERR "$program: missing required --recipient (or --upload-recipient) parameter\n";
+  exit 1;
+}
+my $upload_recipients = $opts->{recipient};
+
+# The --upload-recipient list takes precedence over the (deprecated)
+# --recipient list.
+if (defined($opts->{'upload-recipient'})) {
+   $upload_recipients = $opts->{'upload-recipient'};
+}
+
+my $download_recipients = undef;
+if (defined($opts->{'download-recipient'})) {
+  $download_recipients = $opts->{'download-recipient'};
+}
+
+unless ($opts->{'smtp-server'}) {
+  print STDERR "$program: missing required --smtp-server parameter\n";
+  exit 1;
+}
+my $smtp_server = $opts->{'smtp-server'};
+
+my $smtp_auth;
+if ($opts->{'auth'}) {
+  eval { $smtp_auth = get_auth_info($opts->{'auth'}) };
+  if ($@) {
+    my $ex = $@;
+    print STDERR "$program: unable to obtain SMTP auth info: $ex\n";
+    exit 1;
+  }
+}
+
+my $delay = 0.5;
+if ($opts->{sleep}) {
+  $delay = $opts->{sleep};
+}
+
+my $fifoh;
+if (open($fifoh, "< $fifo")) {
+
+  while (1) {
+    my $line = <$fifoh>;
+    if ($line) {
+      chomp($line);
+
+      if ($line =~ /^(\S+\s+\S+\s+\d+\s+\d+:\d+:\d+\s+\d+)\s+(\d+)\s+(.*?)\s+(\d+)\s+(.*?)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(.*?)\s+.*?(\S+)$/o) {
+        my $curr_time = $1;
+        my $xfer_nsecs = $2;
+        my $client = $3;
+        my $nbytes = $4;
+
+        # Note that any spaces or control characters will be replaced in this
+        # path with underscores.  This can make finding the actual file, as for
+        # attachments, rather difficult; we have to test to find the difference
+        # between a real underscore in the name, and a substituted underscore.
+        my $path = $5;
+
+        unless (-e $path) {
+          # Perform a quick-and-dirty check, on the assumption that all of the
+          # underscores in the given path are actually spaces.  If a
+          # combination of underscores and spaces appears in the real file,
+          # we won't detect that here.
+
+          my $alt_path = $path;
+          $alt_path =~ s/_/ /g;
+
+          if (-e $alt_path) {
+            $path = $alt_path;
+          }
+        }
+
+        my $xfer_type = $6;
+        my $action_flag = $7;
+        my $xfer_direction = $8;
+        my $access_mode = $9;
+        my $user_name = $10;
+        my $completion_status = $11;
+
+        my $send_email = 0;
+
+        if ($xfer_direction eq 'i') {
+          $send_email = 1;
+        }
+
+        if (defined($download_recipients)) {
+          # If we have a list of download email recipients, it means we should
+          # send emails for downloads, too.
+          if ($xfer_direction eq 'o') {
+            $send_email = 1;
+          }
+        }
+
+        if ($send_email) {
+
+          # First, check for any specific --watch-users filter.  If configured,
+          # and if the user name does NOT match the --watch-users filter, then
+          # don't send email.  Otherwise, check for an --ignore-users filter,
+          # and see if the user matches that ignore filter.
+
+          if ($opts->{'watch-users'}) {
+            if ($user_name !~ /$opts->{'watch-users'}/) {
+              $send_email = 0;
+            }
+
+          } elsif ($opts->{'ignore-users'}) {
+            if ($user_name =~ /$opts->{'ignore-users'}/) {
+              $send_email = 0;
+            }
+          }
+        }
+
+        if ($send_email) {
+          send_email({
+            timestamp => $curr_time,
+            duration => $xfer_nsecs,
+            client => $client,
+            size => $nbytes,
+            file => $path,
+            transfer_type => $xfer_type,
+            auth_mode => $access_mode,
+            user => $user_name,
+            status => $completion_status,
+            direction => $xfer_direction,
+          });
+        }
+      }
+
+      if ($opts->{log}) {
+        # Note: since this opens, writes, then closes the log file for every
+        # write, it will interact with log rotation scripts MUCH better than
+        # proftpd by itself.  Just one of the small benefits.
+
+        my $log_file = $opts->{log};
+        my $logfh;
+
+        if (open($logfh, ">> $log_file")) {
+          print $logfh "$line\n";
+
+          unless (close($logfh)) {
+            print STDERR "$program: error writing to log file '$log_file': $!\n";
+          }
+
+        } else {
+          print STDERR "$program: error opening log file '$log_file': $!\n";
+        }
+      }
+
+    } else {
+      # No input at this time.  Sleep for half a second (or less) and check
+      # again.
+      usleep($delay * 1000000);
+    }
+  }
+
+  close($fifoh);
+
+} else {
+  die "$program: unable to read FIFO '$fifo': $!\n";
+}
+
+sub get_auth_info {
+  my $path = shift;
+
+  my $info = {};
+
+  if (open(my $fh, "< $path")) {
+    while (my $line = <$fh>) {
+      chomp($line);
+
+      # Skip comments and blank lines
+      if ($line =~ /^(\s+)?#/) {
+        next;
+      }
+
+      if ($line =~ /^\s+$/) {
+        next;
+      }
+
+      if ($line =~ /^(\s+)?(\S+)(\s+)?=(\s+)?(.*)$/) {
+        my $key = $2;
+        my $val = $5;
+
+        # Trim off comments after the value, if any
+        $val =~ s/(\s*#.*)?$//;
+
+        # Ignore any keys other than 'user' and 'password'.
+
+        if (lc($key) eq 'user') {
+          $info->{'user'} = $val;
+
+        } elsif (lc($key) eq 'password' ||
+                 lc($key) eq 'pass') {
+          $info->{'password'} = $val;
+        }
+      }
+    }
+
+    close($fh);
+
+  } else {
+    die("Can't read '$path': $!\n");
+  }
+
+  # Make sure that we have the required values
+
+  my $reqs = [qw(user password)];
+
+  foreach my $req (@$reqs) {
+    unless (exists($info->{$req})) {
+      die("Missing required '$req' value\n");
+    }
+  }
+
+  return $info;
+}
+
+sub send_email {
+  my $transfer_info = shift;
+
+  my $file = $transfer_info->{file};
+  my $file_str = basename($file);
+
+  my $transferred = 'uploaded';
+  if ($transfer_info->{direction} eq 'o') {
+    $transferred = 'downloaded';
+  }
+
+  my $subject = "User '$transfer_info->{user}' $transferred file '$file_str' via FTP";
+  if ($opts->{subject}) {
+    $subject = $opts->{subject};
+  }
+
+  my $bytes_str = "bytes";
+  if ($transfer_info->{size} == 1) {
+    $bytes_str = "byte";
+  }
+
+  my $status = "Completed";
+  if ($transfer_info->{status} eq 'i') {
+    $status = "Incomplete";
+  }
+
+  my $secs_str = "secs";
+  if ($transfer_info->{duration} == 1) {
+    $secs_str = "sec";
+  }
+
+  my $type_str = "Binary";
+  if ($transfer_info->{transfer_type} eq 'a') {
+    $type_str = "ASCII";
+  }
+
+  my $attached = "";
+  if ($opts->{'attach-file'} &&
+      -e $file) {
+    $attached = "(attached)";
+  }
+
+  my $text = <<EOT;
+File just $transferred via FTP:
+
+  User: $transfer_info->{user}
+    Client: $transfer_info->{client}
+
+  File: $file $attached
+    Size: $transfer_info->{size} $bytes_str
+    At: $transfer_info->{timestamp}
+    Duration: $transfer_info->{duration} $secs_str
+    Status: $status
+    Transfer type: $type_str
+
+Cheers,
+  --$program
+
+EOT
+
+  my $email_info = {
+    smtp => $smtp_server,
+    From => $from,
+    Subject => $subject,
+  };
+
+  if ($transfer_info->{direction} eq 'i') {
+    $email_info->{To} = join(', ', @$upload_recipients);
+
+  } elsif ($transfer_info->{direction} eq 'o') {
+    $email_info->{To} = join(', ', @$download_recipients);
+  }
+
+  if ($opts->{'auth'}) {
+    $email_info->{'auth'} = $smtp_auth;
+  }
+
+  if ($opts->{'attach-file'}) {
+    if (-e $file) {
+      $email_info->{'MIME-Version'} = '1.0';
+
+      my $boundary = '====' . time() . '====';
+      $email_info->{'Content-Type'} = "multipart/mixed; boundary=\"$boundary\"";
+      $boundary = '--' . $boundary;
+
+      $email_info->{Body} .= "$boundary\n";
+      $email_info->{Body} .= "Content-Type: text/plain; charset=\"iso-8859-1\"\n";
+      $email_info->{Body} .= "Content-Transfer-Encoding: quoted-printable\n\n";
+      $email_info->{Body} .= "$text\n";
+
+      if (open(my $fh, "< $file")) {
+        binmode($fh);
+
+        # Note: this reads the entire file into memory, and can fail if
+        # the file is too big.
+
+        local $/;
+        my $attach;
+        while (my $data = <$fh>) {
+          $attach .= $data;
+        }
+        close($fh);
+
+        $email_info->{Body} .= "$boundary\n";
+
+        $email_info->{Body} .= "Content-Disposition: attachment; filename=\"$file\"\n";
+        if ($transfer_info->{transfer_type} eq 'a') {
+          $email_info->{Body} .= "Content-Type: text/plain; charset=\"iso-8859-1\"\n\n";
+          $email_info->{Body} .= $attach;
+
+        } else {
+          $email_info->{Body} .= "Content-Type: application/octet-stream\n";
+          $email_info->{Body} .= "Content-Transfer-Encoding: base64\n\n";
+          $email_info->{Body} .= encode_base64($attach);
+        }
+
+        $email_info->{Body} .= "\n";
+
+      } else {
+        my $timestamp = scalar(localtime());
+        print STDERR "$program: $timestamp: error reading file '$file' for attaching: $!\n";
+      }
+
+    } else {
+      # Couldn't find/access the uploaded file on the filesystem.  This usually
+      # indicates either a permissions problem, or a munged filename.
+      #
+      # XXX Need to handle this better.
+    }
+
+  } else {
+    $email_info->{Body} = $text;
+  }
+
+  my $res = Mail::Sendmail::sendmail(%$email_info);
+  unless ($res) {
+    my $timestamp = scalar(localtime());
+
+    print STDERR "$program: $timestamp: error sending email: $Mail::Sendmail::error\n";
+  }
+}
+
+sub usage {
+  print <<EOH;
+
+usage: $program [--help] [--fifo \$path] [--from \$addr] [--log \$path]
+  [--recipient \$addrs] [--upload-recipient \$addrs]
+  [--download-recipient \$addrs] [--subject \$string] [--smtp-server \$addr]
+  [--attach-file] [--ignore-users \$regex | --watch-users \$regex]
+
+The purpose of this script is to monitor the TransferLog written by proftpd
+for uploaded files.  Whenever a file is uploaded by a user, an email will be
+sent to the specified recipients.  In the email there will be the timestamp,
+the name of the user who uploaded the file, the path to the uploaded file, the
+size of the uploaded file, and the time it took to upload.
+
+Command-line options:
+
+  --attach-file		If used, this will cause a copy of the uploaded file
+			to be included, as an attachment, in the generated
+			email.
+
+  --auth \$path         Configures the path to a file containing SMTP
+			authentication information.
+
+			The configured file should look like this:
+
+				user = \$user
+				password = \$password
+
+  --fifo \$path		Indicates the path to the FIFO to which proftpd is
+			writing its TransferLog.  That is, this is the path
+			that you used for the TransferLog directive in your
+			proftpd.conf.  This parameter is REQUIRED.
+
+  --from \$addr		Specifies the email address to use in the From header.
+			This parameter is REQUIRED.
+
+  --help		Displays this message.
+
+  --ignore-users \$regex
+			Specifies a Perl regular expression.  If the uploading
+			user name matches this regular expression, then NO
+			email notification is sent; otherwise, an email is
+			sent.
+
+  --log \$path		Since this script reads the TransferLog using FIFOs,
+			the actual TransferLog file is not written by default.
+			Use this option to write the normal TransferLog file,
+			in addition to watching for uploads.
+
+  --recipient \$addr	Specifies an email address to which to send an email
+			notification of the upload.  This option can be
+			used multiple times to specify multiple recipients.
+			AT LEAST ONE recipient is REQUIRED.
+
+  --upload-recipient    Same as --recipient.
+
+  --download-recipient \$addr
+                        Specifies an email address to which to send an email
+                        notification of the B<download>.  This option can be
+                        used multiple times to specify multiple recipients.
+
+                        If this option is specified, then C<ftpmail> will
+                        watch for FTP downloads as well as uploads.
+
+  --smtp-server \$addr	Specifies the SMTP server to which to send the email.
+                        This parameter is REQUIRED.
+
+  --subject \$string	Specify a custom Subject header for the email sent.
+			The default Subject is:
+
+			  User '\$user' uploaded file '\$file' via FTP
+
+  --watch-users \$regex	Specifies a Perl regular expression.  If the uploading
+			user name matches this regular expression, then an
+			email notification is sent; otherwise, no email is
+			sent.
+
+EOH
+}

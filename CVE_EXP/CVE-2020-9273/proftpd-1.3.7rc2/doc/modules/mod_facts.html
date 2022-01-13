@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_facts</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_facts</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+<b>File "Facts" Support</b><br>
+
+<p>
+The <code>mod_facts</code> module is ProFTPD's module for handling the
+<code>MLSD</code> and <code>MLST</code> commands, in support of
+<a href="http://www.faqs.org/rfcs/rfc3659.html">RFC 3659</a>.  In addition,
+the <code>mod_facts</code> module implements the <code>MFF</code> and
+<code>MFMT</code> commands defined in:
+<pre>
+  <a href="http://tools.ietf.org/html/draft-somers-ftp-mfxx-04">http://tools.ietf.org/html/draft-somers-ftp-mfxx-04</a>
+</pre>
+
+<p>
+This module is contained in the <code>mod_facts.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is compiled by default.  Other installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_facts</code> can be found in the
+ProFTPD source distribution:
+<pre>
+  <a href="http://www.proftpd.org/">http://www.proftpd.org/</a>
+</pre>
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#FactsAdvertise">FactsAdvertise</a>
+  <li><a href="#FactsOptions">FactsOptions</a>
+</ul>
+
+<hr>
+<h3><a name="FactsAdvertise">FactsAdvertise</a></h3>
+<strong>Syntax:</strong> FactsAdvertise <em>on|off</em><br>
+<strong>Default:</strong> FactsAdvertise on<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_facts<br>
+<strong>Compatibility:</strong> 1.3.2rc2 and later
+
+<p>
+The <code>FactsAdvertise</code> directive is used to control whether
+the <code>mod_facts</code> module advertises its <code>MLST</code> support
+via the <code>FEAT</code> command.
+
+<p>
+By default, the <code>mod_facts</code> module will list <code>MLST</code>
+in the <code>FEAT</code> response.  FTP clients use this to determine whether
+to use the newer <code>MLSD</code>/<code>MLST</code> commands, or the older
+<code>LIST</code>/<code>NLST</code> commands.  Some FTP clients, though,
+will attempt to use the newer commands just as if they were equivalent to
+the older commands, including supporting glob/wildcard characters.
+Section 2.2.2 of RFC3659, which explicitly states that wildcard characters are
+<b>not</b> supported in the <code>MLSD</code> and <code>MLST</code> commands.
+Thus, to prevent problems when using such FTP clients with proftpd,
+you can disable the advertising of support for those commands using
+<i>e.g.</i> the following in your <code>proftpd.conf</code>:
+<pre>
+  &lt;IfModule mod_facts.c&gt;
+    FactsAdvertise off
+  &lt;/IfModule&gt;
+</pre>
+
+<hr>
+<h3><a name="FactsOptions">FactsOptions</a></h3>
+<strong>Syntax:</strong> FactsOptions <em>opt1 ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_facts<br>
+<strong>Compatibility:</strong> 1.3.4b and later
+
+<p>
+The <code>FactsOptions</code> directive is used to configure various optional
+behavior of <code>mod_facts</code>.  <b>Note</b>: all of the configured
+<code>FactsOptions</code> parameters <b>must</b> appear on the same line in the
+configuration; only the <i>first</i> <code>FactsOptions</code> directive that
+appears in the configuration is used.
+
+<p>
+The currently implemented options are:
+<ul>
+  <li><code>UseSlink</code><br>
+    <p>
+    Use this option to have <code>mod_facts</code> use the <i>broken</i>
+    "OS.unix=slink" syntax, preferred by FTP clients such as FileZilla, for
+    indicating symlinks, rather than the more correct "OS.unix=symlink"
+    syntax.  See
+    <a href="http://bugs.proftpd.org/show_bug.cgi?id=3318">Bug#3318</a> for
+    a more detailed discussion.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.4b</code>.
+  </li>
+
+  <p>
+  <li><code>AdjustedSymlinks</code><br>
+    <p>
+    Using this option will cause <code>mod_facts</code> to try to automatically
+    adjust any symlink destination paths when the FTP session is chrooted, so
+    that the adjusted symlinks work properly <i>e.g.</i> for FTP clients.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.7rc1</code>.
+  </li>
+
+  <p>
+  <li><code>NoNames</code><br>
+    <p>
+    By default, <code>mod_facts</code> will automatically use the newer
+    <code>UNIX.ownername</code> and <code>UNIX.groupname</code> facts in its
+    <code>MLSD</code>/<code>MLST</code> responses.  But some FTP clients may
+    not react well to the presence of these facts.  Use this option to disable
+    to use of these facts.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.6rc3</code>.
+  </li>
+</ul>
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="FactsListOptions">
+<font color=red>Question</font>: Why does <code>MLSD</code> list all of the
+files in a directory, including the "hidden" files, where the <code>LIST</code>
+command does not?<br>
+<font color=blue>Answer</font>: The <code>MLSD</code> and <code>MLST</code>
+commands do not have any notions of "options" like the <code>LIST</code> and
+<code>NLST</code> commands do; there is no way for a client, in the request
+to list the files in a directory, to ask the server to filter the list of
+files somehow.  Instead, <code>MLSD</code> contains a list of "facts" for
+each file in its list; the client then has to to decide how to filter the
+list of files based on those facts.  This is why the <code>ListOptions</code>
+directive has no influence over the <code>MLSD</code> and <code>MLST</code>
+commands.
+
+<p><a name="FactsUIDs">
+<font color=red>Question</font>: Why does <code>MLST</code> show the UIDs/GIDs
+for listed files, where <code>LIST</code>/<code>NLST</code> show the user/group
+names?<br>
+<font color=blue>Answer</font>: The list of "facts" defined by RFC 3659 does
+<b>not</b> include a fact for the stringified version of user/group owner
+names, unfortunately.  This means that the <code>MLSD</code>/<code>MLST</code>
+commands do not have a good way of obtaining the user/group names.
+
+<p>
+To work around this issue, you can add the following to your
+<code>proftpd.conf</code>:
+<pre>
+  &lt;IfModule mod_facts.c&gt;
+    FactsAdvertise off
+  &lt;/IfModule&gt;
+</pre>
+This tells <code>proftpd</code> to not advertise to the client that it can
+support the <code>MLSD</code>/<code>MLST</code> commands.  The client will then
+usually fall back to using the older <code>LIST</code> command, which
+<i>does</i> include the file owner user/group names.
+
+<p><a name="FactsSymlinks">
+<font color=red>Question</font>: Why does FileZilla not display symlinks
+properly, even though I have "ShowSymlinks on" in my <code>proftpd.conf</code>?<br>
+<font color=blue>Answer</font>: Newer versions of FileZilla (and other
+FTP clients) use the <code>MLSD</code> command for listing files, rather than
+the older <code>LIST</code> command.  And FileZilla and the
+<code>mod_facts</code> disagree on the proper syntax for indicating when a
+file is a symlink.
+
+<p>
+To work around this issue, you can add the following to your
+<code>proftpd.conf</code>:
+<pre>
+  &lt;IfModule mod_facts.c&gt;
+    FactsOptions UseSlink
+  &lt;/IfModule&gt;
+</pre>
+This tells the <code>mod_facts</code> module to use the improper
+"OS.unix=slink:<i>path</i>" syntax for symlinks; this is the syntax preferred
+by FileZilla (and perhaps other FTP clients). By default, the
+<code>mod_facts</code> module uses the better "OS.unix=symlink" syntax.
+
+<p>
+<b>Note</b> that if you are running <code>proftpd-1.3.3</code>, however,
+the <code>FactsOptions</code> directive is not supported.  To get FileZilla
+to display symlinks properly for older proftpd versions, then, you would use:
+<pre>
+  &lt;IfModule mod_facts.c&gt;
+    FactsAdvertise off
+  &lt;/IfModule&gt;
+</pre>
+This tells the <code>mod_facts</code> module to <b>not</b> advertise that it
+supports the newer <code>MLST/MLSD</code> commands.  FileZilla will then fall
+back to using the older directory list commands (<i>i.e.</i> <code>LIST</code>,
+<code>NLST</code>), which should show symlinks properly.
+
+<p><a name="FactsDotfiles">
+<font color=red>Question</font>: How can I hide dotfiles (<i>e.g.</i> ".msg")
+from the <code>MLSD</code> command?<br>
+<font color=blue>Answer</font>: There are two possible ways of dealing
+with FTP clients which use the <code>MLSD</code> command for listing
+directories, as opposed to the <code>LIST</code>/<code>NLST</code> commands.
+
+<p>
+Since the <code>MLSD</code> command does not have the concept of "options",
+unlike <code>LIST</code>/<code>NLST</code>, the <code>ListOptions</code>
+directive does not apply to <code>MLSD</code> as some would expect.  Thus
+using a configuration like so:
+<pre>
+  ListOptions +a
+</pre>
+to hide dotfiles from <code>LIST</code> commands does <b>not</b> work for
+<code>MLSD</code>.  How, then, to hide dotfiles from MLSD commands?  You can
+configure proftpd so that it does not advertise the fact that it can support
+the <code>MLSD</code> command, via:
+<pre>
+  &lt;IfModule mod_facts.c&gt;
+    FactsAdvertise off
+  &lt;/IfModule&gt;
+</pre>
+Alternatively, you can use the <code>HideFiles</code> and
+<code>IgnoreHidden</code> directives:
+<pre>
+  &lt;Directory /&gt;
+    # Hide files whose names start with "."
+    HideFiles ^\.
+
+    &lt;Limit LIST MLSD NLST&gt;
+      # Do not include hidden files for LIST, MLSD, and NLST
+      IgnoreHidden on
+    &lt;/Limit&gt;
+  &lt;/Directory&gt;
+</pre>
+This latter configuration will apply to <code>LIST</code>, <code>NLST</code>,
+and <code>MLSD</code> equally.
+
+<p><a name="FactsRemove">
+<font color=red>Question</font>: How can I disable the <code>mod_facts</code>
+module entirely?  Some clients (<i>e.g.</i> ncftp) do not appear to implement
+<code>MLSD</code> properly, and do not honor the <code>FEAT</code> response from
+<code>proftpd</code> when <code>FactsAdvertise</code> is configured
+<em>off</em>.<br>
+<font color=blue>Answer</font>: There is no easy way of disabling the
+<code>mod_facts</code> module at present; the
+<a href="#FactsAdvertise"><code>FactsAdvertise</code></a> directive is intended
+to do this in a way compliant with the RFCs.
+
+<p>
+That said, you <i>can</i> compile <code>proftpd</code> such that
+<code>mod_facts</code> is built as a DSO/shared module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_facts ...
+</pre>
+and then, in your <code>proftpd.conf</code>, you simply omit any
+"LoadModule mod_facts.c" directive, so that that module is never dynamically
+loaded.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_facts</code> module is distributed with ProFTPD, and is
+normally compiled as a static module by default.  However, if you wish to
+have <code>mod_facts</code> be built as a shared module, you would use:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_facts ...
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2007-2019 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Exim: OS-specific make file for SunOS4
+
+CFLAGS=-O
+
+CHOWN_COMMAND=/usr/etc/chown
+HOSTNAME_COMMAND=/usr/bin/hostname
+EXIT_FAILURE=1
+EXIT_SUCCESS=0
+LIBRESOLV=-lresolv
+XINCLUDE=-I/usr/include/X11
+
+EXIWHAT_PS_ARG=-ax
+EXIWHAT_EGREP_ARG='/exim( |$$)'
+EXIWHAT_KILL_SIGNAL=-30
+
+# End

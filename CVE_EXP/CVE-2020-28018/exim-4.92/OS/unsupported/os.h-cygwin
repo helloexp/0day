@@ -1,0 +1,41 @@
+/* Exim: OS-specific C header file for Cygwin */
+
+/* This code was supplied by Pierre A. Humblet <Pierre.Humblet@ieee.org>
+   December 2002. Updated Jan 2015. */
+
+/* Redefine the set*id calls to run when faking root */
+#include <unistd.h>   /* Do not redefine in unitsd.h */
+int cygwin_setuid(uid_t uid );
+int cygwin_setgid(gid_t gid );
+#define setuid cygwin_setuid
+#define setgid cygwin_setgid
+
+#define os_strsignal strsignal
+#define OS_STRSIGNAL
+#define BASE_62 36  /* Windows aliases lower and upper cases in filenames.
+                       Consider reducing MAX_LOCALHOST_NUMBER */
+#define CRYPT_H
+#define HAVE_MMAP
+#define HAVE_SYS_VFS_H
+#define NO_IP_VAR_H
+#define NO_IP_OPTIONS
+/* Defining LOAD_AVG_NEEDS_ROOT causes an initial
+   call to os_getloadavg. In our case this is beneficial
+   because it initializes the counts */
+#define LOAD_AVG_NEEDS_ROOT
+
+typedef struct flock flock_t;
+
+/* Macro to define variable length SID structures */
+#define SID(n, name, sid...) \
+struct  { \
+  BYTE  Revision; \
+  BYTE  SubAuthorityCount; \
+  SID_IDENTIFIER_AUTHORITY IdentifierAuthority; \
+  DWORD SubAuthority[n]; \
+} name = { SID_REVISION, n, {SECURITY_NT_AUTHORITY}, {sid}}
+
+/* default is non-const */
+#define ICONV_ARG2_TYPE const char **
+
+/* End */

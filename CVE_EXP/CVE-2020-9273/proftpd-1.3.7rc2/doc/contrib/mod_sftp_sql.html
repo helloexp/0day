@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_sftp_sql</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_sftp_sql</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <a href="../contrib/mod_sftp.html"><code>mod_sftp</code></a> module for
+ProFTPD can support different storage formats for its user- and host-based
+authorized keys.  By default, the <code>mod_sftp</code> module supports storing
+authorized keys in flat files.  This <code>mod_sftp_sql</code> module allows
+for authorized SSH keys to be stored in SQL tables.
+
+<p>
+This module is contained in the <code>mod_sftp_sql.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>.  Examples
+of how to use the <code>mod_sftp_sql</code> module are available
+<a href="#Usage">here</a>.
+
+<p>
+The most current version of <code>mod_sftp_sql</code> is distributed with the
+ProFTPD source code.
+
+<p>
+This product includes software developed by the OpenSSL Project for use in the
+OpenSSL Toolkit (<a href="http://www.openssl.org/">http://www.openssl.org/</a>).
+This product includes cryptographic software written by Eric Young (eay@cryptsoft.com).
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+To build <code>mod_sftp_sql</code>, follow the usual steps for using
+third-party modules in ProFTPD, making sure to include the
+<code>mod_sftp</code> and <code>mod_sql</code> modules, which
+<code>mod_sftp_sql</code> requires.  For example, if you use MySQL as your
+SQL database, then you might use:
+<pre>
+  $ ./configure --with-modules=mod_sql:mod_sql_mysql:mod_sftp:mod_sftp_sql ...
+  $ make
+  $ make install
+</pre>
+
+<p>
+<hr><br>
+<h2><a name="Usage">Usage</a></h2>
+
+<p>
+The <code>mod_sftp_sql</code> module works by using <code>mod_sql</code>'s
+<code>SQLNamedQuery</code> ability to define a SQL <code>SELECT</code>
+statement which returns the requested key.  Thus the <code>mod_sftp_sql</code>
+module has no configuration directives of its own.
+
+<p>
+To help demonstrate, see the example configuration below:
+<pre>
+  &lt;IfModule mod_sql.c&gt;
+    # Other mod_sql configuration here
+
+    # Define a SELECT statement to retrieve users' authorized SSH keys
+    SQLNamedQuery get-user-authorized-keys SELECT "key FROM sftpuserkeys WHERE name='%U'"
+
+    # Define a SELECT statement to retrieve hosts' authorized SSH keys
+    SQLNamedQuery get-host-authorized-keys SELECT "key FROM sftphostkeys WHERE host='%{0}'"
+  &lt;/IfModule&gt;
+
+  &lt;IfModule mod_sftp.c&gt;
+    SFTPEngine on
+    SFTPLog /path/to/sftp.log
+
+    # Host keys, for server host authentication
+    SFTPHostKey /etc/ssh_host_dsa_key
+    SFTPHostKey /etc/ssh_host_rsa_key
+
+    &lt;IfModule mod_sftp_sql.c&gt; 
+      # Instead of using a file-based key store, we tell mod_sftp to use
+      # the SQL-based key store provided by mod_sftp_sql
+      SFTPAuthorizedUserKeys sql:/get-user-authorized-keys
+      SFTPAuthorizedHostKeys sql:/get-host-authorized-keys
+    &lt;/IfModule&gt;
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+What should the schema be, for the table which holds these authorized keys?
+The <b>required</b> columns are one for the key (as a single base64-encoded
+string) and one for the name of the entity owning that key, <i>e.g.</i> the
+user name or FQDN (or IP address) of the host.  These columns can be added to
+existing tables you might have, or be part of a new table.
+
+<p>
+For example, using SQLite, you could do:
+<pre>
+  # sqlite3 sftp.db
+  sqlite&gt; CREATE TABLE sftpuserkeys (
+  sqlite&gt;  name TEXT NOT NULL,
+  sqlite&gt;  key BLOB NOT NULL
+  sqlite&gt; );
+  sqlite&gt; CREATE INDEX sftpuserkeys_idx ON sftpuserkeys (name);
+
+  sqlite&gt; CREATE TABLE sftphostkeys (
+  sqlite&gt;  host TEXT NOT NULL,
+  sqlite&gt;  key BLOB NOT NULL
+  sqlite&gt; );
+  sqlite&gt; CREATE INDEX sftphostkeys_idx ON sftphostkeys (host);
+</pre>
+and then configure <code>mod_sql</code> to use that <code>sftp.db</code>
+database file.  The indices are a very good idea, especially if you have many
+rows and/or users.  And for good data hygiene, adding a foreign key constraint
+on the <code>sftpuserkeys.name</code> column to your normal users table is
+recommended.
+
+<p>
+An example MySQL schema looks like:
+<pre>
+  CREATE TABLE sftpuserkeys (
+    user VARCHAR(256) NOT NULL,
+    user_key VARCHAR(8192) NOT NULL
+  );
+  CREATE INDEX sftpuserkeys_idx ON sftpuserkeys (user);
+
+  CREATE TABLE sftphostkeys (
+    host VARCHAR(256) NOT NULL,
+    host_key VARCHAR(8192) NOT NULL
+  );
+  CREATE INDEX sftphostkeys_idx ON sftphostkeys (host);
+</pre>
+
+<p>
+Which leads to the next question: how can I transfer existing authorized
+SSH keys from their current flat files into the SQL tables?  First, you need
+to make sure that the key is in the RFC4716 format, using:
+<pre>
+  # ssh-keygen -e -f /path/to/key.pub
+</pre>
+Then simply add the output data to your SQL table (<i>e.g.</i> to the
+<code>sftpuserkeys.key</code> column in the above example schema).
+
+<p>
+Other databases (<i>e.g.</i> MySQL, Postgres, Oracle, <i>etc</i>) have
+bulk data loading tools which can also be used to load a CSV file containing
+keys into your SQL tables, for use via <code>mod_sftp_sql</code>.
+
+<p>
+<b>Note</b> that the newlines which are part of the RFC 4716 formatted key
+data <b>are important</b>.  Use of the wrong data type in your SQL schema
+could lead to unexpected parsing issues, which will be logged as:
+<pre>
+  mod_sftp_sql/0.4[16284]: error base64-decoding raw key data from database
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2009-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

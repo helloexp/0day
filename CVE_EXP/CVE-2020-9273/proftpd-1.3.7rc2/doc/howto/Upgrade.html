@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Upgrading</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Upgrading</b></h2></center>
+<hr>
+
+<p>
+Upgrading <code>proftpd</code> is usually a straightforward process, but
+as with any upgrade, double-checking that the upgrade will not break anything
+is a Good Idea.
+
+<p>
+Recent ProFTPD releases have a <code>RELEASE_NOTES</code> file in the
+source distribution that documents the changes in that release, including
+new configuration directives, new contrib modules, deprecated directives,
+special instructions, <i>etc</i>.  In addition, the <code>NEWS</code> file
+contains a list of the bugs that have fixed, and comments about any changes
+the bugfix required.  <b>Please</b> read these files carefully before
+starting your upgrade.
+
+<p>
+One safe way to test the upgrade is to compile the new <code>proftpd</code>,
+and test it out on your existing configuration file before actually installing
+the new version into the &quot;live&quot; location:
+<pre>
+  $ tar zxvf proftpd-<i>version</i>.tar.gz
+  $ cd proftpd-<i>version</i>/
+  $ ./configure ..
+  $ make
+  $ ./proftpd -t -d10 -c /path/to/proftpd.conf
+</pre>
+The &quot;<code>./proftpd</code>&quot; means to use the new
+<code>proftpd</code> binary compiled by <code>make</code>, but not yet
+installed.  If the new binary reports errors, make a copy of your existing
+<code>proftpd.conf</code> file, keeping the old one as a backup:
+<pre>
+  $ cp /path/to/proftpd.conf /path/to/proftpd.conf.new
+</pre>
+Make any needed changes to the <code>proftpd.conf.new</code> file, until
+the new <code>proftpd</code> binary reports a successful syntax check:
+<pre>
+  $ ./proftpd -t -d10 -c /path/to/proftpd.conf.new
+</pre>
+
+<p>
+Once everything is configured the way you like, install the new binary and
+configuration file:
+<pre>
+  $ make install
+  $ cp /path/to/proftpd.conf /path/to/proftpd.conf.old
+  $ mv /path/to/proftpd.conf.new /path/to/proftpd.conf
+</pre>
+Now do a stop/start on <code>proftpd</code>, and the new version of ProFTPD
+will be running.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_quotatab_ldap</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_quotatab_ldap</code></b></h2>
+</center>
+<hr><br>
+
+This <code>mod_quotatab</code> submodule is contained in the
+<code>mod_quotatab_ldap.c</code>, and is found in the <code>contrib/</code>
+area of the ProFTPD source distribution.  See the <code>mod_quotatab</code>
+<a href="mod_quotatab.html#Installation">installation</a> instructions.
+
+<p>
+This submodule provides the LDAP-specific &quot;driver&quot; for retrieving
+quota limit table information from an LDAP server.
+
+<h2>Author</h2>
+<p>
+Please contact John Morrissey &lt;jwm <i>at</i> horde.net&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<p>
+<hr><h2><a name="LDAPTables">LDAP Limit Quota Tables</a></h2>
+LDAP-based quota tables (<em>source-type</em> of &quot;ldap&quot;) can
+only be used for limit tables, <b>not</b> for tally tables.  The frequent
+updates needed for maintaining tally tables mean that LDAP is not well-suited
+to handle tally table storage.
+
+<p>
+The <code>mod_quotatab_ldap</code> module supports the &quot;ldap&quot; string
+for the <em>source-type</em> parameter of the
+<a href="mod_quotatab.html#QuotaLimitTable"><code>QuotaLimitTable</code></a>
+configuration directive.
+
+<p>
+To enable LDAP-provisioned limit tables, you need to configure
+<code>mod_ldap</code> to lookup the proper attribute using the
+<a href="http://www.proftpd.org/docs/directives/linked/config_ref_LDAPDoQuotaLookups.html"><code>LDAPDoQuotaLookups</code></a> configuration directive.
+
+<p>
+The LDAP attribute to be looked up (named <code>ftpQuota</code> by default)
+should contain a comma-separated list of 8 values, in the following order:
+<pre>
+  <i>per_session, limit_type, bytes_in_avail, bytes_out_avail, bytes_xfer_avail,
+    files_in_avail, files_out_avail, files_xfer_avail</i>
+</pre>
+For example:
+<pre>
+  &quot;false,hard,100,100,100,100,100,100&quot;
+</pre>
+
+<p>
+An example <code>proftpd.conf</code> configuration might look like:
+<pre>
+  &lt;IfModule mod_quotatab.c&gt;
+    &lt;IfModule mod_quotatab_ldap.c&gt;
+      # Enable LDAP quota lookups
+      LDAPDoQuotaLookups on
+
+      # Use an LDAP-based limit table.  Note that there is no additional
+      # information supplied after the source-type: this is intentional. 
+      # mod_ldap handles the rest.
+      QuotaLimitTable ldap:
+    &lt;/IfModule&gt;
+
+    # Use a file-based tally table
+    QuotaTallyTable file:/usr/local/proftpd/ftpquota.tallytab
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2003 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,34 @@
+/* Exim: OS-specific C header file for HP-UX versions greater than 9 */
+
+#define EXIM_SOCKLEN_T size_t
+
+#define LOAD_AVG_NEEDS_ROOT
+#define HAVE_DEV_KMEM
+#define LOAD_AVG_TYPE   double
+#define LOAD_AVG_SYMBOL "avenrun"
+#define KERNEL_PATH     "/stand/vmunix"
+#define FSCALE          1.0
+
+#define HAVE_SYS_STATVFS_H
+
+#define F_FREESP           O_TRUNC
+#define NEED_H_ERRNO       1
+
+typedef struct flock flock_t;
+
+typedef struct __res_state *res_state;
+
+#define LLONG_MIN LONG_LONG_MIN
+#define LLONG_MAX LONG_LONG_MAX
+
+#define strtoll(a,b,c) strtoimax(a,b,c)
+
+/* Determined by sockaddr_un */
+
+struct sockaddr_storage
+{
+  short ss_family;
+  char __ss_padding[92];
+};
+
+/* End */

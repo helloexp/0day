@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Timestamps</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Timestamps</b></h2></center>
+<hr>
+
+<p>
+There have been various reports that timestamps displayed in various
+ProFTPD log files, such as an <code>ExtendedLog</code> or
+<code>TransferLog</code>, or even in directory listings, are not as expected.
+Other applications (<i>e.g.</i> <code>sshd</code>) on the same machine do
+not exhibit the same problem.  So is <code>proftpd</code> having issues
+with timestamps?
+
+<p>
+If the timestamps in question are those displayed in directory listings, then
+you need to check your <a href="../modules/mod_core.html#TimesGMT"><code>TimesGMT</code></a> configuration.  Otherwise,
+depending on the logs at which you are looking, the timestamps will be correct
+<i>until</i> the user logs in.  After that, the timestamps are wrong.  This
+is one clue.  The other clue is that these wrong timestamps go away when
+the <code>DefaultRoot</code> directive is removed from the
+<code>proftpd.conf</code> file.
+
+<p>
+The answer turns out to be the <code>chroot(2)</code> system call, which
+<code>proftpd</code> uses to restrict users to certain directories, usually
+their home directory.  There are two configuration directives which tell
+<code>proftpd</code> to use the <code>chroot(2)</code> system call:
+<pre>
+  &lt;Anonymous&gt;
+  DefaultRoot 
+</pre>
+The system <code>libc</code> library is responsible for generating times,
+based on timezone settings and such.  The GNU libc library (called
+<code>glibc</code> for short), used on all Linux systems changed in later
+versions, and now makes some assumptions.  Specifically, <code>glibc</code>
+assumes the location of the system timezone files.  But once a process
+has been chrooted, those assumptions break.  The fallback behavior of
+<code>glibc</code>, when it cannot find the system timezone files, is to
+use GMT.
+
+<p>
+The good news is that the above behavior does <b>not</b> happen if the
+<code>TZ</code> environment variable is set explicitly, to the required
+timezone.  That is, if <code>glibc</code> needs to detect the timezone and
+it finds that <code>TZ</code> is set, then <code>glibc</code> will use that
+<code>TZ</code> setting, rather than falling back to GMT.
+
+<p>
+<b>Affected Library Functions</b><br>
+Once a process has chrooted, the following <code>libc</code> function
+calls will have possibly-bad side effects, with regard to timezone detection:
+<code>localtime(3)</code>, <code>ctime(3)</code>, and <code>mktime(3)</code>.
+As documented in the man pages for these functions, each of them will
+set the <code>tzname</code> global variable to the &quot;current&quot;
+timezone.  This &quot;current&quot; timezone is what changes, once the
+process has become chrooted.  (For more information on the <code>tzname</code>
+global variable, read the <code>tzset(3)</code> man page.)
+
+<p>
+<b>Solutions</b><br>
+Recent releases of ProFTPD attempt to work around these issues by
+preserving the <code>tzname</code> global variable after calling
+<code>localtime(3)</code>, and by automatting setting the <code>TZ</code>
+environment variable, is not already set, before calling <code>chroot(2)</code>.
+These measures are defensive at best, though.
+
+<p>
+The best way to deal with this issue, which is especially prominent on systems
+running <code>glibc-2.3</code> or later, is to set the <code>TZ</code>
+environment variable explicitly, before starting <code>proftpd</code>.  This
+can be done in an <code>init</code> script for <code>proftpd</code>, for
+example.
+
+<p>
+You can also use the <code>SetEnv</code> configuration directive within the
+<code>proftpd.conf</code> file to set the <code>TZ</code> environment variable,
+<i>e.g.</i>:
+<pre>
+  # Set the TZ environment variable to be Pacific Standard Time (PST)
+  SetEnv TZ PST
+</pre>
+Obviously you will need to set the timezone to whatever is appropriate for
+your site.  For example, some systems expect different values for the
+<code>TZ</code> environment variable, <i>e.g.</i>:
+<pre>
+  SetEnv TZ :/etc/localtime
+</pre>
+<b>Note</b>: Using a filesystem location such as ":/etc/localtime" for the
+<code>TZ</code> environment variable can still result in log timestamp issues,
+<i>e.g.</i> when the <code>MFMT</code>/<code>MFF</code> FTP commands are used.
+The best solution is to always specify the timezone name, rather than a file,
+whenever possible.
+
+<p>
+These are provided as <i>examples</i>; please consult your system documentation
+for the proper syntax to use for the <code>TZ</code> value.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p>
+<font color=red>Question</font>: Why is the timestamp on my newly uploaded file wrong?<br>
+<font color=blue>Answer</font>: If by "wrong" you mean "different from
+the timestamp of that file on my client machine", then that is the expected
+behavior.
+
+<p>
+The modification timestamp on a file is <i>not</i> part of the data uploaded
+over the data connection when uploading a file.  Timestamps like that are
+<i>metadata</i> for that file, not part of the bytes of the file itself.
+FTP does not supporting sending of timestamps as part of the upload transfer
+process.  See below for a common follow-up question.
+
+<p>
+<font color=red>Question</font>: Does ProFTPD support changing the timestamp on a file using the <code>MDTM</code> command?  That's what my client does.<br>
+<font color=blue>Answer</font>: No.
+
+<p>
+Why not?  For several reasons:
+<ul>
+  <li>The <code>MDTM</code> command is <b>not</b> one of the commands
+      mandated by <a href="http://www.faqs.org/rfcs/rfc959.html">RFC 959</a>.
+  </li>
+  
+  <li>Some FTP clients use <code>MDTM</code> for <i>retrieving</i> the
+      modification time, others try to use it to <i>set</i> the modification
+      time, and still others do both.
+  </li>
+
+  <li>Among those FTP clients that do use <code>MDTM</code>, there is no
+      consistent format of the timestamp used.
+  </li>
+</ul>
+In short, it is a royal mess.  ProFTPD supports <code>MDTM</code> for
+retrieving the modification time, in GMT.  Period.
+
+<p>
+If you want to set the modification time, you can use the
+<code>MFMT</code> command supported by the <code>mod_facts</code> module,
+or the <code>mod_site_misc</code> module's
+<a href="../contrib/mod_site_misc.html#SITE_UTIME"><code>SITE UTIME</code></a>
+command.
+
+<p>
+<font color=red>Question</font>: I thought that the <code>TimesGMT</code> directive was affected the timestamps that proftpd uses?<br>
+<font color=blue>Answer</font>: No.  The <a href="../modules/mod_core.html#TimesGMT"><code>TimesGMT</code></a> directive only affects the timestamps as
+displayed to FTP clients in <i>directory listings</i>; it does <b>not</b>
+affect the timestamps used in log files.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

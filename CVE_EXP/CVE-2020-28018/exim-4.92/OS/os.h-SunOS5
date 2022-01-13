@@ -1,0 +1,51 @@
+/* Exim: OS-specific C header file for SunOS5 aka Solaris */
+
+#define CRYPT_H
+#define HAVE_MMAP
+#define HAVE_SYS_STATVFS_H
+#define F_FAVAIL                f_favail
+#define SIOCGIFCONF_GIVES_ADDR
+
+#define HAVE_GETIPNODEBYNAME    1
+#define HAVE_GETIPNODEBYADDR    1
+
+#define HAVE_KSTAT
+#define LOAD_AVG_KSTAT         "system_misc"
+#define LOAD_AVG_KSTAT_MODULE  "unix"
+#define LOAD_AVG_SYMBOL        "avenrun_1min"
+#define LOAD_AVG_FIELD          value.ui32
+
+#define os_strsignal            strsignal
+#define OS_STRSIGNAL
+
+/* This is needed for some early Solaris releases, but causes trouble
+in the current ones, so it is out by default. */
+
+/* #define EXIM_SOCKLEN_T       size_t */
+
+/* This is different from Linux and all other PAM implementations,
+it seems. */
+
+#define PAM_CONVERSE_ARG2_TYPE  struct pam_message
+
+
+/* default is non-const */
+#define ICONV_ARG2_TYPE const char **
+
+#if _POSIX_C_SOURCE < 200112L
+# define MISSING_UNSETENV_3
+#endif
+
+
+/* SunOS5 doesn't accept getcwd(NULL, 0) to auto-allocate
+a buffer */
+
+#define OS_GETCWD
+
+
+#ifndef MIN
+# define MIN(a,b) (((a)<(b))?(a):(b))
+# define MAX(a,b) (((a)>(b))?(a):(b))
+#endif
+
+/* End */

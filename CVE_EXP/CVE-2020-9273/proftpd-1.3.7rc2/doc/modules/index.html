@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD Core Module Documentation</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD Core Module Documentation</b></h2></center>
+<hr>
+
+<p>
+The following is a collection of HTML documentation for modules and
+tools in the <code>modules/</code> directory of the ProFTPD source
+distribution.
+
+<p>
+<ul>
+  <dt>The <a href="mod_auth.html"><code>mod_auth</code></a> module
+  <dd>Handles the login process/interaction with connecting clients
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_auth_file.html"><code>mod_auth_file</code></a> module
+  <dd>Handles authentication using <code>AuthUserFile</code> and
+      <code>AuthGroupFile</code>
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_auth_pam.html"><code>mod_auth_pam</code></a> module
+  <dd>Provides additional authentication checks via PAM
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_auth_unix.html"><code>mod_auth_unix</code></a> module
+  <dd>Handles authentication using the system files, <i>e.g.</i>
+      <code>/etc/passwd</code> and <code>/etc/group</code>
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_cap.html"><code>mod_cap</code></a> module
+  <dd>Adds additional privilege restrictions based on Linux capabilities and
+      the <code>libcap</code> library
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_core.html"><code>mod_core</code></a> module
+  <dd>Handles the core configuration directives and FTP commands
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_ctrls.html"><code>mod_ctrls</code></a> module
+  <dd>Implements the configuration and handling of control actions;
+      see the <a href="../howto/Controls.html">Controls</a> documentation
+      for more details
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_delay.html"><code>mod_delay</code></a> module
+  <dd>Helps mitigate timing-based information leaks by automatically
+      adding tuned delays to the login process
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_dso.html"><code>mod_dso</code></a> module
+  <dd>Handles the configuration of <a href="../howto/DSO.html">DSO</a> modules
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_facl.html"><code>mod_facl</code></a> module
+  <dd>Implements POSIX ACL support
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_facts.html"><code>mod_facts</code></a> module
+  <dd>Handles the <code>MFF</code>, <code>MFMT</code>, <code>MLSD</code>
+      and <code>MLST</code> FTP commands
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_ident.html"><code>mod_ident</code></a> module
+  <dd>Handles the <code>IdentLookups</code> configuration directive and
+      <code>IDENTD</code> protocol lookups
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_lang.html"><code>mod_lang</code></a> module
+  <dd>Provides UTF8 and localised response string support, and handles
+      the <code>LANG</code> FTP command
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_log.html"><code>mod_log</code></a> module
+  <dd>Handles logging via <code>syslog</code> and directly to log files
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_ls.html"><code>mod_ls</code></a> module
+  <dd>Handles directory listings via the <code>LIST</code>, <code>NLST</code>,
+      and <code>STAT</code> FTP commands
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_memcache.html"><code>mod_memcache</code></a> module
+  <dd>Handles memcache configuration
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_redis.html"><code>mod_redis</code></a> module
+  <dd>Handles Redis configuration
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_rlimit.html"><code>mod_rlimit</code></a> module
+  <dd>Handles resource limits
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_site.html"><code>mod_site</code></a> module
+  <dd>Handles basic FTP <code>SITE</code> commands: <code>SITE CHGRP</code>,
+      <code>SITE CHMOD</code>, and <code>SITE HELP</code>
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_xfer.html"><code>mod_xfer</code></a> module
+  <dd>Handles FTP uploads and downloads via the <code>APPE</code>,
+      <code>RETR</code>, <code>STOR</code>, and <code>STOU</code> FTP commands
+  </dd>
+</ul>
+
+<p>
+If your question or issue is not covered by any of these pages, please
+send a request to the ProFTPD documentation list.  Directions for subscribing
+to the docs list, as well as the other ProFTPD mailing lists, are at:
+<pre>
+  <a href="http://www.proftpd.org/lists.html">http://www.proftpd.org/lists.html</a>
+</pre>
+If you are looking to see if ProFTPD supports a particular feature, the
+first place to look as the complete list of configuration directives:
+<pre>
+  <a href="http://www.proftpd.org/docs/directives/linked/by-name.html">http://www.proftpd.org/docs/directives/linked/by-name.html</a>
+</pre>
+The list may be intimidatingly long, but it is well worth scanning through
+all of the directives to see everything that ProFTPD is capable of supporting.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

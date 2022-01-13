@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: ScoreboardFile</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: ScoreboardFile</b></h2></center>
+<hr>
+
+<p>
+<b>What is the Scoreboard?</b><br>
+The <code>ScoreboardFile</code> is used by <code>proftpd</code> for tracking
+information for each current FTP session.  It is necessary for things like
+<code>MaxClients</code>, <code>MaxClientsPerUser</code>, <i>etc</i>.
+The utility programs (<a href="../utils/ftpwho.html"><code>ftpwho</code></a>,
+<a href="../utils/ftpcount.html"><code>ftpcount</code></a>,
+<a href="../utils/ftptop.html"><code>ftptop</code></a>) read the scoreboard and
+display its information.
+
+<p>
+Here's how <code>proftpd</code> handles its scoreboard: There is a default
+path that <code>proftpd</code> will use for writing its scoreboard
+(<code>var/proftpd/proftpd.scoreboard</code>).  This default path depends on
+how you install proftpd (<i>i.e.</i> if you install from source and use the
+--prefix <code>configure</code> option, the default path will be adjusted to
+honor your --prefix).  However, you can also explicitly tell the daemon what
+location to use for its scoreboard using the <code>ScoreboardFile</code>
+configuration directive in your <code>proftpd.conf</code>.  When
+the daemon starts up, it looks to see if there is a scoreboard already there;
+if there isn't, it makes a new one.
+
+<p>
+The most common error encountered when opening the scoreboard is:
+<pre>
+  unable to open scoreboard: No such file or directory
+</pre>
+This usually means that <code>proftpd</code> is trying to open a
+<code>ScoreboardFile</code> in a directory that does not exist.  Some packages
+fail to create the needed directory; this will result in the error message
+above.  If you cannot find your <code>ScoreboardFile</code>, you should try
+explicitly configuring the path to the file to use in your
+<code>proftpd.conf</code>, using the <code>ScoreboardFile</code> configuration
+directive, and then obtaining debugging output from your <code>proftpd</code>,
+to see if the daemon ran into problems using that defined location.
+
+<p>
+In proftpd-1.3.4rc1, a new <code>ScoreboardMutex</code> directive was added.
+This file is used as a mutex for starting/ending sessions, for improving
+performance under load; see <a href="http://bugs.proftpd.org/show_bug.cgi?id=3208">Bug#3208</a> for the technical details.  The default path (usually
+<code>var/proftpd/proftpd.scoreboard.lck</code>) for
+<code>ScoreboardMutex</code> should suffice.  If you need to explicitly
+configure a different <code>ScoreboardMutex</code> file, make absolutely
+sure that you <b>do not place the file on a networked filesystem</b>.  Your
+performance will suffer greatly if you do.
+
+<p>
+<b>What's in the Scoreboard?</b><br>
+What types of information about each session is tracked in the scoreboard?
+What else is recorded in the scoreboard?
+
+<p>
+The <code>ScoreboardFile</code> records the following information about
+the parent/daemon <code>proftpd</code> process:
+<ul>
+  <li>scoreboard file format identifier
+  <li>daemon PID
+  <li>daemon uptime
+  <li>daemon version
+</ul>
+and for each session, the <code>ScoreboardFile</code> records:
+<ul>
+  <li>session PID
+  <li>session protocol (<i>e.g.</i> "ftp", "ftps", "sftp")
+  <li>session UID
+  <li>session GID
+  <li>session user name
+  <li>session server IP address/port
+  <li>session virtual host name
+  <li>session client IP address, DNS name
+  <li>session <a href="Classes.html">class</a>
+  <li>time since session started
+</ul>
+and some other data related to data transfers.  The data transfer-related fields
+include the filename being transferred (may be relative or absolute, depending
+on what the client sent), the transfer command (<i>e.g.</i> <code>RETR</code>
+for downloads, <code>STOR</code> for uploads, <i>etc</i>), the amount of
+data transferred so far, and percentage of transfer completed (for downloads
+only).
+
+<p>
+<b>Scrubbing the Scoreboard</b><br>
+There is a bad habit among system administrators of using
+<code>`kill -9'</code> to kill a misbehaving process.  Any process that is
+terminated this way, though, does not have a chance of properly shutting down.
+Administrators would use <code>`kill -9'</code> on some of
+<code>proftpd</code>'s session processes, which means that they would not be
+able to remove their entries from the <code>ScoreboardFile</code>.
+Utilities like <code>ftpwho</code> and <code>ftptop</code> would show sessions
+that no longer existed.
+
+<p>
+The chance of changing this bad habit in system administrators is slim, so
+<code>proftpd</code> was changed to check the <code>ScoreboardFile</code>
+periodically.  It will scan the entire file, and for each scoreboard session
+listed, it asks the operating system if that session process is still alive.
+If the answer is no, the entry is removed from the file.  This process is
+known as &quot;scrubbing&quot;.
+
+<p>
+By default, this scrubbing process occurs every 30 seconds.  For busy/heavily
+loaded sites, this scrubbing interval might be too short; heavily loaded
+servers are more likely to encounter lock contention issues between sessions
+trying to update their scoreboard entry and the daemon trying to scrub
+the scoreboard.  Such sites are advised to use <code>ScoreboardScrub</code>
+configuration directive.  This directive can be used to turn on or off
+the periodic scrubbing, or to set a different scrub interval.  The following
+shows some examples of <code>ScoreboardScrub</code> usage:
+<pre>
+  # The default is to use scoreboard scrubbing, at the default interval
+  ScoreboardScrub on
+
+  # If we are busy server, we might want to turn off scoreboard scrubbing
+  # entirely
+  ScoreboardScrub off
+
+  # Scrubbing is acceptable, but have it happen every 5 minutes instead
+  ScoreboardScrub 300
+</pre>
+
+<p>
+Note that if scoreboard scrubbing is turned off, the
+<code>ScoreboardFile</code> can still be scrubbed on demand, either by using
+the <a href="../contrib/mod_ctrls_admin.html#scoreboard"><code>mod_ctrls_admin</code></a>'s "ftpdctl scoreboard scrub" action, or by using the
+<code>ftpscrub</code> command-line utility.
+
+<p>
+<b>Frequently Asked Questions</b><br>
+<font color=red>Question</font>: Why doesn't <code>proftpd</code> create the needed directories, if they're not there, when opening the scoreboard?<br>
+<font color=blue>Answer</font>: The short answer is because that is the
+job of the system administrator, not the application.  The long reason
+is that <code>proftpd</code> does not know the filesystem layout being
+used, and does not know what sort of permissions should be given to any
+directories it might need to create for its scoreboard.
+
+<p>
+<font color=red>Question</font>: Can I copy my scoreboard from one server to another?<br>
+<font color=blue>Answer</font>: No. <code>ScoreboardFile</code>s cannot be
+copied from server to server; they are specific to that particular
+installation.
+
+<p>
+In the same fashion, you should not try to place the scoreboard on an NFS
+filesystem.  First, attempting to share the scoreboard is not supported, and
+will only lead to trouble.  Second, NFS does not support file locking, which
+<code>proftpd</code> requires for handling the scoreboard.
+
+<p>
+<font color=red>Question</font>: Why do I see &quot;scrubbing scoreboard&quot; in my debugging output?<br>
+<font color=blue>Answer</font>: These debug messages indicate when the
+<code>proftpd</code> daemon is scrubbing the <code>ScoreboardFile</code>.
+
+<p><a name="ScoreboardDisabling">
+<font color=red>Question</font>: Our site has <i>many</i> connections, and
+it looks like the logins/sessions are slow.  Analysis shows that the
+session processes are all waiting/competing for the
+<code>ScoreboardFile</code>.  What can be done to fix this?<br>
+<font color=blue>Answer</font>: One particular trick to use for this situation
+is to use <code>/dev/null</code>, <i>e.g.</i>:
+<pre>
+  ScoreboardFile /dev/null
+</pre>
+For one site which tried this configuration, <code>proftpd</code> was able
+to function without complaining about using <code>/dev/null</code> as the
+<code>ScoreboardFile</code>, the system load dropped dramatically, and
+the FTP sessions were no longer slow.
+
+<p>
+<b>However</b>, be aware that using this trick causes the following to
+<b>NOT</b> work:
+<ul>
+  <li>ftpcount
+  <li>ftpwho
+  <li>ftptop
+  <li>ftpdctl kick
+  <li><code>MaxClients</code>
+  <li><code>MaxClientsPerClass</code>
+  <li><code>MaxClientsPerHost</code>
+  <li><code>MaxClientsPerUser</code>
+  <li><code>MaxConnectionsPerHost</code>
+  <li><code>MaxHostsPerUser</code>
+  <li><code>MaxTransfersPerHost</code>
+  <li><code>MaxTransfersPerUser</code>
+</ul>
+
+<p>
+<font color=red>Question</font>: What should I do if I see this error in my
+logs:
+<pre>
+  error opening scoreboard: bad version (too old)
+</pre>
+<font color=blue>Answer</font>: This error usually only happens for servers
+which have:
+<pre>
+  ServerType inetd
+</pre>
+in their <code>proftpd.conf</code> files.  It indicates that the existing
+<code>ScoreboardFile</code> is using a format which is too old for the running
+code.  The fix is simple: delete that old <code>ScoreboardFile</code>.  The
+daemon will automatically create a new scoreboard in the correct format.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

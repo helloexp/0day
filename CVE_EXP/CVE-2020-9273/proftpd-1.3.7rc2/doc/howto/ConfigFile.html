@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Configuring ProFTPD</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Configuring ProFTPD</b></h2></center>
+<hr>
+
+<p>
+<b>The Configuration File</b><br>
+The first step in configuring a <code>proftpd</code> daemon is knowing where
+the configuration file, usually named <code>proftpd.conf</code>, is located.
+The default location for this file is <code>/etc/proftpd.conf</code> or
+<code>/usr/local/etc/proftpd.conf</code>, depending on your installation.
+When starting the daemon, the exact path to the configuration file to be
+used can always be specified using the <code>-c</code> command-line option.
+
+<p>
+The idea behind <code>proftpd</code>'s handling of the configuration file
+is that a blank file can be used, and the daemon will still operate.  This
+means that, unlike Apache, there is a &quot;default&quot; server configuration
+in every <code>proftpd.conf</code>; ProFTPD does not require that all
+server configurations be explicitly written in the <code>proftpd.conf</code>
+file.  This default server attempts to bind to the IP address of the hostname
+indicated by the <code>hostname(1)</code> command.
+
+<p><a name="Format">
+<b>Configuration Format</b><br>
+The format of the <code>proftpd.conf</code> file is deliberately designed
+to resemble the format used by Apache: lines of configuration <i>directives</i>
+contained with different <i>contexts</i> (or <i>sections</i>).
+
+<p>
+Each of configuration <i>directive</i> has the following properties:
+<ul>
+  <li><a href="#Syntax">Syntax</a>
+  <li><a href="#Default">Default</a>
+  <li><a href="#Context">Context</a>
+  <li><a href="#Module">Module</a>
+  <li><a href="#Compatibility">Compatibility</a>
+</ul>
+
+<p><a name="Syntax">
+<b><i>Syntax</i></b><br>
+The directive <em>syntax</em> indicates the format of the directive as it would
+appear in a configuration file.  This syntax is extremely directive-specific,
+so refer to the text of the directive's description for details.
+
+<p><a name="Default">
+<b><i>Default</i></b><br>
+If the directive has a default value (<i>i.e.</i>, if you omit it from your
+configuration entirely, the ProFTPD server will behave as though you set it to
+this particular value), it is described here.  If there is no default value,
+this section should say &quot;<em>None</em>&quot;.
+
+<p><a name="Context">
+<b><i>Context</i></b><br>
+The <em>context</em> of a directive indicates where in the server's
+configuration files the directive is legal/allowed.  It is a comma-separated
+list of one or more of the following values:
+<ul>
+  <li><strong><i>server config</i></strong><br>
+    <p>
+    This means that the directive may be used in the server configuration
+    file (<i>e.g.</i>, <code>proftpd.conf</code>) <b>outside of any other
+    context</b> (<i>i.e.</i> not inside a <code>&lt;VirtualHost&gt;</code> or
+    <code>&lt;Global&gt;</code> context).  This context defines a
+    &quot;main&quot; or &quot;default&quot; server.<br>
+  </li>
+
+  <p>
+  <li><strong><i><code>&lt;VirtualHost&gt;</code></i></strong><br>
+    <p>
+    This context means that the directive may appear inside
+    <a href="../modules/mod_core.html#VirtualHost"><code>&lt;VirtualHost&gt;</code></a> sections in the server configuration file.<br>
+  </li>
+
+  <p>
+  <li><strong><i><code>&lt;Global&gt;</code></i></strong><br>
+    <p>
+    This context means that the directive may appear inside
+    <a href="../modules/mod_core.html#Global"><code>&lt;Global&gt;</code></a>
+    sections in the server configuration file.  This context is used as a
+    shortcut for placing directives with all server contexts, <i>i.e.</i> the
+    &quot;server config&quot; context as well as any
+    <code>&lt;VirtualHost&gt;</code> contexts within the configuration file.
+    Any directives of the same name <em>within</em> those server sections will
+    have precedence over a <code>&lt;Global&gt;</code> setting.<br>
+  </li>
+
+  <p>
+  <li><strong><i><code>&lt;Anonymous&gt;</code></i></strong><br>
+    <p>
+    This context means that the directive may appear inside any
+    <a href="../modules/mod_core.html#Anonymous"><code>&lt;Anonymous&gt;</code></a>
+    sections in the server configuration file.  An &lt;Anonymous&gt; section is
+    not a true virtual server, but rather is a section <i>within</i> a server
+    context (<i>i.e.</i> &quot;server config&quot;,
+    <code>&lt;VirtualHost&gt;</code> or <code>&lt;Global&gt;</code>).
+    Anonymous sections are <b>automatically <code>chroot()</code>ed</b>.  Any
+    configuration directives set for the containing server will be in effect
+    for the anonymous section as well, unless overridden by a directive of
+    the same name within the anonymous section.<br>
+  </li>
+
+  <p>
+  <li><strong><i><code>&lt;Limit&gt;</code></i></strong><br>
+    <p>
+    This context means that the directive may appear inside any
+    <a href="../modules/mod_core.html#Limit"><code>&lt;Limit&gt;</code></a>
+    sections in the server configuration file.  This context is used to place
+    limits on who and how individual FTP commands, or groupings of FTP
+    commands, may be used.<br>
+  </li>
+
+  <p>
+  <li><strong><i><code>&lt;Directory&gt;</code></i></strong><br>
+    <p>
+    A directive marked as being valid in this context may be used inside
+    <a href="../modules/mod_core.html#Directory"><code>&lt;Directory&gt;</code></a>
+    sections in the server configuration file.  This context configures views
+    of the contained files based on the logged-in user's username or group
+    membership, or on the name of the files (<i>e.g.</i> Unix-style
+    &quot;hidden&quot; files), and on whether the user has permission to see
+    the files.  By definition, directives set using a
+    <a href="ftpaccess.html"><code>.ftpaccess</code></a> file are considered
+    to be occurring within a <code>&lt;Directory&gt;</code> context.<br>
+   </li>
+
+  <p>
+  <li><strong><i>.ftpaccess</i></strong><br>
+    <p>
+    If a directive is valid in this context, it means that it can appear
+    inside <em>per</em>-directory
+    <a href="ftpaccess.html"><code>.ftpaccess</code></a> files.
+    These files are akin to Apache's <code>.htaccess</code> files:
+    parsed-on-the-fly mini-configuration files that users can place within
+    their own directories.<br>
+  </li>
+</ul>
+
+<p>
+A configuration directive is <em>only</em> allowed within the designated
+contexts; if you try to use that directive elsewhere, you will get a
+configuration error that will either prevent the server from handling requests
+in that context correctly, or will keep the server from operating at all
+<em>i.e.</em>, the server will not even start.  A directive that is marked as
+being valid in &quot;<code>server config, .ftpaccess</code>&quot; can be used
+in the <code>proftpd.conf</code> file and in <code>.ftpaccess</code> files,
+but not within any <code>&lt;Directory&gt;</code>,
+<code>&lt;VirtualHost&gt;</code>, or other contexts.
+
+<p>
+Two new configuration directives were introduced in
+<code>proftpd-1.2.6rc1</code>: <code>&lt;IfModule&gt;</code> and
+<code>&lt;IfDefine&gt;</code>.  These work exactly like Apache's directives of
+the same names, providing the ability to have conditional sections in the
+configuration file.
+
+<p><a name="Module">
+<b><i>Module</i></b><br>
+This quite simply lists the name of the module (<i>e.g.</i>
+<code>mod_xfer</code>, <code>mod_tls</code>, <code>mod_sql</code>, <i>etc</i>)
+which defines and implements the directive.
+
+<p><a name="Compatibility">
+<b><i>Compatibility</i></b><br>
+This usually lists the version in which the directive first appeared.
+
+<p>
+A list of the configuration directives for ProFTPD is available here:
+<pre>
+  <a href="http://www.proftpd.org/docs/">http://www.proftpd.org/docs/</a>
+</pre>
+
+When reading the description for the configuration directives, this key
+might be useful:
+It describes the description format, and lists the different contexts in the
+configuration file.  The &quot;server config&quot; context is the one in
+which most of your configuration directives will most likely be placed.
+
+<p><a name="Starting">
+<b>Starting the Daemon</b><br>
+One of the first decisions you will need to make is whether you will be running
+your ProFTPD server as an <code>inetd</code> service, or as a
+<code>standalone</code> server.  This is controlled in the
+<code>proftpd.conf</code> using the <code>ServerType</code> configuration
+directive (see the <a href="ServerType.html">ServerType</a> page).
+
+<p><a name="Identity">
+<b>Server Identity</b><br>
+The daemon must be started with root privileges in order to do things like
+binding to port 21 and chrooting FTP sessions.  However, it is not a good
+idea to leave a long-lived process running as root.  The <code>User</code>
+and <code>Group</code> configuration directives are thus recommended.  These
+directives configure the identity to which the daemon will switch, after
+accomplishing its startup tasks.  The daemon will switch to the configured
+<code>User</code> and <code>Group</code> in the &quot;server config&quot;
+context.  (Note that this switch uses the <i>effective</i> UID/GID,
+not the <i>real</i> UID/GID.  Some programs, such as <code>top</code>,
+will continue to report <code>proftpd</code> as running as <code>root</code>;
+this is because the program displays the real UID/GID of processes.
+The <code>proftpd</code> daemon retains root privileges for operations
+such as chroots and binding to port 20 for active data transfers.
+If you wish <code>proftpd</code> to drop all root privileges, use the
+<a href="../modules/mod_auth.html#RootRevoke"><code>RootRevoke</code></a>
+configuration directive.)
+
+<p>
+For this reason, it is recommended that a non-privileged identity be
+used.  Many sites choose to use user <code>nobody</code>.  Historically,
+this role account was used by NFS-related processes; over time, many other
+applications default to using user <code>nobody</code>.  This has the
+side-effect of adding to the &quot;privileges&quot; held by user
+<code>nobody</code>, in terms of files owned and/or accessible by that user.
+Instead, I personally recommend that a new role account be created for use
+specifically by the daemon, a user <code>ftpd</code>, and perhaps even a
+group <code>ftpd</code>.  Many systems that run Apache have a user
+<code>www</code> or user <code>apache</code> for use by the <code>httpd</code>
+daemon; similarly, a separate user should be created for the
+<code>proftpd</code> daemon.
+
+<p>
+In the default configuration file that accompanies the proftpd source code,
+there appears:
+<pre>
+  User nobody
+  Group nogroup
+</pre>
+When trying to start the daemon, many users encounter the &quot;no such group
+'nogroup'&quot; error message.  There are really no reasonable defaults
+for those directives.  The error message is a way of telling you to create the
+role accounts mentioned above.
+
+<p>
+For every connection, <code>proftpd</code> creates a new process to handle
+that client/connection.  Once that client has successfully authenticated,
+then that process switches to the identity/privileges (<i>e.g.</i> UID, primary
+and supplemental GIDs, <i>etc</i>) of the authenticated user.  Thus all
+browsing, uploads, and downloads that clients do happen as the user as which
+they are logged in.
+
+<p><a name="Login">
+<b>Logging in</b><br>
+By default, the <code>proftpd</code> daemon reads the host's
+<code>/etc/passwd</code> file for logging in users.  This means that to
+add FTP users, you simply need to create new system accounts for those users in
+your <code>/etc/passwd</code> file.
+
+<p>
+Sometimes, though, sites want &quot;virtual&quot;, FTP-only users.  In order
+to support such configurations, the <code>AuthUserFile</code> configuration
+directive can be used (see <a href="AuthFiles.html">here</a> for details).
+
+<p>
+For the purpose of authenticating users using other means, there are various
+authentication modules:
+<a href="../contrib/mod_sql.html"><code>mod_sql</code></a>,
+<a href="../contrib/mod_ldap.html"><code>mod_ldap</code></a>,
+<a href="../contrib/mod_radius.html"><code>mod_radius</code></a>, <i>etc</i>.
+Authentication and the login process is discussed
+<a href="Authentication.html">here</a> in more detail.
+
+<p>
+For setting up anonymous logins, there is the <a href="../modules/mod_core.html#Anonymous"><code>&lt;Anonymous&gt;</code></a> configuration context.  If there
+are no <code>&lt;Anonymous&gt;</code> sections in your
+<code>proftpd.conf</code>, then no anonymous logins will be allowed - simple.
+As mentioned in the description, the <code>User</code> directive in an
+<code>&lt;Anonymous&gt;</code> context determines what username is treated as
+an anonymous login.  The main other thing to know about anonymous logins is
+that ProFTPD automatically chroots anonymous logins.
+
+<p><a name="Jailing">
+For normal, non-anonymous logins, jails/chroots are configured using the
+<a href="../modules/mod_auth.html#DefaultRoot"><code>DefaultRoot</code></a>
+directive.  This is the configuration directive used to restrict users to
+their home directories, to keep them from browsing around the site.  There is
+a page covering chrooting <a href="Chroot.html">here</a>.
+
+<p>
+If you use <code>&lt;VirtualHost&gt;</code> sections, and it seems that your
+server configuration is not being seen by connecting clients, you might
+need to check that, if using a DNS name instead of an IP address in your
+<code>&lt;VirtualHost&gt;</code> line, that name resolves to an IP address
+different from that of the &quot;default&quot; server.  Many people new
+to ProFTPD get the impression that since the configuration syntax looks
+similar to Apache's, things like name-based virtual hosting will work as well.
+Unfortunately, this is not possible.  It is not a limitation in ProFTPD,
+but rather in the RFCs that define FTP.  See the
+<a href="Vhost.html">virtual server</a> page for more information.
+
+<p>
+As a workaround, some sites configure virtual servers to run on non-standard
+ports, using the <code>Port</code> configuration directive.  As long as
+the clients are aware of the non-standard port, this scheme works well.  One
+minor little caveat to keep in mind, when using this approach, is the numbers
+used: the RFCs mandate that the daemon, for the purposes of active data
+transfers (as opposed to passive) use port <code><i>L</i>-1</code> as the source
+port for the data connection, where <code><i>L</i></code> is the port number
+at which the client contacted the server.  This means that servers that use the
+standard port 21 for FTP will use port 20 as the <i>source</i> port for their
+active data transfers.  (<b>Note</b> that this <i>also</i> means that you do
+<b>not</b> need to have port 20 open in your firewall for <i>inbound</i>
+connections for FTP data transfers).  Passive data transfers do not have this
+restriction.  The restriction comes into play when choosing non-standard port
+numbers for virtual hosts.  For example, this configuration would cause
+problems for clients of the second virtual server that wanted to use active
+data transfers:
+<pre>
+  &lt;VirtualHost <i>a.b.c.d</i>&gt;
+    Port 2121
+    ...
+  &lt;/VirtualHost&gt;
+
+  &lt;VirtualHost <i>a.b.c.d</i>&gt;
+    Port 2122
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+The second virtual would attempt to use port 2121 as the source port for
+an active data transfer, but would be blocked, as the first virtual server
+is already using that port for listening.
+
+<p><a name="Access">
+<b>Access Restrictions</b><br>
+Many sites like to have specific directories for uploads, and other directories
+only for downloads; some sites like to allow downloads, but no browsing
+of directories or their contents.  For configurations to achieve this,
+use combinations of the <code>&lt;Directory&gt;</code> and
+<code>&lt;Limit&gt;</code> configuration directives.  There are separate
+pages that cover these configuration sections:
+<ul>
+  <li><a href="Directory.html"><code>&lt;Directory&gt;</code></a>
+  <li><a href="Limit.html"><code>&lt;Limit&gt;</code></a>
+</ul>
+
+<p><a name="Questions">
+<b>Further Questions</b><br>
+Hopefully this document answers some of your questions, or at least enough
+to get you started.  In addition, you should take a look at some of the
+<a href="http://www.proftpd.org/docs/example-conf.html">example configuration
+files</a>.  Once you are comfortable with the configuration file format, a
+reading of all the configuration directives' descriptions is recommended,
+especially if you plan on having more complex configurations.  When trying to
+figure out why something is not working, make use of server
+<a href="Debugging.html">debugging</a> output.
+
+<p>
+If you still have questions, the <a href="http://www.proftpd.org/lists.html">
+users</a> mailing list is the best place to post them.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2016 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

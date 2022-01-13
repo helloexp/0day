@@ -1,0 +1,947 @@
+# Korean translation for sudo
+# This file is distributed under the same license as the sudo package.
+# Todd C. Miller <Todd.Miller@courtesan.com>, 2011-2015
+# Seong-ho Cho <darkcircle.0426@gmail.com>, 2016, 2017, 2019.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: sudo 1.8.28b1\n"
+"Report-Msgid-Bugs-To: https://bugzilla.sudo.ws\n"
+"POT-Creation-Date: 2019-07-19 11:51-0600\n"
+"PO-Revision-Date: 2019-10-17 10:55+0900\n"
+"Last-Translator: Seong-ho Cho <darkcircle.0426@gmail.com>\n"
+"Language-Team: Korean <translation-team-ko@googlegroups.com>\n"
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Bugs: Report translation errors to the Language-Team address.\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: Poedit 2.2.1\n"
+
+#: lib/util/aix.c:92 lib/util/aix.c:172
+msgid "unable to open userdb"
+msgstr "사용자 DB를 열 수 없습니다"
+
+#: lib/util/aix.c:227
+#, c-format
+msgid "unable to switch to registry \"%s\" for %s"
+msgstr "%2$s의 \"%1$s\" 레지스트리로 전환할 수 없습니다"
+
+#: lib/util/aix.c:252
+msgid "unable to restore registry"
+msgstr "레지스트리를 복원할 수 없습니다"
+
+#: lib/util/aix.c:275 lib/util/gidlist.c:71 lib/util/gidlist.c:81
+#: lib/util/sudo_conf.c:193 lib/util/sudo_conf.c:279 lib/util/sudo_conf.c:356
+#: lib/util/sudo_conf.c:560 src/conversation.c:84 src/exec_common.c:114
+#: src/exec_common.c:130 src/exec_common.c:139 src/exec_monitor.c:212
+#: src/exec_monitor.c:467 src/exec_monitor.c:473 src/exec_monitor.c:481
+#: src/exec_monitor.c:489 src/exec_monitor.c:496 src/exec_monitor.c:503
+#: src/exec_monitor.c:510 src/exec_monitor.c:517 src/exec_monitor.c:524
+#: src/exec_monitor.c:531 src/exec_monitor.c:538 src/exec_nopty.c:214
+#: src/exec_nopty.c:220 src/exec_nopty.c:229 src/exec_nopty.c:236
+#: src/exec_nopty.c:243 src/exec_nopty.c:250 src/exec_nopty.c:257
+#: src/exec_nopty.c:264 src/exec_nopty.c:271 src/exec_nopty.c:278
+#: src/exec_nopty.c:285 src/exec_nopty.c:292 src/exec_nopty.c:299
+#: src/exec_nopty.c:307 src/exec_nopty.c:469 src/exec_pty.c:783
+#: src/exec_pty.c:792 src/exec_pty.c:849 src/exec_pty.c:999
+#: src/exec_pty.c:1162 src/exec_pty.c:1168 src/exec_pty.c:1177
+#: src/exec_pty.c:1184 src/exec_pty.c:1191 src/exec_pty.c:1198
+#: src/exec_pty.c:1205 src/exec_pty.c:1212 src/exec_pty.c:1219
+#: src/exec_pty.c:1226 src/exec_pty.c:1233 src/exec_pty.c:1240
+#: src/exec_pty.c:1248 src/exec_pty.c:1665 src/load_plugins.c:59
+#: src/load_plugins.c:72 src/load_plugins.c:225 src/load_plugins.c:246
+#: src/load_plugins.c:315 src/load_plugins.c:321 src/load_plugins.c:335
+#: src/load_plugins.c:341 src/parse_args.c:185 src/parse_args.c:206
+#: src/parse_args.c:281 src/parse_args.c:571 src/parse_args.c:593
+#: src/preserve_fds.c:54 src/preserve_fds.c:139 src/selinux.c:91
+#: src/selinux.c:316 src/selinux.c:439 src/selinux.c:448 src/sesh.c:117
+#: src/sudo.c:618 src/sudo.c:678 src/sudo.c:688 src/sudo.c:708 src/sudo.c:727
+#: src/sudo.c:736 src/sudo.c:745 src/sudo.c:762 src/sudo.c:803 src/sudo.c:813
+#: src/sudo.c:836 src/sudo.c:1073 src/sudo.c:1094 src/sudo.c:1268
+#: src/sudo.c:1384 src/sudo_edit.c:258 src/sudo_edit.c:791 src/sudo_edit.c:888
+#: src/sudo_edit.c:1002 src/sudo_edit.c:1022
+#, c-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+#: lib/util/aix.c:275 lib/util/gidlist.c:71 lib/util/sudo_conf.c:194
+#: lib/util/sudo_conf.c:279 lib/util/sudo_conf.c:356 lib/util/sudo_conf.c:560
+#: src/conversation.c:85 src/exec_common.c:114 src/exec_common.c:131
+#: src/exec_common.c:140 src/exec_monitor.c:467 src/exec_monitor.c:473
+#: src/exec_monitor.c:481 src/exec_monitor.c:489 src/exec_monitor.c:496
+#: src/exec_monitor.c:503 src/exec_monitor.c:510 src/exec_monitor.c:517
+#: src/exec_monitor.c:524 src/exec_monitor.c:531 src/exec_monitor.c:538
+#: src/exec_nopty.c:214 src/exec_nopty.c:220 src/exec_nopty.c:229
+#: src/exec_nopty.c:236 src/exec_nopty.c:243 src/exec_nopty.c:250
+#: src/exec_nopty.c:257 src/exec_nopty.c:264 src/exec_nopty.c:271
+#: src/exec_nopty.c:278 src/exec_nopty.c:285 src/exec_nopty.c:292
+#: src/exec_nopty.c:299 src/exec_nopty.c:307 src/exec_pty.c:783
+#: src/exec_pty.c:792 src/exec_pty.c:849 src/exec_pty.c:1162
+#: src/exec_pty.c:1168 src/exec_pty.c:1177 src/exec_pty.c:1184
+#: src/exec_pty.c:1191 src/exec_pty.c:1198 src/exec_pty.c:1205
+#: src/exec_pty.c:1212 src/exec_pty.c:1219 src/exec_pty.c:1226
+#: src/exec_pty.c:1233 src/exec_pty.c:1240 src/exec_pty.c:1248
+#: src/exec_pty.c:1665 src/load_plugins.c:225 src/load_plugins.c:246
+#: src/load_plugins.c:315 src/load_plugins.c:321 src/load_plugins.c:335
+#: src/load_plugins.c:341 src/parse_args.c:185 src/parse_args.c:207
+#: src/parse_args.c:281 src/parse_args.c:571 src/parse_args.c:593
+#: src/preserve_fds.c:54 src/preserve_fds.c:139 src/selinux.c:91
+#: src/selinux.c:316 src/selinux.c:439 src/selinux.c:448 src/sesh.c:117
+#: src/sudo.c:618 src/sudo.c:836 src/sudo.c:1073 src/sudo.c:1094
+#: src/sudo.c:1268 src/sudo.c:1384 src/sudo_edit.c:258 src/sudo_edit.c:791
+#: src/sudo_edit.c:888 src/sudo_edit.c:1002 src/sudo_edit.c:1022
+msgid "unable to allocate memory"
+msgstr "메모리를 할당할 수 없습니다"
+
+#: lib/util/strsignal.c:55
+msgid "Unknown signal"
+msgstr "알 수 없는 시그널"
+
+#: lib/util/strtoid.c:84 lib/util/strtoid.c:131 lib/util/strtoid.c:159
+#: lib/util/strtomode.c:56 lib/util/strtonum.c:65 lib/util/strtonum.c:183
+msgid "invalid value"
+msgstr "잘못된 값"
+
+#: lib/util/strtoid.c:91 lib/util/strtoid.c:138 lib/util/strtoid.c:166
+#: lib/util/strtomode.c:62 lib/util/strtonum.c:68 lib/util/strtonum.c:195
+msgid "value too large"
+msgstr "값이 너무 큽니다"
+
+#: lib/util/strtoid.c:93 lib/util/strtoid.c:144 lib/util/strtomode.c:62
+#: lib/util/strtonum.c:68 lib/util/strtonum.c:189
+msgid "value too small"
+msgstr "값이 너무 작습니다"
+
+#: lib/util/sudo_conf.c:212
+#, c-format
+msgid "invalid Path value \"%s\" in %s, line %u"
+msgstr "%2$s의 %3$u번째 줄에 잘못된 경로 값 \"%1$s\""
+
+#: lib/util/sudo_conf.c:378 lib/util/sudo_conf.c:431
+#, c-format
+msgid "invalid value for %s \"%s\" in %s, line %u"
+msgstr "%3$s의 %4$u번째 줄에 %1$s의 잘못된 값 \"%2$s\""
+
+#: lib/util/sudo_conf.c:399
+#, c-format
+msgid "unsupported group source \"%s\" in %s, line %u"
+msgstr "%2$s의 %3$u번째 줄에 지원하지 않는 그룹 원본 \"%1$s\""
+
+#: lib/util/sudo_conf.c:415
+#, c-format
+msgid "invalid max groups \"%s\" in %s, line %u"
+msgstr "%2$s의 %3$u번째 줄에 잘못된 최대 그룹 값 \"%1$s\""
+
+#: lib/util/sudo_conf.c:576
+#, c-format
+msgid "unable to stat %s"
+msgstr "%s의 상태를 가져올 수 없습니다"
+
+#: lib/util/sudo_conf.c:579
+#, c-format
+msgid "%s is not a regular file"
+msgstr "%s은(는) 일반 파일이 아닙니다"
+
+#: lib/util/sudo_conf.c:582
+#, c-format
+msgid "%s is owned by uid %u, should be %u"
+msgstr "%s은(는) %u uid에서 소유하고 있지만 %u uid가 소유해야 합니다"
+
+#: lib/util/sudo_conf.c:586
+#, c-format
+msgid "%s is world writable"
+msgstr "%s에 모두가 기록할 수 있습니다"
+
+#: lib/util/sudo_conf.c:589
+#, c-format
+msgid "%s is group writable"
+msgstr "%s에 그룹 구성원이 기록할 수 있습니다"
+
+#: lib/util/sudo_conf.c:599 src/selinux.c:215 src/selinux.c:232 src/sudo.c:362
+#, c-format
+msgid "unable to open %s"
+msgstr "%s을(를) 열 수 없습니다"
+
+#: src/exec.c:167
+#, c-format
+msgid "unknown login class %s"
+msgstr "알 수 없는 로그인 클래스 %s"
+
+#: src/exec.c:180
+msgid "unable to set user context"
+msgstr "사용자 컨텍스트를 설정할 수 없습니다."
+
+#: src/exec.c:196
+msgid "unable to set process priority"
+msgstr "프로세스 우선순위를 설정할 수 없습니다"
+
+#: src/exec.c:204
+#, c-format
+msgid "unable to change root to %s"
+msgstr "루트를 %s(으)로 바꿀 수 없습니다"
+
+#: src/exec.c:217 src/exec.c:223 src/exec.c:230
+#, c-format
+msgid "unable to change to runas uid (%u, %u)"
+msgstr "실행 uid로 바꿀 수 없습니다 (%u, %u)"
+
+#: src/exec.c:248
+#, c-format
+msgid "unable to change directory to %s"
+msgstr "%s 디렉터리로 바꿀 수 없습니다"
+
+#: src/exec.c:347 src/exec_monitor.c:576 src/exec_monitor.c:578
+#: src/exec_nopty.c:527 src/exec_pty.c:527 src/exec_pty.c:1333
+#: src/exec_pty.c:1335 src/signal.c:150 src/signal.c:164
+#, c-format
+msgid "unable to set handler for signal %d"
+msgstr "%d 시그널의 핸들러를 설정할 수 없습니다"
+
+#: src/exec_common.c:173
+msgid "unable to remove PRIV_PROC_EXEC from PRIV_LIMIT"
+msgstr "PRIV_LIMIT에서 PRIV_PROC_EXEC를 제거할 수 없습니다"
+
+#: src/exec_monitor.c:366
+msgid "error reading from socketpair"
+msgstr "소켓쌍 읽기 오류"
+
+#: src/exec_monitor.c:383
+#, c-format
+msgid "unexpected reply type on backchannel: %d"
+msgstr "백 채널에 잘못된 응답 형식: %d"
+
+#: src/exec_monitor.c:475 src/exec_monitor.c:483 src/exec_monitor.c:491
+#: src/exec_monitor.c:498 src/exec_monitor.c:505 src/exec_monitor.c:512
+#: src/exec_monitor.c:519 src/exec_monitor.c:526 src/exec_monitor.c:533
+#: src/exec_monitor.c:540 src/exec_nopty.c:222 src/exec_nopty.c:231
+#: src/exec_nopty.c:238 src/exec_nopty.c:245 src/exec_nopty.c:252
+#: src/exec_nopty.c:259 src/exec_nopty.c:266 src/exec_nopty.c:273
+#: src/exec_nopty.c:280 src/exec_nopty.c:287 src/exec_nopty.c:294
+#: src/exec_nopty.c:301 src/exec_nopty.c:309 src/exec_pty.c:649
+#: src/exec_pty.c:654 src/exec_pty.c:751 src/exec_pty.c:758 src/exec_pty.c:855
+#: src/exec_pty.c:1170 src/exec_pty.c:1179 src/exec_pty.c:1186
+#: src/exec_pty.c:1193 src/exec_pty.c:1200 src/exec_pty.c:1207
+#: src/exec_pty.c:1214 src/exec_pty.c:1221 src/exec_pty.c:1228
+#: src/exec_pty.c:1235 src/exec_pty.c:1242 src/exec_pty.c:1618
+#: src/exec_pty.c:1628 src/exec_pty.c:1673 src/exec_pty.c:1680
+#: src/exec_pty.c:1707
+msgid "unable to add event to queue"
+msgstr "큐에 이벤트를 추가할 수 없습니다"
+
+#: src/exec_monitor.c:594
+msgid "unable to set controlling tty"
+msgstr "처리 tty를 설정할 수 없습니다"
+
+#: src/exec_monitor.c:602 src/exec_nopty.c:366 src/exec_pty.c:1412
+#: src/exec_pty.c:1433 src/exec_pty.c:1453 src/tgetpass.c:307
+msgid "unable to create pipe"
+msgstr "파이프를 만들 수 없습니다"
+
+# parent가 정확히 무슨 의미인지 알 수 없음
+#: src/exec_monitor.c:610
+msgid "unable to receive message from parent"
+msgstr "상위로부터 메시지를 받을 수 없습니다"
+
+#: src/exec_monitor.c:616 src/exec_nopty.c:384 src/exec_pty.c:1491
+#: src/tgetpass.c:311
+msgid "unable to fork"
+msgstr "포킹할 수 없습니다"
+
+#: src/exec_monitor.c:630 src/sesh.c:127 src/sudo.c:1132
+#, c-format
+msgid "unable to execute %s"
+msgstr "%s을(를) 실행할 수 없습니다"
+
+#: src/exec_monitor.c:713 src/exec_nopty.c:437
+msgid "unable to restore tty label"
+msgstr "tty 레이블을 복원할 수 없습니다"
+
+#: src/exec_nopty.c:360 src/exec_pty.c:1342
+msgid "policy plugin failed session initialization"
+msgstr "정책 플러그인에서 세션 초기화에 실패했습니다"
+
+#: src/exec_nopty.c:426 src/exec_pty.c:1578
+msgid "error in event loop"
+msgstr "이벤트 루프에 오류"
+
+#: src/exec_nopty.c:535 src/exec_pty.c:562 src/signal.c:112
+#, c-format
+msgid "unable to restore handler for signal %d"
+msgstr "%d 시그널의 핸들러를 복원할 수 없습니다"
+
+#: src/exec_pty.c:158
+msgid "unable to allocate pty"
+msgstr "pty를 할당할 수 없습니다"
+
+#: src/exec_pty.c:1322
+msgid "unable to create sockets"
+msgstr "소켓을 만들 수 없습니다"
+
+#: src/exec_pty.c:1535
+msgid "unable to send message to monitor process"
+msgstr "감사 프로세스에 메시지를 보낼 수 없습니다"
+
+#: src/load_plugins.c:57 src/load_plugins.c:70 src/load_plugins.c:92
+#: src/load_plugins.c:122 src/load_plugins.c:134 src/load_plugins.c:140
+#: src/load_plugins.c:181 src/load_plugins.c:189 src/load_plugins.c:196
+#: src/load_plugins.c:202
+#, c-format
+msgid "error in %s, line %d while loading plugin \"%s\""
+msgstr "%s의 %d번째 줄에서 \"%s\" 플러그인을 불러오는 중 오류"
+
+#: src/load_plugins.c:94
+#, c-format
+msgid "%s%s: %s"
+msgstr "%s%s: %s"
+
+#: src/load_plugins.c:136
+#, c-format
+msgid "%s must be owned by uid %d"
+msgstr "%s은(는) uid %d에서 소유해야 합니다"
+
+#: src/load_plugins.c:142
+#, c-format
+msgid "%s must be only be writable by owner"
+msgstr "%s은(는) 소유자만 기록할 수 있어야 합니다"
+
+#: src/load_plugins.c:183
+#, c-format
+msgid "unable to load %s: %s"
+msgstr "%s을(를) 불러올 수 없습니다: %s"
+
+#: src/load_plugins.c:191
+#, c-format
+msgid "unable to find symbol \"%s\" in %s"
+msgstr "%2$s에서 \"%1$s\" 심볼을 찾을 수 없습니다"
+
+#: src/load_plugins.c:198
+#, c-format
+msgid "unknown policy type %d found in %s"
+msgstr "%2$s에서 알 수 없는 정책 유형 %1$d이(가) 있습니다"
+
+#: src/load_plugins.c:204
+#, c-format
+msgid "incompatible plugin major version %d (expected %d) found in %s"
+msgstr "%3$s에 주 버전이(%2$d을(를) 기대했지만) %1$d인 비호환 플러그인이 있습니다"
+
+#: src/load_plugins.c:213
+#, c-format
+msgid "ignoring policy plugin \"%s\" in %s, line %d"
+msgstr "%2$s의 %3$d번째 줄에서 \"%1$s\" 정책 플러그인 무시"
+
+#: src/load_plugins.c:215
+msgid "only a single policy plugin may be specified"
+msgstr "단일 정책 플러그인을 지정하십시오"
+
+#: src/load_plugins.c:218
+#, c-format
+msgid "ignoring duplicate policy plugin \"%s\" in %s, line %d"
+msgstr "%2$s의 %3$d번째 줄에서 \"%1$s\" 중복 정책 플러그인 무시"
+
+#: src/load_plugins.c:237
+#, c-format
+msgid "ignoring duplicate I/O plugin \"%s\" in %s, line %d"
+msgstr "%2$s의 %3$d번째 줄에서 \"%1$s\" 중복 입출력 플러그인 무시"
+
+#: src/load_plugins.c:353
+#, c-format
+msgid "policy plugin %s does not include a check_policy method"
+msgstr "%s 정책 플러그인에 check_policy 메서드가 없습니다"
+
+#: src/net_ifs.c:183 src/net_ifs.c:200 src/net_ifs.c:345 src/sudo.c:472
+#, c-format
+msgid "internal error, %s overflow"
+msgstr "내부 오류. %s 오버플로우."
+
+#: src/parse_args.c:227
+#, c-format
+msgid "invalid environment variable name: %s"
+msgstr "잘못된 환경 변수 이름: %s"
+
+#: src/parse_args.c:326
+msgid "the argument to -C must be a number greater than or equal to 3"
+msgstr "-C의 인자 값은 3보다 크거나 같아야 합니다"
+
+#: src/parse_args.c:511
+msgid "you may not specify both the `-i' and `-s' options"
+msgstr "`-i' 및 `-s' 옵션을 함께 지정할 수 없습니다"
+
+#: src/parse_args.c:515
+msgid "you may not specify both the `-i' and `-E' options"
+msgstr "`-i' 및 `-E' 옵션을 함께 지정할 수 없습니다"
+
+#: src/parse_args.c:525
+msgid "the `-E' option is not valid in edit mode"
+msgstr "`-E' 옵션은 편집 모드에서 유효하지 않습니다"
+
+#: src/parse_args.c:527
+msgid "you may not specify environment variables in edit mode"
+msgstr "편집 모드에서 환경 변수를 지정할 수 없습니다"
+
+#: src/parse_args.c:535
+msgid "the `-U' option may only be used with the `-l' option"
+msgstr "`-U' 옵션은 `-l' 옵션만 함께 사용할 수 있습니다"
+
+#: src/parse_args.c:539
+msgid "the `-A' and `-S' options may not be used together"
+msgstr "`-A' 및 `-S' 옵션을 함께 사용할 수 없습니다"
+
+#: src/parse_args.c:615
+msgid "sudoedit is not supported on this platform"
+msgstr "이 플랫폼에서 sudoedit를 지원하지 않습니다"
+
+#: src/parse_args.c:688
+msgid "Only one of the -e, -h, -i, -K, -l, -s, -v or -V options may be specified"
+msgstr "-e, -h, -i, -K, -l, -s, -v, -V 옵션 중 하나를 지정해야 합니다"
+
+#: src/parse_args.c:702
+#, c-format
+msgid ""
+"%s - edit files as another user\n"
+"\n"
+msgstr ""
+"%s - 다른 사용자 권한으로 파일을 편집합니다\n"
+"\n"
+
+#: src/parse_args.c:704
+#, c-format
+msgid ""
+"%s - execute a command as another user\n"
+"\n"
+msgstr ""
+"%s - 다른 사용자 권한으로 명령을 실행합니다\n"
+"\n"
+
+#: src/parse_args.c:709
+#, c-format
+msgid ""
+"\n"
+"Options:\n"
+msgstr ""
+"\n"
+"옵션:\n"
+
+#: src/parse_args.c:711
+msgid "use a helper program for password prompting"
+msgstr "암호 질문에 보조 프로그램 활용"
+
+#: src/parse_args.c:714
+msgid "use specified BSD authentication type"
+msgstr "지정 BSD 인증 형식 활용"
+
+#: src/parse_args.c:717
+msgid "run command in the background"
+msgstr "백그라운드에서 명령 실행"
+
+#: src/parse_args.c:719
+msgid "ring bell when prompting"
+msgstr "프롬프트를 띄울 때 알림 소리를 냅니다"
+
+#: src/parse_args.c:721
+msgid "close all file descriptors >= num"
+msgstr "num 보다 크거나 같은 모든 파일 서술자를 닫습니다"
+
+#: src/parse_args.c:724
+msgid "run command with the specified BSD login class"
+msgstr "지정 BSD 로그인 클래스로 명령을 실행합니다"
+
+#: src/parse_args.c:727
+msgid "preserve user environment when running command"
+msgstr "명령을 실행할 때 사용자 환경을 유지합니다"
+
+#: src/parse_args.c:729
+msgid "preserve specific environment variables"
+msgstr "지정 환경 변수 값을 유지합니다"
+
+#: src/parse_args.c:731
+msgid "edit files instead of running a command"
+msgstr "명령을 실행하는 대신 파일을 편집합니다"
+
+#: src/parse_args.c:733
+msgid "run command as the specified group name or ID"
+msgstr "지정 그룹 이름 또는 ID로 명령을 실행합니다"
+
+#: src/parse_args.c:735
+msgid "set HOME variable to target user's home dir"
+msgstr "대상 사용자의 내 폴더에 HOME 변수를 지정합니다"
+
+#: src/parse_args.c:737
+msgid "display help message and exit"
+msgstr "도움말을 보여주고 빠져나갑니다"
+
+#: src/parse_args.c:739
+msgid "run command on host (if supported by plugin)"
+msgstr "(플러그인에서 지원한다면)호스트에서 명령을 실행합니다"
+
+#: src/parse_args.c:741
+msgid "run login shell as the target user; a command may also be specified"
+msgstr "대상 사용자 자격으로 셸에 로그인합니다. 명령도 지정할 수 있습니다."
+
+#: src/parse_args.c:743
+msgid "remove timestamp file completely"
+msgstr "타임스탬프 파일을 완전히 제거합니다"
+
+#: src/parse_args.c:745
+msgid "invalidate timestamp file"
+msgstr "타임스탬프 파일을 초기화합니다"
+
+#: src/parse_args.c:747
+msgid "list user's privileges or check a specific command; use twice for longer format"
+msgstr "사용자 권한을 보여주거나 지정 명령을 확인합니다. 긴 형식으로 보려면 옵션을 두 번 사용하십시오"
+
+#: src/parse_args.c:749
+msgid "non-interactive mode, no prompts are used"
+msgstr "비대화형 모드. 프롬프트를 사용하지 않습니다"
+
+#: src/parse_args.c:751
+msgid "preserve group vector instead of setting to target's"
+msgstr "대상을 설정하는 대신 그룹 벡터를 유지합니다"
+
+#: src/parse_args.c:753
+msgid "use the specified password prompt"
+msgstr "지정 암호 프롬프트를 활용합니다"
+
+#: src/parse_args.c:756
+msgid "create SELinux security context with specified role"
+msgstr "지정 역할을 지닌 SELinux 보안 컨텍스트를 만듭니다"
+
+#: src/parse_args.c:759
+msgid "read password from standard input"
+msgstr "표준 입력으로 암호를 입력 받습니다"
+
+#: src/parse_args.c:761
+msgid "run shell as the target user; a command may also be specified"
+msgstr "셸을 대상 사용자 명의로 실행합니다. 명령도 지정합니다."
+
+#: src/parse_args.c:764
+msgid "create SELinux security context with specified type"
+msgstr "지정 유형의 SELinux 보안 컨텍스트를 만듭니다"
+
+#: src/parse_args.c:767
+msgid "terminate command after the specified time limit"
+msgstr "지정 제한 시간 이후로 명령 실행을 멈춥니다"
+
+#: src/parse_args.c:769
+msgid "in list mode, display privileges for user"
+msgstr "목록 모드에서 사용자 권한을 보여줍니다"
+
+#: src/parse_args.c:771
+msgid "run command (or edit file) as specified user name or ID"
+msgstr "지정한 사용자 이름 또는 ID로 명령을 실행(또는 파일 편집)"
+
+#: src/parse_args.c:773
+msgid "display version information and exit"
+msgstr "버전 정보를 보여주고 나갑니다"
+
+#: src/parse_args.c:775
+msgid "update user's timestamp without running a command"
+msgstr "명령을 실행하지 않고 사용자 타임스탬프를 업데이트합니다"
+
+#: src/parse_args.c:777
+msgid "stop processing command line arguments"
+msgstr "명령행 인자 처리를 멈춥니다"
+
+#: src/selinux.c:85
+msgid "unable to open audit system"
+msgstr "감사 시스템을 열 수 없습니다"
+
+#: src/selinux.c:95
+msgid "unable to send audit message"
+msgstr "감사 메시지를 보낼 수 없습니다."
+
+#: src/selinux.c:123
+#, c-format
+msgid "unable to fgetfilecon %s"
+msgstr "%s에 fgetfilecon을 실행할 수 없습니다."
+
+#: src/selinux.c:128
+#, c-format
+msgid "%s changed labels"
+msgstr "%s에서 레이블을 바꾸었습니다"
+
+#: src/selinux.c:133
+#, c-format
+msgid "unable to restore context for %s"
+msgstr "%s의 컨텍스트를 복원할 수 없습니다"
+
+#: src/selinux.c:174
+#, c-format
+msgid "unable to open %s, not relabeling tty"
+msgstr "%s을(를) 열 수 없어 tty의 레이블을 다시 지정하지 않습니다"
+
+#: src/selinux.c:178 src/selinux.c:219 src/selinux.c:236
+#, c-format
+msgid "%s is not a character device, not relabeling tty"
+msgstr "%s은(는) 문자 장치가 아닙니다. tty에 레이블링을 다시 하지 않음."
+
+#: src/selinux.c:187
+msgid "unable to get current tty context, not relabeling tty"
+msgstr "현재 tty 컨텍스트를 가져올 수 없어 tty의 레이블을 다시 지정하지 않습니다"
+
+#: src/selinux.c:194
+msgid "unknown security class \"chr_file\", not relabeling tty"
+msgstr "\"chr_file\"의 보안 등급을 알 수 없어, tty의 레이블을 다시 지정하지 않습니다"
+
+#: src/selinux.c:199
+msgid "unable to get new tty context, not relabeling tty"
+msgstr "새 tty 컨텍스트를 가져올 수 없습니다."
+
+#: src/selinux.c:206
+msgid "unable to set new tty context"
+msgstr "새 tty 컨텍스트를 설정할 수 없습니다"
+
+#: src/selinux.c:280
+#, c-format
+msgid "you must specify a role for type %s"
+msgstr "%s 유형의 역할을 지정해야 합니다"
+
+#: src/selinux.c:286
+#, c-format
+msgid "unable to get default type for role %s"
+msgstr "%s 역할의 기본 유형을 가져올 수 없습니다"
+
+#: src/selinux.c:304
+#, c-format
+msgid "failed to set new role %s"
+msgstr "새 %s 역할 설정에 실패했습니다."
+
+#: src/selinux.c:308
+#, c-format
+msgid "failed to set new type %s"
+msgstr "새 %s 유형 설정에 실패했습니다"
+
+#: src/selinux.c:320
+#, c-format
+msgid "%s is not a valid context"
+msgstr "올바르지 않은 %s 컨텍스트 입니다"
+
+#: src/selinux.c:355
+msgid "failed to get old_context"
+msgstr "old_context를 가져오기에 실패했습니다"
+
+#: src/selinux.c:361
+msgid "unable to determine enforcing mode."
+msgstr "강제 모드로 지정할 수 없습니다."
+
+#: src/selinux.c:378
+#, c-format
+msgid "unable to set tty context to %s"
+msgstr "tty 컨텍스트를 %s(으)로 설정할 수 없습니다"
+
+#: src/selinux.c:417
+#, c-format
+msgid "unable to set exec context to %s"
+msgstr "exec 컨텍스트를 %s(으)로 설정할 수 없습니다"
+
+#: src/selinux.c:424
+#, c-format
+msgid "unable to set key creation context to %s"
+msgstr "키 생성 컨텍스트를 %s(으)로 설정할 수 없습니다"
+
+#: src/sesh.c:79
+msgid "requires at least one argument"
+msgstr "최소한 하나의 인자가 필요합니다"
+
+#: src/sesh.c:108
+#, c-format
+msgid "invalid file descriptor number: %s"
+msgstr "잘못된 파일 서술자 번호: %s"
+
+#: src/sesh.c:122
+#, c-format
+msgid "unable to run %s as a login shell"
+msgstr "%s(을)를 로그인 쉘로 실행할 수 없습니다"
+
+#: src/signal.c:90
+#, c-format
+msgid "unable to save handler for signal %d"
+msgstr "%d 시그널의 핸들러를 저장할 수 없습니다"
+
+#: src/solaris.c:83
+msgid "resource control limit has been reached"
+msgstr "자원 처리 한계에 도달했습니다"
+
+#: src/solaris.c:86
+#, c-format
+msgid "user \"%s\" is not a member of project \"%s\""
+msgstr "\"%s\" 사용자는 \"%s\" 프로젝트의 구성원이 아닙니다"
+
+#: src/solaris.c:90
+msgid "the invoking task is final"
+msgstr "실행 작업이 마지막입니다"
+
+#: src/solaris.c:93
+#, c-format
+msgid "could not join project \"%s\""
+msgstr "\"%s\" 프로젝트에 참여할 수 없습니다"
+
+#: src/solaris.c:98
+#, c-format
+msgid "no resource pool accepting default bindings exists for project \"%s\""
+msgstr "어떤 자원 풀에서도 \"%s\" 프로젝트에 있는 기본 바인딩을 수용하지 않습니다"
+
+#: src/solaris.c:102
+#, c-format
+msgid "specified resource pool does not exist for project \"%s\""
+msgstr "\"%s\" 프로젝트에 지정한 자원 풀이 없습니다"
+
+#: src/solaris.c:106
+#, c-format
+msgid "could not bind to default resource pool for project \"%s\""
+msgstr "\"%s\" 프로젝트에 기본 자원 풀을 바인딩할 수 없습니다"
+
+#: src/solaris.c:112
+#, c-format
+msgid "setproject failed for project \"%s\""
+msgstr "\"%s\" 프로젝트에서 setproject에 실패했습니다"
+
+#: src/solaris.c:114
+#, c-format
+msgid "warning, resource control assignment failed for project \"%s\""
+msgstr "경고! \"%s\" 프로젝트에 자원 처리 할당에 실패했습니다"
+
+#: src/sudo.c:203
+#, c-format
+msgid "Sudo version %s\n"
+msgstr "sudo 버전 %s\n"
+
+#: src/sudo.c:205
+#, c-format
+msgid "Configure options: %s\n"
+msgstr "설정 옵션: %s\n"
+
+#: src/sudo.c:213
+msgid "fatal error, unable to load plugins"
+msgstr "치명적인 오류. 플러그인을 불러올 수 없습니다"
+
+#: src/sudo.c:221
+msgid "unable to initialize policy plugin"
+msgstr "정책 플러그인을 초기화할 수 없습니다"
+
+#: src/sudo.c:265
+msgid "plugin did not return a command to execute"
+msgstr "플러그인에서 실행할 명령을 반환하지 않았습니다"
+
+#: src/sudo.c:281
+#, c-format
+msgid "error initializing I/O plugin %s"
+msgstr "%s 입출력 플러그인 초기화 오류"
+
+#: src/sudo.c:304
+#, c-format
+msgid "unexpected sudo mode 0x%x"
+msgstr "예상치 못한 sudo 모드 0x%x"
+
+#: src/sudo.c:537
+#, c-format
+msgid "you do not exist in the %s database"
+msgstr "%s 데이터베이스에 없는 사용자입니다"
+
+#: src/sudo.c:594
+msgid "unable to determine tty"
+msgstr "tty를 지정할 수 없습니다"
+
+#: src/sudo.c:882
+#, c-format
+msgid "%s must be owned by uid %d and have the setuid bit set"
+msgstr "%s은(는) %d uid를 소유해야 하며 setuid 비트를 설정해야 합니다"
+
+#: src/sudo.c:885
+#, c-format
+msgid "effective uid is not %d, is %s on a file system with the 'nosuid' option set or an NFS file system without root privileges?"
+msgstr "%d은(는) 유효한 uid가 아닙니다. %s은(는) 'nosuid' 옵션을 설정한 파일 시스템이거나 루트 권한이 없는 NFS 파일 시스템입니까?"
+
+#: src/sudo.c:891
+#, c-format
+msgid "effective uid is not %d, is sudo installed setuid root?"
+msgstr "%d은(는) 유효한 uid가 아닙니다. sudo에 setuid root를 설치했습니까?"
+
+#: src/sudo.c:944
+msgid "unable to set supplementary group IDs"
+msgstr "추가 그룹 ID를 설정할 수 없습니다"
+
+#: src/sudo.c:951
+#, c-format
+msgid "unable to set effective gid to runas gid %u"
+msgstr "유효한 gid를 %u 실행 gid로 설정할 수 없습니다"
+
+#: src/sudo.c:957
+#, c-format
+msgid "unable to set gid to runas gid %u"
+msgstr "gid를 실행 gid %u(으)로 설정할 수 없습니다"
+
+#: src/sudo.c:1014
+#, c-format
+msgid "unexpected child termination condition: %d"
+msgstr "예상치 못한 하위 프로세스 중단 상태: %d"
+
+#: src/sudo.c:1160
+#, c-format
+msgid "policy plugin %s is missing the `check_policy' method"
+msgstr "%s 정책 플러그인에 `check_policy' 메서드가 빠졌습니다"
+
+#: src/sudo.c:1178
+#, c-format
+msgid "policy plugin %s does not support listing privileges"
+msgstr "%s 정책 플러그인에서 권한 조회를 지원하지 않습니다"
+
+#: src/sudo.c:1195
+#, c-format
+msgid "policy plugin %s does not support the -v option"
+msgstr "%s 정책 플러그인에서 -v 옵션을 지원하지 않습니다"
+
+#: src/sudo.c:1210
+#, c-format
+msgid "policy plugin %s does not support the -k/-K options"
+msgstr "%s 정책 플러그인에서 -k/-K 옵션을 지원하지 않습니다"
+
+#: src/sudo_edit.c:221
+msgid "no writable temporary directory found"
+msgstr "기록 가능한 임시 디렉터리를 찾을 수 없습니다"
+
+#: src/sudo_edit.c:288 src/sudo_edit.c:377
+msgid "unable to restore current working directory"
+msgstr "현재 작업 디렉터리를 복원할 수 없습니다"
+
+#: src/sudo_edit.c:594 src/sudo_edit.c:706
+#, c-format
+msgid "%s: not a regular file"
+msgstr "%s: 일반 파일 아님"
+
+#: src/sudo_edit.c:601
+#, c-format
+msgid "%s: editing symbolic links is not permitted"
+msgstr "%s: 심볼릭 링크 편집을 허용하지 않습니다"
+
+#: src/sudo_edit.c:604
+#, c-format
+msgid "%s: editing files in a writable directory is not permitted"
+msgstr "%s: 기록 가능한 디렉터리에서 파일 편집을 허용하지 않습니다"
+
+#: src/sudo_edit.c:637 src/sudo_edit.c:744
+#, c-format
+msgid "%s: short write"
+msgstr "%s: 기록 내용이 짧습니다"
+
+#: src/sudo_edit.c:707
+#, c-format
+msgid "%s left unmodified"
+msgstr "%s 수정하지 않은 상태로 남음"
+
+#: src/sudo_edit.c:720 src/sudo_edit.c:905
+#, c-format
+msgid "%s unchanged"
+msgstr "%s 바꾸지 않음"
+
+#: src/sudo_edit.c:733 src/sudo_edit.c:755
+#, c-format
+msgid "unable to write to %s"
+msgstr "%s에 기록할 수 없습니다"
+
+#: src/sudo_edit.c:734 src/sudo_edit.c:753 src/sudo_edit.c:756
+#: src/sudo_edit.c:930 src/sudo_edit.c:934
+#, c-format
+msgid "contents of edit session left in %s"
+msgstr "%s에 편집 세션 내용 남음"
+
+#: src/sudo_edit.c:752
+msgid "unable to read temporary file"
+msgstr "임시 파일을 읽을 수 없습니다"
+
+#: src/sudo_edit.c:835
+msgid "sesh: internal error: odd number of paths"
+msgstr "sesh: 내부 오류: 경로에 잘못된 파일"
+
+#: src/sudo_edit.c:837
+msgid "sesh: unable to create temporary files"
+msgstr "sesh: 임시 파일을 만들 수 없습니다"
+
+#: src/sudo_edit.c:839 src/sudo_edit.c:937
+#, c-format
+msgid "sesh: unknown error %d"
+msgstr "sesh: 잘못된 오류 %d"
+
+#: src/sudo_edit.c:929
+msgid "unable to copy temporary files back to their original location"
+msgstr "원위치에 임시 파일을 복사할 수 없습니다"
+
+#: src/sudo_edit.c:933
+msgid "unable to copy some of the temporary files back to their original location"
+msgstr "원 위치에 임시 파일 일부를 복사할 수 없습니다"
+
+#: src/sudo_edit.c:978
+#, c-format
+msgid "unable to change uid to root (%u)"
+msgstr "uid를 루트로 바꿀 수 없습니다(%u)"
+
+#: src/sudo_edit.c:995
+msgid "plugin error: missing file list for sudoedit"
+msgstr "플러그인 오류: sudoedit에 파일 목록이 빠짐"
+
+#: src/sudo_edit.c:1036 src/sudo_edit.c:1049
+msgid "unable to read the clock"
+msgstr "클록을 읽을 수 없습니다"
+
+#: src/tgetpass.c:102
+msgid "timed out reading password"
+msgstr "암호 읽기 시간 초과"
+
+#: src/tgetpass.c:105
+msgid "no password was provided"
+msgstr "암호를 입력하지 않았습니다"
+
+#: src/tgetpass.c:108
+msgid "unable to read password"
+msgstr "암호를 읽을 수 없습니다"
+
+#: src/tgetpass.c:147
+msgid "a terminal is required to read the password; either use the -S option to read from standard input or configure an askpass helper"
+msgstr "암호를 읽으려면 터미널이 필요합니다. -S 옵션을 사용하여 표준 입력으로 암호를 받거나 askpass 도우미를 설정하십시오."
+
+#: src/tgetpass.c:157
+msgid "no askpass program specified, try setting SUDO_ASKPASS"
+msgstr "askpass 프로그램을 지정하지 않았습니다. SUDO_ASKPASS를 설정해보십시오"
+
+#: src/tgetpass.c:322
+#, c-format
+msgid "unable to set gid to %u"
+msgstr "gid를 %u(으)로 설정할 수 없습니다"
+
+#: src/tgetpass.c:326
+#, c-format
+msgid "unable to set uid to %u"
+msgstr "uid를 %u(으)로 설정할 수 없습니다"
+
+#: src/tgetpass.c:331
+#, c-format
+msgid "unable to run %s"
+msgstr "%s을(를) 실행할 수 없습니다"
+
+#: src/utmp.c:287
+msgid "unable to save stdin"
+msgstr "표준 입력을 저장할 수 없습니다"
+
+#: src/utmp.c:289
+msgid "unable to dup2 stdin"
+msgstr "표준 입력을 dup2 처리할 수 없습니다"
+
+#: src/utmp.c:292
+msgid "unable to restore stdin"
+msgstr "표준 입력을 복원할 수 없습니다"
+
+#~ msgid "no tty present and no askpass program specified"
+#~ msgstr "존재하는 tty가 없으며 askpass 프로그램을 지정하지 않았습니다"
+
+#~ msgid "error reading from signal pipe"
+#~ msgstr "시그널 파이프 읽기 오류"
+
+#~ msgid "unable to get group vector"
+#~ msgstr "그룹 벡터를 가져올 수 없습니다"
+
+#~ msgid "unknown uid %u: who are you?"
+#~ msgstr "알 수 없는 %u: 누구일까요?"
+
+#~ msgid "error reading from pipe"
+#~ msgstr "파이프 읽기 오류"

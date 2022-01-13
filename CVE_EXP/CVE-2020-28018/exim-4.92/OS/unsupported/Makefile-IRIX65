@@ -1,0 +1,16 @@
+# Exim: OS-specific make file for IRIX 6.5
+
+HAVE_ICONV=yes
+HOSTNAME_COMMAND=/usr/bsd/hostname
+CC=cc
+CFLAGS=-O2 -OPT:Olimit=0
+# CFLAGS=-O2 # override with this (in your Local/Makefile) if using gcc
+LFLAGS=-Wl,-LD_MSG:off=85
+LFLAGS=
+# nlist has moved from libmld to libelf
+LIBS=-lelf -lm
+XINCLUDE=-I/usr/include/X11
+vfork=fork
+RANLIB=@true
+
+# End

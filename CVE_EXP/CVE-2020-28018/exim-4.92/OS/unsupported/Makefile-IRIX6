@@ -1,0 +1,13 @@
+# Exim: OS-specific make file for IRIX6 on 64-bit systems
+
+HAVE_ICONV=yes
+HOSTNAME_COMMAND=/usr/bsd/hostname
+CFLAGS=-O2 -n32 -OPT:Olimit=4000
+LFLAGS=-n32
+LIBS=-lelf -lm
+XINCLUDE=-I/usr/include/X11
+XLFLAGS=
+vfork=fork
+RANLIB=@true
+
+# End

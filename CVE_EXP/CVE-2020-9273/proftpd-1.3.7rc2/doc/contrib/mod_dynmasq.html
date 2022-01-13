@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_dynmasq</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_dynmasq</code></b></h2>
+</center>
+<hr><br>
+
+The <code>mod_dynmasq</code> module is designed for those sites that
+use the <code>MasqueradeAddress</code> directive in conjunction with DNS
+names whose addresses periodically change, <i>e.g.</i> &quot;dyndns&quot;
+addresses.  The <code>proftpd</code> daemon is not aware of any changes
+to the IP address for a <code>MasqueradeAddress</code> that happen after
+the daemon has started up.  The <code>mod_dynmasq</code> module periodically
+checks all configured <code>MasqueradeAddress</code> directives and resolves
+their IP addresses, updating the stored addresses as needed.
+
+<p>
+This module is contained in the <code>mod_dynmasq.c</code> file for
+ProFTPD 1.2.10 and later, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_dynmasq</code> is distributed with
+the <code>proftpd</code> source distribution.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#DynMasqRefresh">DynMasqRefresh</a>
+</ul>
+
+<hr>
+<h3><a name="DynMasqRefresh">DynMasqRefresh</a></h3>
+<strong>Syntax:</strong> DynMasqRefresh <em>secs</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_dynmasq<br>
+<strong>Compatibility:</strong> 1.2.10
+
+<p>
+The <code>DynMasqRefresh</code> directive configures the amount of time,
+in seconds, between <code>mod_dynmasq</code>'s checking and updating of
+all <code>MasqueradeAddress</code> directives.  If no
+<code>DynMasqRefresh</code> directive is configured, then the module will
+do no checking.
+
+<p>
+The process of resolving a DNS name to its IP address can, depending on
+the DNS configuration, take a noticeable amount of time.  This, combined
+with the number of <code>MasqueradeAddress</code> directives in your
+<code>proftpd.conf</code>, can cause <code>mod_dynmasq</code> to make
+the daemon unavailable while it resolves all addresses.  Therefore it
+is highly recommended that the configured interval be as long as possible,
+for example for 8 hours.
+
+<p>
+Example:
+<pre>
+  &lt;IfModule mod_dynmasq.c&gt;
+    # Refresh any configured MasqueradeAddress directives every 8 hours
+    DynMasqRefresh 28800
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+See also:
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_dynmasq</code> module is distributed with ProFTPD.  Follow the
+usual steps for using third-party modules in ProFTPD:
+<pre>
+  $ ./configure --with-modules=mod_dynmasq
+</pre>
+To build <code>mod_dynmasq</code> as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_dynmasq
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+For those with an existing ProFTPD installation, you can use the
+<code>prxs</code> tool to add <code>mod_dynmasq</code>, as a DSO module, to
+your existing server:
+<pre>
+  $ prxs -c -i -d mod_dynmasq.c
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2004-2013 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

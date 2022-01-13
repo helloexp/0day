@@ -1,0 +1,41 @@
+# Exim: Default settings for the eximon script which fires up the Exim monitor.
+# These can be overridden by OS-specific scripts and local installation
+# scripts, and also at run time by shell variables.
+
+# The name of the eximon binary, usually the same as the eximon script,
+# with .bin stuck on the end.
+
+EXIMON_BINARY="${EXIMON_BINARY-$0.bin}"
+
+# The remaining parameters are values likely to be changed to suit the
+# user's taste. They are documented in the EDITME file.
+
+WINDOW_TITLE=${EXIMON_WINDOW_TITLE-'"${hostname} eximon"'}
+
+ACTION_OUTPUT=${EXIMON_ACTION_OUTPUT-no}
+ACTION_QUEUE_UPDATE=${EXIMON_ACTION_QUEUE_UPDATE-yes}
+BODY_MAX=${EXIMON_BODY_MAX-20000}
+LOG_DEPTH=${EXIMON_LOG_DEPTH-300}
+LOG_WIDTH=${EXIMON_LOG_WIDTH-${EXIMON_WIDTH-950}}
+LOG_BUFFER=${EXIMON_LOG_BUFFER-20K}
+LOG_FONT=${EXIMON_LOG_FONT--misc-fixed-medium-r-normal-*-14-140-*-*-*-*-iso8859-1}
+LOG_STRIPCHARTS='/ <= /in/
+                 / => /out/
+                 / => .+ R=local/local/
+                 / => .+ T=[^ ]*smtp/smtp/'
+MENU_EVENT=${EXIMON_MENU_EVENT-'Shift<Btn1Down>'}
+MIN_HEIGHT=${EXIMON_MIN_HEIGHT-162}
+MIN_WIDTH=${EXIMON_MIN_WIDTH-103}
+QUEUE_DEPTH=${EXIMON_QUEUE_DEPTH-200}
+QUEUE_WIDTH=${EXIMON_QUEUE_WIDTH-${EXIMON_WIDTH-950}}
+QUEUE_FONT=${EXIMON_QUEUE_FONT-${LOG_FONT}}
+QUEUE_MAX_ADDRESSES=${EXIMON_QUEUE_MAX_ADDRESSES-10}
+QUEUE_INTERVAL=${EXIMON_QUEUE_INTERVAL-300}
+QUEUE_STRIPCHART_NAME=${EXIMON_QUEUE_STRIPCHART_NAME-queue}
+SIZE_STRIPCHART=${EXIMON_SIZE_STRIPCHART}
+SIZE_STRIPCHART_NAME=${EXIMON_SIZE_STRIPCHART_NAME}
+START_SMALL=${EXIMON_START_SMALL-no}
+STRIPCHART_INTERVAL=${EXIMON_STRIPCHART_INTERVAL-60}
+TEXT_DEPTH=${EXIMON_TEXT_DEPTH-200}
+
+# End

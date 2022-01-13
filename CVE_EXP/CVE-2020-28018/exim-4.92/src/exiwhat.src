@@ -1,0 +1,145 @@
+#! /bin/sh
+
+# Copyright (c) University of Cambridge, 1995 - 2007
+# See the file NOTICE for conditions of use and distribution.
+
+# Except when they appear in comments, the following placeholders in this
+# source are replaced when it is turned into a runnable script:
+#
+# CONFIGURE_FILE_USE_NODE
+# CONFIGURE_FILE
+# BIN_DIRECTORY
+# EXIWHAT_PS_CMD
+# EXIWHAT_PS_ARG
+# EXIWHAT_KILL_SIGNAL
+# EXIWHAT_EGREP_ARG
+# EXIWHAT_MULTIKILL_CMD
+# EXIWHAT_MULTIKILL_ARG
+# RM_COMMAND
+
+# PROCESSED_FLAG
+
+# Shell script for seeing what the exim processes are doing. It gets rid
+# of the old process log, then sends SIGUSR1 to all exim processes to get
+# them to write their state to the log. Then it displays the contents of
+# the log.
+
+# The following lines are generated from Exim's configuration file when
+# this source is built into a script, but you can subsequently edit them
+# without rebuilding things, as long are you are careful not to overwrite
+# the script in the next Exim rebuild/install. However, it's best to
+# arrange your build-time configuration file to get the correct values.
+
+rm=RM_COMMAND
+
+# Some operating systems have a command that finds processes that match
+# certain conditions (by default usually those running specific commands)
+# and sends them signals. If such a command is defined for your OS, the
+# following variables are set and used.
+
+multikill_cmd=EXIWHAT_MULTIKILL_CMD
+multikill_arg=EXIWHAT_MULTIKILL_ARG
+
+# In other operating systems, Exim has to use "ps" and "egrep" to find the
+# processes itself. In those cases, the next three variables are used:
+
+ps_cmd=EXIWHAT_PS_CMD
+ps_arg=EXIWHAT_PS_ARG
+egrep_arg=EXIWHAT_EGREP_ARG
+
+# In both cases, kill_arg is the argument for the (multi)kill command to send
+# SIGUSR1 (at least one OS requires a numeric value).
+
+signal=EXIWHAT_KILL_SIGNAL
+
+# See if this installation is using the esoteric "USE_NODE" feature of Exim,
+# in which it uses the host's name as a suffix for the configuration file name.
+
+if test "x$1" = x--version
+then
+    echo "`basename $0`: $0"
+    echo "build: EXIM_RELEASE_VERSIONEXIM_VARIANT_VERSION"
+    exit 0
+fi
+
+if [ "CONFIGURE_FILE_USE_NODE" = "yes" ]; then
+  hostsuffix=.`uname -n`
+fi
+
+# Now find the configuration file name. This has got complicated because
+# CONFIGURE_FILE may now be a list of files. The one that is used is the first
+# one that exists. Mimic the code in readconf.c by testing first for the
+# suffixed file in each case.
+
+set `awk -F: '{ for (i = 1; i <= NF; i++) print $i }' <<End
+CONFIGURE_FILE
+End
+`
+while [ "$config" = "" -a $# -gt 0 ] ; do
+  if [ -f "$1$hostsuffix" ] ; then
+    config="$1$hostsuffix"
+  elif [ -f "$1" ] ; then
+    config="$1"
+  fi
+  shift
+done
+
+# check we have a config file
+if [ "$config" = "" -o ! -f "$config" ]; then
+  echo Config file not found.
+  exit 1
+fi
+
+# Determine where the spool directory is. Search for an exim_path setting
+# in the configure file; otherwise use the bin directory. Call that version of
+# Exim to find the spool directory. BEWARE: a tab character is needed in the
+# first command below. It has had a nasty tendency to get lost in the past. Use
+# a variable to hold a space and a tab. This is less likely to be touched.
+
+st='	 '
+exim_path=`grep "^[$st]*exim_path" $config | sed "s/.*=[$st]*//"`
+if test "$exim_path" = ""; then exim_path=BIN_DIRECTORY/exim; fi
+spool_directory=`$exim_path -C $config -bP spool_directory | sed "s/.*=[ ]*//"`
+process_log_path=`$exim_path -C $config -bP process_log_path | sed "s/.*=[ ]*//"`
+
+# The file that Exim writes when sent the SIGUSR1 signal is specified by
+# the process_log_path option. If that is not defined, Exim uses the file
+# called "exim-process.info" in the spool directory.
+
+log=$process_log_path
+if [ "$log" = "" ] ; then
+  log=$spool_directory/exim-process.info
+fi
+
+# Now do the job.
+
+$rm -f ${log}
+if [ -f ${log} ]; then
+  echo "** Failed to remove ${log}"
+  exit 1
+fi
+
+# If there is a multikill command, use it. On some OS this command is called
+# "killall" (Linux, FreeBSD). On Solaris it is called "pkill". Note that on
+# Solaris, "killall" kills ALL processes - this is the System V version of this
+# command, and not what we want!
+
+if [ "$multikill_cmd" != "" ] && type "$multikill_cmd" >/dev/null 2>&1; then
+  $multikill_cmd $signal "$multikill_arg"
+
+# No multikill command; do it the hard way
+
+else
+  $ps_cmd $ps_arg | \
+    egrep "$egrep_arg" | \
+    awk "{print \"kill $signal \"\$1}" | \
+    uniq | sh
+fi
+
+sleep 1
+
+if [ ! -s ${log} ] ; then echo "No exim process data" ;
+  else sort -nu ${log} ; fi
+
+
+# End of exiwhat

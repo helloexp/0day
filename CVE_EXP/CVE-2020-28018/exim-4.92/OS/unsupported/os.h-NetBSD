@@ -1,0 +1,28 @@
+/* Exim: OS-specific C header file for NetBSD */
+
+#define HAVE_BSD_GETLOADAVG
+#define HAVE_GETIFADDRS
+#define HAVE_MMAP
+#define HAVE_SYS_MOUNT_H
+#define SIOCGIFCONF_GIVES_ADDR
+#define HAVE_ARC4RANDOM
+
+typedef struct flock flock_t;
+
+#define os_strsignal strsignal
+#define OS_STRSIGNAL
+
+#define os_get_dns_resolver_res __res_get_state
+#define os_put_dns_resolver_res(RP) __res_put_state(RP)
+#define OS_GET_DNS_RESOLVER_RES
+
+#include <sys/param.h>
+
+#if __NetBSD_Version__ >= 299000900
+#define HAVE_SYS_STATVFS_H
+#endif
+
+/* default is non-const */
+#define ICONV_ARG2_TYPE const char **
+
+/* End */

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Debugging</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b><i>ProFTPD: Debugging Problems</i></b></h2></center>
+<hr>
+
+<p>
+Users of ProFTPD will often encounters problems.  It happens with all software,
+not just ProFTPD.  How, then, does the user track down the cause of the
+problem, and fix it?  This is the art of debugging.  When users post these
+problems are the mailing lists, it is extremely helpful to include the
+following bits of information to help find the answer.  Even better is when the
+user follows these steps and determines the solution for themselves.
+
+<p>
+Keep in mind that <code>proftpd</code> runs on quite a few different platforms,
+including Linux (and its various distributions), Solaris, Mac OSX, various BSDs,
+etc.  So please, when reporting issues, <b>include as much information as you
+can</b>.  Saying something like "latest Ubuntu/CentOS/Fedora", or "stable
+Debian", or "FreeBSD ports", does not mean that much to those of us who don't
+run/use those platforms.
+
+<p>
+We <b>want</b> to help you, but to do that, we need to know as many details as
+possible.  One goal is for us to be able to reproduce the issue locally. That's
+why providing the `proftpd -V' output, and the <code>proftpd.conf</code>, the
+debug logging, and a description of the behavior you <b><i>expect</i></b> (as
+well as what you actually <b><i>observed</i></b>) is so important.  These
+things help us to recreate the setup, and the circumstances, locally.  And
+once we can see the same issue on our machines, we can help that much more
+rapidly with the solution.
+
+<p>
+You will hear requests for these details come up quite a bit.  It's worth
+pointing out why that is.
+
+<p>
+<b>Know the Version</b><br>
+Various problems afflict various versions of the code, so when tracking down
+problems, it is good to know the version being used:
+<pre>
+  $ proftpd -V
+  $ proftpd -vv
+</pre>
+When reporting issues, please include the output from <i>both</i> of these
+commands.
+
+<p>
+It is possible that the problem you are encountering is due to some bug
+that may already be fixed in a more current version, fixed in the CVS
+repository, or has a bug report with an attached patch.  Searching
+<a href="http://bugs.proftpd.org">http://bugs.proftpd.org</a> will often
+yield useful information, depending on the keywords used in the search.
+
+<p>
+<b>Know the Modules</b><br>
+System administrators who compile and install the server from the source
+code distribution will probably already know this, but administrators who
+install using RPMs or other package formats may not know the specifics of
+the contained pre-built binary.  To list the modules compiled into the
+server:
+<pre>
+  $ proftpd -l
+</pre>
+Knowing the modules helps to pinpoint the source of error messages (<i>e.g.</i>
+<code>mod_tls</code> and certificate files).
+
+<p>
+<b>Perform Configuration Check</b><br>
+When making changes to the configuration file, it is often helpful to make sure
+that your changes are valid.  The easiest way to do this is to do an
+informative syntax check:
+<pre>
+  $ proftpd -td10
+</pre>
+The <code>-t</code> option directs the server to only do a syntax check, to
+parse the configuration file but stop before actually starting its operations
+as a server.  The <code>-d10</code> will cause the server to display debugging
+messages during this testing of the configuration file.  Another useful
+command is:
+<pre>
+  $ proftpd -c <i>/path/to/new/config/file</i> -td10
+</pre>
+which lets you test the syntax of some new configuration file before it
+is put into production.
+
+<p>
+If you are still having problems, and you have verified that your
+<code>proftpd.conf</code> is correct, the next step is see what debugging
+messages are generated during an FTP session, as described next.
+
+<p>
+<b>Collect Debug Information</b><br>
+<code>proftpd</code> has built-in debug information reporting capabilities -
+the trick is in enabling that reporting, and tracking down where it is sent.
+The easiest way to get the debugging information is to start the server from
+the command line using:
+<pre>
+  $ proftpd -nd10
+</pre>
+<b>Note</b>: make sure that no other <code>proftpd</code> instances are
+running before using this command, otherwise you will see:
+<pre>
+  Failed binding to 0.0.0.0, port 21: Address already in use
+</pre>
+This message means that some other program is already bound to the socket
+at that address/port.  This message will also appear if you attempt the
+debugging command with a <code>ServerType</code> of <code>inetd</code>; this
+is described below.
+
+<p>
+Once working, the above debugging command will display lots of information on
+the connected terminal's screen, both as the server starts up and during the
+servicing of any clients.  If clients are having trouble logging in or
+authenticating, the debug messages reported by the server when a client
+connects are much more useful than knowing the messages displayed by the
+client, as the client does not know <i>why</i> it cannot log in.  If asked to
+send debugging information to the mailing list, you can send the relevant
+snippets (if you know what the relevant debug messages are), or you can
+capture the debug output to a file:
+<pre>
+  $ proftpd -nd10 2>&amp;1 >&amp; /path/to/debug/file
+</pre>
+and send that file, compressed, along with your post.
+
+<p>
+The above method works if you have <code>ServerType standalone</code> in your
+configuration file.   If you run the server in <code>inetd</code> mode instead,
+and are unable or unwilling to make the changes necessary to run the server
+in <code>standalone</code> mode for the sake of debugging, then use of the
+<code>SystemLog</code> configuration directive is necessary for capturing the
+debug information.  Add this directive to your configuration file, and add
+<code>-d5</code> to your <code>/etc/inetd.conf</code>'s <code>ftp</code> line,
+or to the <code>server_args</code> tag in your <code>xinetd</code>
+configuration file for the server.  Be sure to restart
+<code>inetd/xinetd</code> so that your configuration changes will take effect.
+
+<p>
+Note that use of the <code>SystemLog</code> directive is not necessarily
+confined to <code>inetd</code> mode servers.  If you are interested in letting
+your <code>standalone</code> server run unattended and want to have that
+debugging information in the log file, use <code>SystemLog</code> and
+add <code>-d5</code> (or whatever your preferred debug level is) to the
+server startup script.
+
+<p>
+As of version 1.2.8rc1, ProFTPD supports a
+<a href="../modules/mod_core.html#DebugLevel"><code>DebugLevel</code></a>
+configuration directive.  This lets you set a debugging level in your
+<code>proftpd.conf</code> file, without needing to edit <code>inetd.conf</code>
+or <code>xinetd</code> configuration file.
+
+<p>
+<b>Locate Log Files</b><br>
+A common response on the mailing lists to a posted question is: &quot;What
+do your server logs say?&quot;  Locating the server's log files can be
+troublesome, depending on your configuration.  If the
+<a href="../modules/mod_log.html#SystemLog"><code>SystemLog</code></a>
+configuration directive is in effect, you know exactly where the server's log
+file is.  If not, then by default the server uses <code>syslog</code> for
+logging.  The location of <code>syslog</code>'d log files is set in your
+system's <code>/etc/syslog.conf</code> file.  You may need to read your
+system's man pages for <code>syslog.conf</code> or <code>syslogd</code> to
+understand the format of that file.  Note that the server will log using a
+<code>syslog</code> facility of <code>daemon</code> (and level
+<code>debug</code> when debugging) for most of its messages; during
+authentication, messages are logged using the <code>authpriv</code> facility.
+
+<p>
+<b>Debugging Segfaults</b><br>
+If you see a message like the following in your logs:
+<pre>
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - ProFTPD terminating (signal 11)
+</pre>
+then you have most likely encountered a segfault.  This is a particular
+bad error, and can be hard to track down.
+
+<p>
+In version 1.3.1rc1, ProFTPD gained the ability to provide better logging
+to help track down these sorts of bugs.  To enable this ability, you will
+need to configure <code>proftpd</code> with something like:
+<pre>
+  $ ./configure --enable-devel=stacktrace ...
+</pre>
+and run your <code>proftpd</code> like normal.  If a segfault occurs, the logs
+should show something like this:
+<pre>
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - ProFTPD terminating (signal 11)
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - FTP session closed.
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - -----BEGIN STACK TRACE-----
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [0] ./proftpd [0x809b1e1]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [1] ./proftpd(call_module+0x53) [0x8072c63]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [2] ./proftpd(strftime+0x14cf) [0x8051bef]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [3] ./proftpd(pr_cmd_dispatch+0x167) [0x8051f2f]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [4] ./proftpd(strftime+0x1fd3) [0x80526f3]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [5] ./proftpd [0x8053e12]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [6] ./proftpd [0x805484d]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [7] ./proftpd [0x8057975]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [8] ./proftpd(main+0x9d1) [0x8058625]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [9] /lib/i686/libc.so.6(__libc_start_main+0x93) [0x40076507]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - [10] ./proftpd(strcpy+0x31) [0x8051001]
+  golem.castaglia.org (127.0.0.1[127.0.0.1]) - -----END STACK TRACE-----
+</pre>
+These stack symbols are generated automatically by glibc, and may or may
+not contain the function names.
+
+<p>
+The key here for tracking down the location of the segfault is that
+<code>[0]</code> frame, and the memory address: <code>0x809b1e1</code>.  Using
+that address and a very handy command called <code>addr2line</code>, you can
+determine the location of that address in the source code:
+<pre>
+  $ addrline -e ./proftpd 0x809b1e1
+</pre>
+In this example, I saw:
+<pre>
+  $ addr2line -e ./proftpd 0x809b1e1
+  /home/tj/proftpd/cvs/proftpd/modules/mod_auth.c:1723
+</pre>
+which is the location of test code added to trigger the segfault.
+
+<p>
+This feature is specific to glibc systems, so keep that in mind.  Other things
+to mention about this feature: it disables the changing of the process title
+that <code>proftpd</code> normally does.  The obtaining of the stack symbols
+that glibc does uses the process title, and if this feature did not disable
+that process title changing, the output would be much less legible.  Also, it
+does not work if the process which receives the <code>SIGSEGV</code> signal is
+chrooted.  (Blame glibc for its bad handling of being chrooted.)  To work
+around this, I would recommend using the <code>mod_vroot</code> module, just
+for a short period of time, in order to get a useful automatic stack trace.
+
+<p>
+<b>Common Problems</b><br>
+One common question is: &quot;I changed the configuration file, but the new
+configuration is not being seen!&quot; The solution depends on your configured
+<a href="ServerType.html"><code>ServerType</code></a>.  Almost certainly it
+will be <code>standalone</code>, as <code>inetd</code>-mode servers pick up
+configuration changes almost instantly (the server is started from the ground
+up for each connection).  For configuration changes to be seen by a
+<code>standalone</code> server, you need to either stop, then start the server
+(the hard way), or to send the <code>HUP</code> signal the the daemon process.
+
+<p>
+Another common question involves use of ProFTPD's <code>&lt;Limit&gt;</code>
+directive to restrict certain FTP commands.  These limits always function
+<b>in addition to</b> the normal filesystem permissions, <b>not</b> instead
+of them.  If having problems writing, deleting, or updating files, check
+your directory and file permissions first.
+
+<p>
+Once you have the debug output and various other information, and are still
+in need of help, search the FAQ, Userguide, and mailing list archives for
+material related to the problem.  If you're unable to find anything helpful
+in these sources, post your question to the appropriate mailing list.  Be
+sure to include the version used, your <code>proftpd.conf</code>, and possibly
+any debug information.
+
+<p>
+The following document describes how to ask good questions that are likely to
+be answered:
+<pre>
+  <a href="http://www.catb.org/~esr/faqs/smart-questions.html">http://www.catb.org/~esr/faqs/smart-questions.html</a>
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

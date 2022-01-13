@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Filters</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Filters</b></h2></center>
+<hr>
+
+<p>
+ProFTPD supports the ability to &quot;filter&quot; the FTP commands it receives
+from the client.  These filters are written as
+<a href="Regex.html">regular expressions</a>.  This means that while the
+filters can be very powerful, they can also be complex and harder to construct.
+
+<p>
+First, there are the <a href="../modules/mod_core.html#AllowFilter"><code>AllowFilter</code></a> and <a href="../modules/mod_core.html#DenyFilter"><code>DenyFilter</code></a> configuration directives.  These configuration directives are used
+to set filters on <b>every</b> FTP command.  If an <code>AllowFilter</code> is
+used, the command parameters <b>must</b> match the given filter, otherwise the
+command will be denied.  If a <code>DenyFilter</code> is used, the command
+parameters <b>must not</b> match the given filter, otherwise the command will
+be denied.  If both <code>AllowFilter</code> and <code>DenyFilter</code> are
+used, then the <code>AllowFilter</code> will be checked first.
+
+<p>
+Second, there are some special filter configuration directives aimed at those
+FTP commands that cause changes to files and directories on the server system: <a href="../modules/mod_core.html#PathAllowFilter"><code>PathAllowFilter</code></a> and <a href="../modules/mod_core.html#PathDenyFilter"><code>PathDenyFilter</code></a>.  Like <code>AllowFilter</code> and <code>DenyFilter</code>, the
+<code>Allow</code> filter, if present, is checked first, then a
+<code>DenyFilter</code>, if present.  <code>PathAllowFilter</code> and
+<code>PathDenyFilter</code> are checked <i>after</i> the
+<code>AllowFilter</code> and <code>DenyFilter</code> directives.  These
+<code>Path</code> filters are only applied to the following FTP commands:
+<code>DELE</code>, <code>MKD/XMKD</code>, <code>RMD/XRMD</code>,
+<code>RNFR</code>, <code>RNTO</code>, <code>STOR</code>, <code>STOU</code>,
+and to the <code>SITE</code> commands <code>CHGRP</code> and <code>CHMOD</code>.
+Note that using both <code>PathAllowFilter</code> and
+<code>PathDenyFilter</code> at the same time is not a good idea; only one
+filter is generally needed.
+
+<p>
+One property that often catches the unwary administrator is the fact that
+<code>proftpd</code> only operates on the first <code>Filter</code> directive
+defined in the configuration file; it does not cycle through multiple
+<code>Filter</code> directives.  This is because multiple regular expressions
+can be combined into a single (albeit more complex) regular expression.  The
+alternation metacharacter is helpful in creating such combined regular
+expressions.  For example, if you had the following in your
+<code>proftpd.conf</code>:
+<pre>
+  PathAllowFilter \.jpg$
+  PathAllowFilter \.jpeg$
+  PathAllowFilter \.mpeg$
+  PathAllowFilter \.mpg$
+  PathAllowFilter \.mp3$
+</pre>
+only the first <code>PathAllowFilter</code> would be enforced.  To enforce
+all Filter simultaneously, use:
+<pre>
+  PathAllowFilter \.(jpg|jpgeg|mpeg|mpg|mp3)$
+</pre>
+Matches are case-sensitive! Also note that if you surround your regular
+expression in quotation (&quot;) marks, any backslash will itself need
+to be escaped; ProFTPD's configuration parser interprets backslashes inside
+of quoted strings a little differently.  Thus, the example above would look
+like this:
+<pre>
+  PathAllowFilter &quot;\\.(jpg|jpgeg|mpeg|mpg|mp3)$&quot;
+</pre>
+if using quotation marks.
+
+<p>
+Another characteristic to keep in mind is that Filters are only applied to
+FTP command <i>parameters</i>, not to the FTP command itself.  Most of the
+time, this is not a problem.  It would be useful sometimes, though, to
+be able to filter parameters of commands other than those filtered by the
+<code>Path</code> filter directives.  It would be an easy change to the
+source code; however, there is no feature request for the ability to do this
+on <a href="http://bugs.proftpd.org">bugs.proftpd.org</a> with a good
+justification for such a feature.  If you can think of one, please open
+such a request.
+
+<p>
+When developing your Filter directives, it often helps to keep an eye on the
+server <a href="Debugging.html">debugging</a> output, to see how well your
+filters are being applied.
+
+<p>
+<b>Examples</b><br>
+To prevent clients from using paths which may contain non-printable characters
+(<i>e.g.</i> CR, LF, VB, <i>etc</i>), you can use the following
+<code>PathDenyFilter</code> pattern:
+<pre>
+  PathDenyFilter [^[:print:]]
+</pre>
+Alternatively, you could use a <code>PathAllowFilter</code> which only
+<i>allows</i> printable characters in paths:
+<pre>
+  PathAllowFilter [[:print:]]
+</pre>
+And if you want to prevent spaces and tabs from appearing in paths, you
+can use:
+<pre>
+  PathDenyFilter [[:blank:]]
+</pre>
+
+<p>
+What if you want to prevent clients from uploading so-called "dot files",
+<i>i.e.</i> files whose names start with a period ('.'), so that they are
+"hidden"?  To prevent uploading of all dot files, you can use the following
+<code>PathDenyFilter</code> configuration:
+<pre>
+  PathDenyFilter \.[^/]*$
+</pre>
+
+<p>
+In ProFTPD 1.3.3rc1 and later, you can use the <code>AllowFilter</code> and
+<code>DenyFilter</code> configuration directives inside of
+<code>&lt;Limit&gt;</code> sections, so that those <code>Filter</code>
+directives only apply to the FTP commands listed in the
+<code>&lt;Limit&gt;</code> section.  This means you can specify regular
+expression filters for the arguments for specific commands.  For example,
+you may want to configure a directory that only allows uploads of files with
+specific extensions.  You <i>could</i> use <code>PathAllowFilter</code> for
+this -- but <code>PathAllowFilter</code> also applies to the <code>MKD</code>
+command, and you might want to allow users to create subdirectories in your
+special directory.  Thus you only want your regular expression to apply
+to the <code>STOR</code> command in your directory.  Below is an example
+of how to do this using <code>AllowFilter</code>:
+<pre>
+  &lt;Directory <i>/path/to/dir</i>&gt;
+    &lt;Limit STOR&gt;
+      Order deny, allow
+      AllowFilter \.<i>ext</i>$
+    &lt;/Limit&gt;
+  &lt;/Directory&gt;
+</pre>
+The key is the <code>Order</code> directive; without it, the configuration
+will not work as you expect.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+<font color=red>Question</font>: How can I prevent <code>SITE CHMOD</code>
+commands which use the mode 777, but allow other <code>SITE CHMOD</code>
+commands?<br>
+<font color=blue>Answer</font>: For this, you would use the
+<code>DenyFilter</code> directive, like so:
+<pre>
+  &lt;Limit SITE_CHMOD&gt;
+    DenyFilter 777
+  &lt;/Limit&gt;
+</pre>
+However, the desired mode can also be expressed <i>symbolically</i>, using
+<i>e.g.</i> "SITE CHMOD a+rwx <i>file</i>".  So our filter should take this into
+account, as well as some variants:
+<pre>
+  &lt;Limit SITE_CHMOD&gt;
+    DenyFilter (777|a+rwx|u=rwx,g=rwx,o=rwx)
+  &lt;/Limit&gt;
+</pre>
+Looking better, but still not perfect.  A determined user could still work
+around our filter by using a series of <code>SITE CHMOD</code> commands
+like this:
+<pre>
+  SITE CHMOD u+rwx <i>file</i>
+  SITE CHMOD g+rwx <i>file</i>
+  SITE CHMOD o+rwx <i>file</i>
+</pre>
+Or the determined user could make the change even more granular:
+<pre>
+  SITE CHMOD u+r <i>file</i>
+  SITE CHMOD u+w <i>file</i>
+  SITE CHMOD u+x <i>file</i>
+  SITE CHMOD g+r <i>file</i>
+  SITE CHMOD g+w <i>file</i>
+  SITE CHMOD g+x <i>file</i>
+  SITE CHMOD o+r <i>file</i>
+  SITE CHMOD o+w <i>file</i>
+  SITE CHMOD o+x <i>file</i>
+</pre>
+Another trap is that the numbers "777" might appear in a legitimate file name,
+and thus the following allowed command would fail unnecessarily:
+<pre>
+  SITE CHMOD 644 ServiceOrder777.doc
+</pre>
+
+<p>
+In short, it is possible to create filters for portions of commands, but you
+do need to be very careful to not inadvertently cause commands to fail that
+should succeed.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

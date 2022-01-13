@@ -1,0 +1,10 @@
+Change Information for Exim
+---------------------------
+
+Complete lists of all changes to the code, including bug fixes, are listed in
+doc/ChangeLog, and documentation for changes that have not yet made it
+into the manual is available in doc/NewStuff. The ftp site has a directory
+called ChangeLogs which contains individual ChangeLog and NewStuff files for
+each separate release.
+
+****

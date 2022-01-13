@@ -1,0 +1,221 @@
+# Base source of start-up shell script for the Exim Monitor. Used to set the
+# required environment variables before running the program. Using script
+# rather than a configuration file means that computation can be done.
+# The build process concatenates on the front of this various settings from
+# os-specific files and from the user's configuration file.
+
+# Copyright (c) 2004 - 2015 University of Cambridge.
+# See the file NOTICE for conditions of use and distribution.
+
+# Except when they appear in comments, the following placeholders in this
+# source are replaced when it is turned into a runnable script:
+#
+# CONFIGURE_FILE_USE_NODE
+# CONFIGURE_FILE
+# BIN_DIRECTORY
+# BASENAME_COMMAND
+# HOSTNAME_COMMAND
+# X11_LD_LIBRARY
+
+# PROCESSED_FLAG
+#
+if test "x$1" = x--version
+then
+    echo "`basename $0`: $0"
+    echo "build: EXIM_RELEASE_VERSIONEXIM_VARIANT_VERSION"
+    exit 0
+fi
+
+# See if caller wants to invoke gdb
+
+use_gdb=''
+
+case ${1:-foo} in
+  gdb*) use_gdb="$1"; shift ;;
+esac
+
+# Save arguments (can be the usual X parameters)
+
+cmd_args="$@"
+
+# See if this installation is using the esoteric "USE_NODE" feature of Exim,
+# in which it uses the host's name as a suffix for the configuration file name.
+
+if [ "CONFIGURE_FILE_USE_NODE" = "yes" ]; then
+  hostsuffix=.`uname -n`
+fi
+
+# Now find the configuration file name. This has got complicated because
+# CONFIGURE_FILE may now be a list of files. The one that is used is the first
+# one that exists. Mimic the code in readconf.c by testing first for the
+# suffixed file in each case.
+
+set `awk -F: '{ for (i = 1; i <= NF; i++) print $i }' <<End
+CONFIGURE_FILE
+End
+`
+while [ "$config" = "" -a $# -gt 0 ] ; do
+  if [ -f "$1$hostsuffix" ] ; then
+    config="$1$hostsuffix"
+  elif [ -f "$1" ] ; then
+    config="$1"
+  fi
+  shift
+done
+
+# Determine where the spool directory is and whether there is any setting of
+# log_file_path. Search for an exim_path setting in the configure file;
+# otherwise use the bin directory. Call that version of Exim to find the spool
+# directory and the setting of log_file_path.
+
+config=${EXIMON_EXIM_CONFIG-$config}
+
+# Add code here to redefine "config" if an alternative configuration file
+# should be used in some circumstances. If you do that, you should also arrange
+# for the value to be set in EXIMON_EXIM_CONFIG, and to export that variable
+# into the environment. BEWARE: a tab character is needed in the command below.
+# It has had a nasty tendency to get lost in the past. Use a variable to hold a
+# space and a tab to keep the tab in one place.
+
+st='	 '
+EXIM_PATH=`grep "^[$st]*exim_path" $config | sed "s/.*=[$st]*//"`
+if test "$EXIM_PATH" = ""; then EXIM_PATH=BIN_DIRECTORY/exim; fi
+
+SPOOL_DIRECTORY=`$EXIM_PATH -C $config -bP spool_directory | sed 's/.*=[  ]*//'`
+LOG_FILE_PATH=`$EXIM_PATH -C $config -bP log_file_path | sed 's/.*=[  ]*//'`
+
+# If log_file_path is "syslog" then logging is only to syslog, and the monitor
+# is unable to display a log tail unless EXIMON_LOG_FILE_PATH is set to tell
+# it where the log data is. If log_file_path is unset (i.e. empty) the default
+# is "mainlog" in the "log" directory in the spool directory. Otherwise,
+# remove any occurrences of "syslog:" or ":syslog" (spaces allowed in various
+# places) and look at the remainder of the entry. If it's null, check whether
+# LOG_FILE_NAME was set a compile time and contains a path. Otherwise fall
+# back to the default path.
+
+if [ "$EXIMON_LOG_FILE_PATH" != "" ] ; then
+  LOG_FILE_NAME="$EXIMON_LOG_FILE_PATH"
+elif [ "$LOG_FILE_PATH" = "syslog" ] ; then
+  LOG_FILE_NAME=""
+  echo \*\*\*
+  echo Exim is using the syslog interface for its log data. If you redirect all
+  echo MAIL.INFO syslog messages into a separate file, you can point eximon at
+  echo that file with the EXIMON_LOG_FILE_PATH environment variable.
+  echo \*\*\*
+elif [ "$LOG_FILE_PATH" = "" ] ; then
+    LOG_FILE_NAME=$SPOOL_DIRECTORY/log/mainlog
+else
+  LOG_FILE_NAME=`echo $LOG_FILE_PATH | \
+    sed -e 's/ *: *syslog *: */:/' \
+        -e 's/ *: *syslog *$//' \
+        -e 's/^ *syslog *: *//' \
+        -e 's/%s/main/'`
+  if [ "$LOG_FILE_NAME" = "" ] ; then
+    COMPILETIMEDEFAULT=`$EXIM_PATH -C /dev/null -bP log_file_path | \
+      sed -e 's/.*=[  ]*//' \
+        -e 's/ *: *syslog *: */:/' \
+        -e 's/ *: *syslog *$//' \
+        -e 's/^ *syslog *: *//' \
+        -e 's/%s/main/'`
+    if [ "$COMPILETIMEDEFAULT" != "" ] ; then
+      LOG_FILE_NAME="$COMPILETIMEDEFAULT"
+    else
+      LOG_FILE_NAME=$SPOOL_DIRECTORY/log/mainlog
+    fi
+  fi
+fi
+
+# The basename and hostname commands vary from system to system
+
+basename=BASENAME_COMMAND
+hostname=HOSTNAME_COMMAND
+
+# SunOS5 is a pain in that they may be in one of two places. So is Linux
+# in the case of basename. Set up a general mechanism for searching for
+# them in several places.
+
+if [ "${basename}" = "look_for_it" ] ; then
+  if [ -f /usr/bin/basename ] ; then
+    basename=/usr/bin/basename
+  else
+    if [ -f /bin/basename ] ; then
+      basename=/bin/basename
+    else
+      basename=/usr/ucb/basename
+    fi
+  fi
+fi
+
+if [ "${hostname}" = "look_for_it" ] ; then
+  if [ -f /usr/bin/hostname ] ; then
+    hostname=/usr/bin/hostname
+  else
+    if [ -f /bin/hostname ] ; then
+      hostname=/bin/hostname
+    else
+      hostname=/usr/ucb/hostname
+    fi
+  fi
+fi
+
+# Set hostname to the full hostname with the specified domain
+# stripped off its end. On Solaris 2, the default basename
+# command treats its suffix argument as a pattern. Consequently,
+# if fullhostname contains no dots but ends with what looks like
+# the domain, straightforward use of basename screws things up.
+# Use a general test for this case, just in case any other OS
+# do the same.
+
+fullhostname=`${hostname}`
+case `${basename} abc .c` in
+  a) hostname=`${basename} ${fullhostname} '\.'${DOMAIN}` ;;
+  *) hostname=`${basename} ${fullhostname} .${DOMAIN}` ;;
+esac
+
+
+# Arrange for the window title field to be substituted by the shell
+# so that it can contain either the full or the short host name. This
+# is a tedious little bit of magic, but I don't know how to do it
+# in a less tortuous way.
+
+WINDOW_TITLE=`fullhostname=${fullhostname} hostname=${hostname} /bin/sh <<xx
+echo ${WINDOW_TITLE}
+xx
+`
+
+# Add the X11 library to the library path, and then export the
+# environment variables used by eximon. The string X11-LD-LIBRARY
+# (with underscores, not hyphens) below is replaced by the configured
+# library name when the script is built. (Hyphens are used in the description
+# to stop it getting changed there too.)
+
+X11LIB=X11_LD_LIBRARY
+
+if [ "${LD_LIBRARY_PATH}" = "" ] ; then
+  LD_LIBRARY_PATH=${X11LIB}
+else
+  LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:${X11LIB}
+fi
+
+export EXIM_PATH LD_LIBRARY_PATH \
+  LOG_BUFFER LOG_DEPTH LOG_FILE_NAME LOG_FONT LOG_WIDTH \
+  ACTION_OUTPUT ACTION_QUEUE_UPDATE\
+  MENU_EVENT MIN_HEIGHT MIN_WIDTH \
+  QUALIFY_DOMAIN QUEUE_DEPTH QUEUE_FONT QUEUE_INTERVAL QUEUE_MAX_ADDRESSES \
+  QUEUE_STRIPCHART_NAME QUEUE_TOTAL QUEUE_WIDTH SPOOL_DIRECTORY \
+  START_DEPTH LOG_STRIPCHARTS SIZE_STRIPCHART SIZE_STRIPCHART_NAME \
+  START_SMALL STRIPCHART_INTERVAL \
+  TEXT_DEPTH WINDOW_TITLE
+
+# Exec to the program we really want to run, thereby continuing in
+# just the one process, and let it run in parallel with whatever
+# called this script (unless gdb was requested in original $1).
+
+if [ "${use_gdb:-}" = "" ] ; then
+  exec "${EXIMON_BINARY}" $cmd_args &
+else
+  exec "$use_gdb" "${EXIMON_BINARY}" $cmd_args
+  # not backgrounded
+fi
+
+# End

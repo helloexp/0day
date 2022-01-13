@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_radius</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_radius</code></b></h2>
+</center>
+<hr><br>
+
+This module is contained in the <code>mod_radius.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+This module is used to authenticate users using the <code>RADIUS</code>
+protocol.  It can also be used to do logging via <code>RADIUS</code> accounting
+packets.  A more in-depth discussion of the <a href="#Usage">usage</a> of this
+module follows the configuration directive documentation.
+
+<p>
+The most current version of <code>mod_radius</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Thanks</h2>
+<p>
+<i>2002-06-26</i>: Thanks to Josh Wilsdon &lt;josh <i>at</i> wizard.ca&gt;
+for correcting a bad assumption in the code that caused data corruption under
+some circumstances.
+
+<p>
+<i>2002-12-18</i>: Many thanks to Steffen Clausjuergens &lt;stcl <i>at</i> clausjuergens.de&gt; for helping to track down several bugs with accounting packets.
+
+<p>
+<i>2003-03-20</i>: Many thanks to Boris Kovalenko &lt;boris <i>at</i> tagnet.ru &gt; for testing many versions of the VSA code.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#RadiusAcctServer">RadiusAcctServer</a>
+  <li><a href="#RadiusAuthServer">RadiusAuthServer</a>
+  <li><a href="#RadiusEngine">RadiusEngine</a>
+  <li><a href="#RadiusGroupInfo">RadiusGroupInfo</a>
+  <li><a href="#RadiusLog">RadiusLog</a>
+  <li><a href="#RadiusNASIdentifier">RadiusNASIdentifier</a>
+  <li><a href="#RadiusOptions">RadiusOptions</a>
+  <li><a href="#RadiusQuotaInfo">RadiusQuotaInfo</a>
+  <li><a href="#RadiusRealm">RadiusRealm</a>
+  <li><a href="#RadiusUserInfo">RadiusUserInfo</a>
+  <li><a href="#RadiusVendor">RadiusVendor</a>
+</ul>
+
+<hr>
+<h3><a name="RadiusAcctServer">RadiusAcctServer</a></h3>
+<strong>Syntax:</strong> RadiusAcctServer <em>server[:port] shared-secret [timeout]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.2.5rc2 and later
+
+<p>
+The <code>RadiusAcctServer</code> is used to specify a RADIUS server to be
+used for accounting.  The <em>server</em> parameter may be either an
+IP address or a DNS hostname.  If not specified, the port used will be
+the IANA-registered 1813.  The optional <em>timeout</em> parameter is used
+to tell <code>mod_radius</code> how long to wait for a response from the
+server; it defaults to 30 seconds.
+
+<p>
+Multiple <code>RadiusAcctServer</code>s may be configured; each will be
+tried, in order of appearance in the configuration file, until
+that server times out or <code>mod_radius</code> receives a response.
+
+<p>
+If no <code>RadiusAcctServer</code>s are configured, <code>mod_radius</code>
+will not use RADIUS for accounting.
+
+<p>
+See also: <a href="#RadiusAuthServer">RadiusAuthServer</a>
+
+<p>
+<hr>
+<h3><a name="RadiusAuthServer">RadiusAuthServer</a></h3>
+<strong>Syntax:</strong> RadiusAuthServer <em>server[:port] shared-secret [timeout]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.2.5rc2 and later
+
+<p>
+The <code>RadiusAuthServer</code> is used to specify a RADIUS server to be
+used for authentication.  The <em>server</em> parameter may be either an
+IP address or a DNS hostname.  If not specified, the port used will be
+the IANA-registered 1812.  The optional <em>timeout</em> parameter is used
+to tell <code>mod_radius</code> how long to wait for a response from the
+server; it defaults to 30 seconds.
+
+<p>
+Multiple <code>RadiusAuthServer</code>s may be configured; each will be
+tried, in order of appearance in the configuration file, until
+that server times out or <code>mod_radius</code> receives a response.
+
+<p>
+If no <code>RadiusAuthServer</code>s are configured, <code>mod_radius</code>
+will not use RADIUS for authentication.
+
+<p>
+See also: <a href="#RadiusAcctServer">RadiusAcctServer</a>
+
+<p>
+<hr>
+<h3><a name="RadiusEngine">RadiusEngine</a></h3>
+<strong>Syntax:</strong> RadiusEngine <em>on|off</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.2.5rc2 and later
+
+<p>
+The <code>RadiusEngine</code> directive enables or disables the module's
+runtime RADIUS engine.  If it is set to <em>off</em> this module does no
+RADIUS authentication or accounting at all. Use this directive to disable the
+module instead of commenting out all <code>mod_radius</code> directives.
+
+<p>
+<hr>
+<h3><a name="RadiusGroupInfo">RadiusGroupInfo</a></h3>
+<strong>Syntax:</strong> RadiusGroupInfo <em>primary-group-name suppl-group-names suppl-group-ids</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.2.9rc1 and later
+
+<p>
+The <code>RadiusGroupInfo</code> directive is used to configure group membership
+information used for every user authenticated via RADIUS.  The
+<em>primary-group-name</em> parameter is used to configure the name that
+matches the user's GID (which can be configured via the
+<code>RadiusUserInfo</code> directive).  The <em>suppl-group-names</em> and
+<em>suppl-group-ids</em> parameters are used to specify supplemental group
+membership for each user; the number of names and IDs must match if these
+parameters, each a comma-delimited list, are used.  As many of ProFTPD's
+directives can operate based on group names, these textual group names may
+be important.
+
+<p>
+In order to support RADIUS servers that may use custom attributes in their
+<code>Access-Accept</code> response packets to supply user information back
+to the RADIUS client (<code>mod_radius</code> in this case), this directive
+allows the following syntax for some of its parameters:
+<pre>
+  $(<i>attribute-id</i>:<i>default-value</i>)
+</pre>
+where the enclosing <code>$()</code> signals that the parameter is to
+be supplied by the RADIUS server, <code><i>attribute-id</i></code> is the
+Vendor Specific Attribute (VSA) ID for which to search in the response packet,
+and <code><i>default-value</i></code> is the value to use in case the requested
+attribute is not present in the response packet.  See the
+<code>RadiusVendor</code> directive description for more information about
+VSAs.
+
+<p>
+See Also:
+  <a href="#RadiusUserInfo"><code>RadiusUserInfo</code></a>,
+  <a href="#RadiusVendor"><code>RadiusVendor</code></a>
+
+<p>
+<hr>
+<h3><a name="RadiusLog">RadiusLog</a></h3>
+<strong>Syntax:</strong> RadiusLog <em>file|&quot;none&quot;</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.2.5rc2 and later
+
+<p>
+The <code>RadiusLog</code> directive is used to specify a log file for
+<code>mod_radius</code> reporting and debugging, and can be done a per-server
+basis.  The <em>file</em> parameter must be the full path to the file to use for
+logging.  Note that this path must <b>not</b> be to a world-writeable
+directory and, unless <code>AllowLogSymlinks</code> is explicitly set to
+<em>on</em> (generally a bad idea), the path must <b>not</b> be a symbolic
+link.
+
+<p>
+If <em>file</em> is &quot;none&quot;, no logging will be done at all; this
+setting can be used to override a <code>RadiusLog</code> setting inherited from
+a <code>&lt;Global&gt;</code> context.
+
+<p>
+<hr>
+<h3><a name="RadiusNASIdentifier">RadiusNASIdentifier</a></h3>
+<strong>Syntax:</strong> RadiusNASIdentifier <em>id</em><br>
+<strong>Default:</strong> RadiusNASIdentifier ftp<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.3.1rc2 and later
+
+<p>
+The <code>RadiusNASIdentifier</code> directive configures an NAS
+<em>identifier</em> string that will be in the constructed RADIUS packets.
+By default, the NAS identifier is &quot;ftp&quot; for FTP sessions, and
+&quot;ssh2&quot; for SFTP/SCP sessions (via the <code>mod_sftp</code> module).
+
+<p>
+Example:
+<pre>
+  RadiusNASIdentifier customID
+</pre>
+
+<p>
+<hr>
+<h3><a name="RadiusOptions">RadiusOptions</a></h3>
+<strong>Syntax:</strong> RadiusOptions <em>opt1 ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.3.6rc1 and later
+
+<p>
+The <code>RadiusOptions</code> directive is used to configure various optional
+behavior of <code>mod_radius</code>.
+
+<p>
+For example:
+<pre>
+  RadiusOptions RequireMAC IgnoreReplyMessage
+</pre>
+
+<p>
+The currently implemented options are:
+<ul>
+  <li><code>IgnoreClass</code><br>
+    <p>
+    Some RADIUS servers will send the <code>Class</code> attribute in their
+    <code>Access-Accept</code> response, containing a value that should be
+    sent in every accounting requesting.  To tell <code>mod_radius</code> to
+    ignore/not send this <code>Class</code> attribute, use this option.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.6rc1</code>.
+  </li>
+
+  <p>
+  <li><code>IgnoreReplyMessage</code><br>
+    <p>
+    Some RADIUS servers will send the <code>Reply-Message</code> attribute in
+    their <code>Access-Accept</code> and <code>Access-Reject</code> responses,
+    containing messages that should be displayed to the connecting user.
+    To tell <code>mod_radius</code> to ignore/not display these
+    <code>Reply-Message</code> attributes, use this option.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.6rc1</code>.
+  </li>
+
+  <p>
+  <li><code>IgnoreIdleTimeout</code><br>
+    <p>
+    Some RADIUS servers will send the <code>Idle-Timeout</code> attribute in
+    their <code>Access-Accept</code> response, containing a timeout value to
+    be used for idle sessions.  To tell <code>mod_radius</code> to ignore/not
+    use this <code>Idle-Timeout</code> value, use this option.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.6rc1</code>.
+  </li>
+
+  <p>
+  <li><code>IgnoreSessionTimeout</code><br>
+    <p>
+    Some RADIUS servers will send the <code>Session-Timeout</code> attribute in
+    their <code>Access-Accept</code> response, containing a timeout value to
+    be used for maximum session durations.  To tell <code>mod_radius</code> to
+    ignore/not use this <code>Session-Timeout</code> value, use this option.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.6rc1</code>.
+  </li>
+
+  <p>
+  <li><code>RequireMAC</code><br>
+    <p>
+    Some RADIUS servers will send the <code>Message-Authenticator</code>
+    attribute in their <code>Access-Accept</code> and <code>Access-Reject</code>
+    responses, used for protecting against spoof attacks.  Some RADIUS servers,
+    though, do not use this attribute.  To be very secure, and to tell
+    <code>mod_radius</code> to <b>require</b> the use of this attribute, use
+    this option.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.6rc1</code>.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h3><a name="RadiusQuotaInfo">RadiusQuotaInfo</a></h3>
+<strong>Syntax:</strong> RadiusQuotaInfo <em>per-sess limit-type bytes-in bytes-out bytes-xfer files-in files-out files-xfer</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.3.0rc1 and later
+
+<p>
+The <code>RadiusQuotaInfo</code> directive is used to configure quota
+information used for every user.  This information will be used,
+in conjunction with the <code>mod_quotatab_radius</code> module, for
+provisioning per-user quota information via RADIUS.
+
+<p>
+In order to support RADIUS servers that may use custom attributes in their
+<code>Access-Accept</code> response packets to supply user information back
+to the RADIUS client (<code>mod_radius</code> in this case), this directive
+allows the following syntax for some of its parameters:
+<pre>
+  $(<i>attribute-id</i>:<i>default-value</i>)
+</pre>
+where the enclosing <code>$()</code> signals that the parameter is to
+be supplied by the RADIUS server, <code><i>attribute-id</i></code> is the
+Vendor Specific Attribute (VSA) ID for which to search in the response packet,
+and <code><i>default-value</i></code> is the value to use in case the requested
+attribute is not present in the response packet.  See the
+<code>RadiusVendor</code> directive description for more information about
+VSAs.
+
+<p>
+The <code>RadiusQuotaInfo</code> directive can be used to configure unchanging
+numbers, rather than custom attributes, if need be.
+
+<p>
+An example configuration might look like:
+<pre>
+  &lt;IfModule mod_quotatab_radius.c&gt;
+    QuotaLimitTable radius:
+    QuotaTallyTable file:/home/tj/proftpd/devel/build/cvs/etc/ftpquota.tallytab
+
+    # mod_radius attributes
+    RadiusEngine on
+    RadiusAuthServer localhost:1812 testing123 5
+    RadiusLog /var/ftpd/log/radius.log
+
+    # This sets unchanging quota limit values, rather than using custom attributes 
+    # from a RADIUS server
+    RadiusQuotaInfo false soft 3.0 2.0 1.0 7 8 9
+
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+See Also: <a href="#RadiusVendor"><code>RadiusVendor</code></a>
+
+<p>
+<hr>
+<h3><a name="RadiusRealm">RadiusRealm</a></h3>
+<strong>Syntax:</strong> RadiusRealm <em>realm</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.2.5rc2 and later
+
+<p>
+The <code>RadiusRealm</code> directive configures a <em>realm</em> string
+that will be added to the username in the constructed RADIUS packets.
+
+<p>
+Example:
+<pre>
+  RadiusRealm .castaglia.org
+</pre>
+
+<p>
+<hr>
+<h3><a name="RadiusUserInfo">RadiusUserInfo</a></h3>
+<strong>Syntax:</strong> RadiusUserInfo <em>uid gid home shell</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.2.5rc2 and later
+
+<p>
+The <code>RadiusUserInfo</code> directive is used to configure login
+information used for every user authenticated via RADIUS.  Group membership
+information can be configured by using the <code>RadiusGroupInfo</code>
+directive.
+
+<p>
+In order to support RADIUS servers that may use custom attributes in their
+<code>Access-Accept</code> response packets to supply user information back
+to the RADIUS client (<code>mod_radius</code> in this case), this directive
+allows the following syntax for some of its parameters:
+<pre>
+  $(<i>attribute-id</i>:<i>default-value</i>)
+</pre>
+where the enclosing <code>$()</code> signals that the parameter is to
+be supplied by the RADIUS server, <code><i>attribute-id</i></code> is the
+Vendor Specific Attribute (VSA) ID for which to search in the response packet,
+and <code><i>default-value</i></code> is the value to use in case the requested
+attribute is not present in the response packet.  See the
+<code>RadiusVendor</code> directive description for more information about
+VSAs.
+
+<p>
+If <code>RadiusUserInfo</code> is not used, <code>mod_radius</code> will
+perform pure &quot;yes/no&quot; authentication only, in the style of PAM.
+The information that would have been configured via this directive will
+be pulled from other sources (<i>e.g.</i> <code>/etc/passwd</code>,
+<code>AuthUserFile</code>s, MySQL tables, etc).
+
+<p>
+See Also:
+  <a href="#RadiusGroupInfo"><code>RadiusGroupInfo</code></a>,
+  <a href="#RadiusVendor"><code>RadiusVendor</code></a>
+
+<p>
+<hr>
+<h3><a name="RadiusVendor">RadiusVendor</a></h3>
+<strong>Syntax:</strong> RadiusVendor <em>name id</em><br>
+<strong>Default:</strong> RadiusVendor Unix 4<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_radius<br>
+<strong>Compatibility:</strong> 1.2.9rc1 and later
+
+<p>
+The <code>RadiusVendor</code> directive is used to configure the vendor name
+and ID for which <code>mod_radius</code> will search when it looks for
+vendor-specific attributes in RADIUS response packets.
+
+<p>
+Earlier versions of <code>mod_radius</code> could be configured to look up
+custom RADIUS attributes by normal RADIUS attribute type IDs.  However,
+those normal IDs can only be from 0 to 255, putting a limit on the number
+of such custom attributes.  Fortunately, the RADIUS RFCs define a specific
+attribute ID, 26, for vendor-specific attributes.  The values for such
+attributes contains an ID for the specific vendor, and then the vendor-specific
+attribute.  The vendor IDs come from the IANA's enterprise numbers hierarchy:
+<pre>
+  <a href="http://www.iana.org/assignments/enterprise-numbers">http://www.iana.org/assignments/enterprise-numbers</a>
+</pre>
+
+<p>
+By default, <code>mod_radius</code> will look for a vendor ID of 4 (Unix);
+this configuration directive is used to tell <code>mod_radius</code> to
+expect a different vendor.
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+Strong authentication is in demand for Internet services.  For many, this
+means using the <b>RADIUS</b> (<b>R</b>emote <b>A</b>uthentication
+<b>D</b>ial-<b>I</b>n <b>U</b>ser <b>S</b>ervice) protocol.
+
+<p>  
+However, there are caveats to using RADIUS for authentication.  RADIUS
+packets are sent in the clear, which means that they can easily be sniffed.
+First, <b><i>do not</i></b> have your authenticating RADIUS servers exposed
+to the Internet; keep them protected within your LAN.  Second, it is
+<i>highly recommended</i> to use separate RADIUS servers for each of your
+services.
+
+<p>
+<b>RADIUS Authentication</b><br>
+The RADIUS protocol can be used for answering the question &quot;Should this
+user be allowed to login?&quot;  However, the &quot;yes/no&quot; answer is not
+everything that <code>proftpd</code> needs to log a user in; the server also
+requires the UID and GID to use for the authenticated user, home directory,
+and shell.  This information is usually not available from the RADIUS servers,
+which means that using RADIUS to provide all the necessary login information
+can be problematic.  The <code>RadiusUserInfo</code> directive is meant to be
+used to address this issue, to provide the missing information.
+
+<p>
+In those cases where the RADIUS servers <i>can</i> provide that additional
+login information, via custom attributes, the <code>RadiusUserInfo</code>
+directive can also be used obtain that information as well.
+
+<p>
+<b>RADIUS Accounting</b><br>
+While RADIUS is primarily used for authentication, the protocol also allows
+for accounting of user activities.  The <code>mod_radius</code> module
+makes use of this ability, using RADIUS accounting packets to transmit the
+following data:
+<ul>
+  <li><b>Acct-Authentic</b>: How the user was authenticated (<i>e.g.</i>
+    locally, or via RADIUS)<br>
+  </li>
+  <br>
+
+  <li><b>Acct-Session-Id</b>: The process ID of the FTP session<br>
+  </li>
+  <br>
+
+  <li><b>Acct-Session-Time</b>: The duration of the FTP session, in seconds<br>
+  </li>
+  <br>
+
+  <li><b>Acct-Input-Octets</b>: The number of bytes uploaded (includes
+    appending to files)<br>
+  </li>
+  <br>
+
+  <li><b>Acct-Output-Octets</b>: The number of bytes downloaded<br>
+  </li>
+  <br>
+
+  <li><b>Acct-Terminate-Cause</b>: The reason the session ended<br>
+  </li>
+  <br>
+
+  <li><b>Event-Timestamp</b>: The number of seconds since the Unix epoch<br>
+  </li>
+  <br>
+</ul>
+Merely configuring a <code>RadiusAcctServer</code> enables the module's
+accounting capabilities.
+
+<p>
+<b>Common Attributes</b><br>
+The following RADIUS attributes are sent with every RADIUS packet generated
+by <code>mod_radius</code>:
+<ul>
+  <li><b>User-Name</b>: The name of the logging-in user<br>
+  </li>
+  <br>
+
+  <li><b>NAS-Identifier</b>: &quot;ftp&quot; (or &quot;ssh2&quot; for SFTP/SCP sessions)<br>
+  </li>
+  <br>
+
+  <li><b>NAS-IP-Address</b> <i>or</i> <b>NAS-IPv6-Address</b>: IP address of server<br>
+  </li>
+  <br>
+
+  <li><b>NAS-Port</b>: Port of server<br>
+  </li>
+  <br>
+
+  <li><b>NAS-Port-Type</b>: Always <code>Virtual</code>.<br>
+  </li>
+  <br>
+
+  <li><b>Calling-Station-Id</b>: IP address of connecting client<br>
+  </li>
+  <br>
+
+  <li><b>Message-Authenticator</b>: MAC of request, per RFC 3579<br>
+  </li>
+  <br>
+</ul>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_radius</code> module is distributed with ProFTPD.  Simply follow
+the normal steps for using third-party modules in ProFTPD:
+<pre>
+  $ ./configure --enable-openssl --with-modules=mod_radius
+</pre>
+To build <code>mod_radius</code> as a DSO module:
+<pre>
+  $ ./configure --enable-dso --enable-openssl --with-shared=mod_radius
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make 
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your <code>proftpd</code> was compiled with DSO support, you
+can use the <code>prxs</code> tool to build <code>mod_radius</code> as a shared
+module:
+<pre>
+  $ prxs -c -i -d mod_radius.c
+</pre>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_radius</code> module supports different forms of logging.  The
+main module logging is done via the <code>RadiusLog</code> directive.  For
+debugging purposes, the module also uses <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>radius
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/sftp-trace.log
+  Trace radius:20
+</pre>
+This trace logging can generate large files; it is intended for debugging
+use only, and should be removed from any production configuration.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2015 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

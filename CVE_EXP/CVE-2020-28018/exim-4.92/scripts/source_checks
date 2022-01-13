@@ -1,0 +1,52 @@
+#!/bin/sh
+
+cd src;
+
+# Tables with struct items
+while read file table
+do
+  : $file $table
+  < $file \
+  perl -e '$/= undef; while (<>) { print $1 if /(?<='$table'\[\])\s*=\s*{\n(([^}].*\n)+)/m }' \
+  | awk '/{ (US)?"/ {print $2}' \
+  | awk -F\" '{print $2}' \
+  | LC_ALL=C sort -c \
+  || exit 1
+done <<-END
+	readconf.c	optionlist_config
+	globals.c	optionlist_auths
+	globals.c	debug_options
+	globals.c	header_names
+	globals.c	log_options
+	expand.c	item_table
+	std-crypto.c	dh_constants
+	transport.c	optionlist_transports
+	route.c		optionlist_routers
+	transports/appendfile.c	appendfile_transport_options
+	transports/autoreply.c	autoreply_transport_options
+	transports/lmtp.c	lmtp_transport_options
+	transports/pipe.c	pipe_transport_options
+	transports/smtp.c	smtp_transport_options
+	expand.c	var_table
+	acl.c		conditions
+	acl.c		controls_list
+END
+
+# Tables with just string items
+while read file table
+do
+  : $file $table
+  < $file \
+  perl -e '$/= undef; while (<>) { print $1 if /(?<='$table'\[\])\s*=\s*{\s?(([^}]*)+)}/m }' \
+  | awk -F\" '/"/ {print $2}' \
+  | LC_ALL=C sort -c \
+  || exit 1
+
+done <<-END
+	expand.c	item_table
+	expand.c	op_table_underscore
+	expand.c	op_table_main
+	expand.c	cond_table
+	acl.c		verbs
+END
+

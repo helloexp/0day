@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_facl</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_facl</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_facl</code> module adds support to ProFTPD for POSIX ACLs.
+For more information on what POSIX ACLs are and how they work, see
+"POSIX ACLs on Linux":
+<pre>
+    <a href="http://www.suse.de/~agruen/acl/linux-acls/online/">http://www.suse.de/~agruen/acl/linux-acls/online/</a>
+</pre>
+POSIX ACLs are supported and implemented differently on Linux, BSD, and
+Solaris.  ProFTPD attempts to work properly with POSIX ACLs on all of
+these platforms.
+
+<p>
+Installation instructions for <code>mod_facl</code> can be found
+<a href="#Installation">here</a>.  <i>Note</i> that the <code>configure</code>
+script will automatically determine whether the system supports POSIX ACLs,
+but it will <b>not</b> automatically make use of that support <em>unless</em>
+the <code>--enable-facl</code> option is used.  <i>In addition</i>, to have
+ProFTPD fully <em>honor</b> POSIX ACLs on files, you will also need this
+<code>mod_facl</code> module.
+
+<p>
+The most current version of <code>mod_facl</code> can be found in the
+ProFTPD source distribution:
+<pre>
+  <a href="http://www.proftpd.org/">http://www.proftpd.org/</a>
+</pre>
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#FACLEngine">FACLEngine</a>
+</ul>
+
+<hr>
+<h3><a name="FACLEngine">FACLEngine</a></h3>
+<strong>Syntax:</strong> FACLEngine <em>on|off</em><br>
+<strong>Default:</strong> on<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_facl<br>
+<strong>Compatibility:</strong> 1.3.1rc1 and later
+
+<p>
+The <code>FACLEngine</code> directive enables or disables the module's
+runtime checking of POSIX ACLs.  Use this directive to disable the module.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+To use the <code>mod_facl</code> module, configure <code>proftpd</code>
+using the following:
+<pre>
+  $ ./configure --enable-facl --with-modules=mod_facl ...
+</pre>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_facl</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>facl
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace facl:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

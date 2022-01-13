@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_cap</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_cap</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+Linux capabilities is a project aimed at providing the POSIX.1e security
+model under Linux.  Documentation for this project can be found here:
+<pre>
+  <a href="ftp://ftp.kernel.org/pub/linux/libs/security/linux-privs">ftp://ftp.kernel.org/pub/linux/libs/security/linux-privs</a>
+</pre>
+Without going into gory detail, POSIX.1e basically specifies an interface to
+such goodies as capabilities, capability sets, access control lists, mandatory
+access control and much, much more.  The end result of this security model
+allows compliant systems and daemons to have <b>very</b> fine-grained control
+over what operations are allowed by which services on the system.
+
+<p>
+The best part of the whole story is that Linux kernels (since 2.1)
+already have two important facets of the security model in place, namely
+capabilities and capability sets.  Using these features allows a userland
+program to specifically drop capabilities (which can be thought of as
+&quot;privileges&quot;) which it does not need.  Once such capabilities are
+completely dropped, neither the userland program <b>nor</b> any binary it
+should spawn will be allowed to perform privileged operations, <i>regardless</i>
+of whether the program is running as root or not.  Essentially, this limits
+the power of root to only those specific functions that are necessary, with
+the end effect of making the program much more secure.
+
+<p>
+A contributed module has been added in the <code>proftpd</code> distribution,
+named <code>mod_cap</code>.  It can be found in the <code>modules/</code>
+directory.
+
+<p>
+The <code>libcap</code> library provides the interface between
+<code>mod_cap</code> and the capability syscalls present in Linux kernels. 
+(Note that this library can be found at
+<a href="http://www.kernel.org">www.kernel.org</a> or <a href="http://sourceforge.net/projects/linux-privs">sourceforge.net/projects/linux-privs</a>).
+
+<p>
+When <code>proftpd</code> runs with <code>mod_cap</code> installed, its
+operation changes slightly:
+<ul>
+  <li>The master <code>proftpd</code> process runs as normal, with full
+    capabilities.
+  </li>
+
+  <p>
+  <li>
+    The child <code>proftpd</code> processes, the ones that handle FTP sessions,
+    drop <b>all</b> capabilities-except for <code>CAP_NET_BIND_SERVICE</code>
+    (which allows a process to bind to port less than 1024) and
+    <code>CAP_CHOWN</code> (which allows a process to change a file's
+    ownership)-<i>immediately</i> after a client has authenticated.
+
+    <p>
+    Additionally, switching back and forth between root privileges and the
+    authenticated user's privileges is no longer possible.
+  </li>
+</ul>
+Installation instructions for <code>mod_cap</code> can be found
+<a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_cap</code> can be found in the
+ProFTPD source distribution:
+<pre>
+  <a href="http://www.proftpd.org/">http://www.proftpd.org/</a>
+</pre>
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#CapabilitiesEngine">CapabilitiesEngine</a>
+  <li><a href="#CapabilitiesRootRevoke">CapabilitiesRootRevoke</a>
+  <li><a href="#CapabilitiesSet">CapabilitiesSet</a>
+</ul>
+
+<hr>
+<h3><a name="CapabilitiesEngine">CapabilitiesEngine</a></h3>
+<strong>Syntax:</strong> CapabilitiesEngine <em>on|off</em><br>
+<strong>Default:</strong> on<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_cap<br>
+<strong>Compatibility:</strong> 1.2.8rc2 and later
+
+<p>
+The <code>CapabilitesEngine</code> directive enables or disables the module's
+runtime capabilities engine.  If it is set to <em>off</em> this module does no
+runtime capabilities processing at all.  Use this directive to disable the
+module.
+
+<p>
+<hr>
+<h3><a name="CapabilitiesRootRevoke">CapabilitiesRootRevoke</a></h3>
+<strong>Syntax:</strong> CapabilitiesRootRevoke <em>on|off</em><br>
+<strong>Default:</strong> CapabilitiesRootRevoke on<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_cap<br>
+<strong>Compatibility:</strong> 1.3.5rc1 and later
+
+<p>
+By default, the <code>mod_cap</code> module will <em>revoke</em> (<i>i.e.</i>
+drop) root privileges entirely, once the necessary capabilities have been
+set.  Use the <code>CapabilitiesRootRevoke</code> directive to change this
+default behavior, <i>e.g.</i>:
+<pre>
+  CapabilitiesRootRevoke off
+</pre>
+
+<p>
+<hr>
+<h3><a name="CapabilitiesSet">CapabilitiesSet</a></h3>
+<strong>Syntax:</strong> CapabilitiesSet <em>[+|- cap] ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_cap<br>
+<strong>Compatibility:</strong> 1.2.8rc2 and later
+
+<p>
+The <code>CapabilitiesSet</code> directive is used to manipulate the set of
+capabilities that <code>mod_cap</code> grants.
+
+<p>
+By default, <code>mod_cap</code> removes all but a few capabilities
+from the session-handling process: <code>CAP_NET_BIND_SERVICE</code>, for
+binding to ports lower than 1024 (required for active data transfers), and
+<code>CAP_CHOWN</code>, for allowing a process to change a file's ownership
+to a different user.  The <code>CAP_CHOWN</code> capability is only strictly
+necessary if the <code>UserOwner</code> configuration directive is in use; if
+not being used, the <code>CAP_CHOWN</code> capability is best removed.
+Additionally, <code>CAP_AUDIT_WRITE</code> is retained if
+the <code>mod_auth_pam</code> module is present, as this capability is needed
+for some PAM modules such as <code>pam_loginuid</code>. 
+
+<p>
+To remove a capability, prefix the name with a '-'; to enable a capability,
+use '+'.  This directive supports the following capabilities:
+<ul>
+  <li><code>CAP_CHOWN</code>
+  <li><code>CAP_DAC_OVERRIDE</code> (override all directory access controls)
+  <li><code>CAP_DAC_READ_SEARCH</code> (allow read and search directory access)
+  <li><code>CAP_FOWNER</code>
+  <li><code>CAP_FSETID</code>
+  <li><code>CAP_SETUID</code>
+</ul>
+
+<p>
+Example:
+<pre>
+  &lt;IfModule mod_cap.c&gt;
+    CapabilitiesEngine on
+    CapabilitiesSet -CAP_CHOWN +CAP_DAC_READ_SEARCH +CAP_FOWNER
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_cap</code> module is automatically included when
+<code>proftpd</code> is built on a Linux system that supports capabilities; to
+disable this automatic inclusion, use the <code>--disable-cap</code> configure
+option.
+
+<p>
+<hr>
+<h2><a name="FAQ">FAQ</a></h2>
+
+<p>
+<font color=red>Question</font>: Why do I see the following in my system logs?
+<pre>
+  warning: `proftpd' uses 32-bit capabilities (legacy support in use)
+</pre>
+<font color=blue>Answer</font>: This warning is coming from the use of the
+libcap library.  A newer version of the libcap library (called the
+"libcap2" or "libcap2-dev" package on some Linux distributions) is now
+available.
+
+<p>
+To remove the above warning, you will need to update/install the newer libcap2
+or libcap2-dev package on your system, and re-build proftpd (using version
+1.3.2rc1 or later) in order to compile and link against the newer libcap
+library.
+
+<p>
+<font color=red>Question</font>: What does the following mean?
+<pre>
+  chown() as root failed: Operation not permitted
+</pre>
+<font color=blue>Answer</font>: The purpose of the <code>mod_cap</code>
+module is to restrict the capabilities of the all-powerful <code>root</code>
+user.  Thus when <code>mod_cap</code> is in effect, operations like
+<code>chown()</code> are restricted.
+
+<p>
+The message above usually happens when your configuration uses the
+<code>UserOwner</code> or <code>GroupOwner</code> configuration directives.
+To enable those directives to function and still use <code>mod_cap</code>,
+you will need to use a configuration such as:
+<pre>
+  &lt;IfModule mod_cap.c&gt;
+    # Allow root to use chown(2)
+    CapabilitiesSet -CAP_CHOWN
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2013 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+
+<hr>
+</body>
+</html>
+

@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Best Common Practices</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b><i>Best Common Practices</i></b></h2></center>
+<hr>
+
+<p>
+This document describes the best practices, common and recommended, when
+configuring and using <code>proftpd</code> servers.  The first few
+recommendations are covered in detail elsewhere: <a href="ConfigFile.html#Identity">role accounts</a>, <a href="Chroot.html">chroots</a>, and <a href="Logging.html">logging directories</a>.
+
+<p><a name="VirtualHosts"></a>
+<b><code>&lt;VirtualHost&gt;</code>s</b><br>
+When configuration a <code>&lt;VirtualHost&gt;</code>, it is best to use
+an IP address, and not a DNS name.  Not only does this reduce network traffic
+a little when the daemon starts up (as it will not need to resolve the DNS
+name to its IP address), but it will also reduce confusion.  Unlike HTTP,
+FTP does not support name-based virtual hosts; all contact to virtual hosts is
+done based on IP addresses (and ports).  If a DNS name is used in a
+<code>&lt;VirtualHost&gt;</code> configuration, there is the possibility that
+that DNS name will resolve to an IP address of another virtual host in the
+configuration.
+
+<p><a name="ResourceLimits"></a>
+<b>Resource Limits</b><br>
+One of the most common requests on the mailing list is to be able to limit
+the number of connections, in various ways, a given user may make to the
+<code>proftpd</code> daemon.  There are different configuration directives for
+doing so, depending on the situation:
+<ul>
+  <li><code>MaxInstances</code>: Limits the overall number of connections<br>
+  <br>
+
+  <li><code>MaxClients</code>: Limits the number of connections on a per-server/vhost basis<br>
+  <br>
+
+  <li><code>MaxClientsPerHost</code>: Limits the number of clients that may be connecting from the same host<br>
+  <br>
+
+  <li><code>MaxClientsPerUser</code>: Limits the number of clients that may be logged in at one time using the same username<br>
+  <br>
+
+  <li><code>MaxHostsPerUser</code>: Limits the number of hosts from which clients may be logged in at one time using the same username<br>
+</ul>
+
+<p>
+If you are using a <code>ServerType</code> of <code>inetd</code>, then you
+should be aware of the default concurrency limits in <code>inetd</code> (see
+<a href="http://bugs.proftpd.org/show_bug.cgi?id=1243">Bug#1243</a>).  For
+<code>xinetd</code>, the <code>per_source</code> and <code>cps</code>
+attributes can be used to configure concurrency limits.  For a
+<code>ServerType</code> of <code>standalone</code>, the
+<code>MaxConnectionRate</code> configuration directive can be used to provide
+connection limitations.
+
+<p>
+Intensive use of CPU and/or memory by FTP sessions can be restricted by use
+of <code>RLimitCPU</code> and <code>RLimitMemory</code>.  Here's an example:
+<pre>
+  RLimitCPU session 10
+  RLimitMemory session 4096
+</pre>
+This applies CPU and memory resource limits to session processes.  In order
+to limit the use of such resources by the daemon, should this be a concern,
+the directives can be used similarly:
+<pre>
+  RLimitMemory daemon 8192 max
+</pre>
+In general, one should not set an <code>RLimitCPU</code> limit on the daemon,
+as a long-lived daemon (as all should be) will eventually encounter such a
+limit.  <b>Note</b>: appropriate settings to use will vary from site to site -
+<i>do not blindly copy these examples</i>.
+
+<p>
+One concern associated with unrestricted use of resources is globbing; the
+topic has been mentioned, in relation to FTP servers, in security forums in
+the past.  This <a href="Globbing.html">mini-HOWTO</a> discusses, in-depth,
+the defenses against globbing attacks that ProFTPD provides.
+
+<p>
+Some sites like to be able to restrict the size of files transferred,
+particularly uploaded files, as disk space is also a precious resource.  For
+this purpose, the <code>MaxRetrieveFileSize</code> and
+<code>MaxStoreFileSize</code> configuration directives are provided.
+
+<p>
+There are also several third-party modules that can add various resource
+limiting abilities to a <code>proftpd</code> server:
+<ul>
+  <li><a href="http://www.castaglia.org/proftpd/modules/mod_diskuse.html">mod_diskuse</a>
+  <li><a href="../contrib/mod_load.html">mod_load</a>
+  <li><a href="../contrib/mod_quotatab.html">mod_quotatab</a>
+</ul>
+
+<p><a name="AccessControls"></a>
+<b>Access Controls</b><br>
+ProFTPD provides a <a href="Limit.html"><code>&lt;Limit&gt;</code></a>
+directive for configuring fine-grained access controls that can be applied to
+logins as well as FTP commands.  The contributed
+<a href="../contrib/mod_wrap.html"><code>mod_wrap</code></a> module
+allows a <code>proftpd</code> daemon to use the standard
+<code>/etc/hosts.allow</code> and <code>/etc/hosts.deny</code> access control
+files.  Of interest to some is the next generation of this module,
+<a href="../contrib/mod_wrap2.html"><code>mod_wrap2</code></a>, which allows
+for storing access control rules in SQL tables.
+
+<p>
+On systems which support the /proc filesystem, such as Linux and several others,
+it is <b>highly recommended</b> that the /proc filesystem be guarded, especially
+for non-chroot sessions.  Malicious clients can read or write to that filesystem
+and cause quite a bit of damage.  Thus we encourge administrators to use
+the following in their <code>proftpd.conf</code>:
+<pre>
+  &lt;Directory /proc&gt;
+    &lt;Limit ALL&gt;
+      DenyAll
+    &lt;/Limit&gt;
+  &lt;/Directory&gt;
+</pre>
+
+<p><a name="PerformanceTuning"></a>
+<b>Performance Tuning</b><br>
+When configuring a <code>proftpd</code> for performance, here are some
+settings to try.  First, make sure that you have <code>ident</code> and
+reverse DNS lookups disabled:
+<pre>
+  IdentLookups off
+  UseReverseDNS off
+</pre>
+By default, both are done for each new FTP session, and, depending on the
+response time from both <code>identd</code> and DNS servers, this can add
+a noticeable delay during the login process.
+
+<p>
+Another possible source of delays during the login process is a very large
+<code>/etc/passwd</code> file (a large <code>/etc/group</code> file will
+have the same effect).  The standard library functions used for doing
+user lookups scan these files line-by-line, which means that the scan time
+increases with the number of entries.  If this is the case at your site, you
+might consider using a different storage format for your user account
+information.  The <code>mod_sql</code> and <code>mod_ldap</code> modules
+provided with ProFTPD can be used for storing such information in SQL tables
+or LDAP servers.
+
+<p>
+In some cases, it's also possible that PAM checks may introduce delays.  If
+you suspect this to be happening, try adding the following to your
+<code>proftpd.conf</code>:
+<pre>
+  &lt;IfModule mod_auth_pam.c&gt;
+    AuthPAM off
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+The listing of directories during an FTP session can impose quite a bit
+of disk I/O on a server machine.  This is most often seen when site-mirroring
+scripts do recursive directory listings, and for deeply nested directory
+structures.  To deal with the former, the following can be used:
+<pre>
+  ListOptions +R strict
+</pre>
+This setting blocks the use of the <code>-R</code> option, which is how clients
+request recurse directory listings.  The <em>strict</em> keyword prevents
+client options from overriding the <code>proftpd.conf</code> setting.  Also,
+new in <code>1.2.9rc1</code> are some <code>ListOptions</code> options
+that allow recursive directory listings, but can be used to set limits on
+the recursion:
+<pre>
+  ListOptions &quot;&quot; maxdepth 3
+  ListOptions &quot;&quot; maxdirs 10
+  ListOptions &quot;&quot; maxfiles 1000
+</pre>
+The first line above limits the directory depth of recursion; the second
+line does not limit the recursion depth, rather it limits the maximum number
+of directories that may be listed at one time; the third limit limits the
+maximum number of files that may be listed at one time.
+
+<p>
+Another way to speed up directory listings to disable proftpd's checking
+for <code>.ftpaccess</code> files in every directory encountered.  To do
+this, use:
+<pre>
+  AllowOverride off
+</pre>
+This disable's <code>proftpd</code>'s honouring of <code>.ftpaccess</code>
+files.  How does this reduce disk I/O?  In order to properly process
+<code>.ftpaccess</code> files, the daemon has to check for such a file in
+each and every directory when performing an operation in that directory,
+<i>each time an operation is requested</i> (it's possible for a
+<code>.ftpaccess</code> file to be added or updated after the daemon has
+already checked the directory).  This constant checking is noticeable on
+heavily loaded servers.  By disabling use of these files, the daemon no
+longer has to check each directory each time.
+
+<p>
+The type of logging also has an impact, performance-wise.  By default,
+a <code>proftpd</code> daemon logs using <code>syslog</code>;
+<code>syslogd</code>, however, is known to not scale well at all, and can
+break under heavy load.  Directing logging to a file in such cases,
+using the <code>ServerLog</code> and/or <code>SystemLog</code> directives
+can reduce this bottleneck.  Also, depending on the type of authentication
+done, disabling <code>utmp/wtmp</code> logging can reduce overhead:
+<pre>
+  WtmpLog off
+</pre>
+for <code>&lt;VirtualHost&gt;</code>s that only allow anonymous logins, or
+that authenticate non-<code>/etc/passwd</code> accounts, helps to reduce
+the amount of unnecessary &quot;clutter&quot; in the <code>utmp/wtmp</code> 
+log files.
+
+<p>
+If your <code>proftpd</code> server is on a high-bandwidth Internet link,
+it may benefit from tuning the size of <b>kernel</b>-level (as opposed
+to <b>application</b>-level) socket buffers used when transferring data.
+The
+<a href="../modules/mod_core.html#SocketOptions"><code>SocketOptions</code></a> configuration directive can be used to specify larger buffer sizes:
+<pre>
+  # The 'sndbuf' parameter tunes the size of the buffer used for sending
+  # files to clients; the 'rcvbuf' tunes the buffer used for receiving
+  # files uploaded by clients.
+  #
+  # This configures 16K buffers for both, which assumes a very
+  # well-connected site.
+  SocketOptions sndbuf 16384 rcvbuf 16384
+</pre>
+Again, these are example numbers, and should <b>not be blindly copied</b>.
+
+<p>
+Finally, there are some <code>configure</code> options that can be used
+to tune your <code>proftpd</code> daemon.  All of the
+<code>--enable-</code> options are available; of particular interest
+are <code>--enable-buffer-size</code> and
+<code>--enable-sendfile</code>.  Use of the <code>sendfile(2)</code> function
+(via the latter <code>configure</code> option) may or may not increase
+download speeds, but it will reduce disk I/O: <code>sendfile(2)</code>
+implements zero-copy transfers, meaning that the kernel will read data
+directly from the file into the socket, all in kernel space; normal
+<code>read()</code> transfers spend time copying buffers from kernel space
+to application space (reading the file), and then back to kernel space
+(writing to the socket).  By increasing the buffer size using the
+<code>--enable-buffer-size</code> option, proftpd reads and writes
+data in larger chunks, and makes fewer expensive system calls.  Use of
+this option to set buffer sizes of 8K or more has been reported to drastically
+increase transfer speeds (depending on network configurations).
+
+<p><a name="ConfigDelegation"></a>
+<b>Configuration Delegation</b><br>
+A configuration is considered &quot;delegated&quot; when the
+<code>Include</code> configuration directive is used in
+<code>proftpd.conf</code> to specify a portion of the server configuration
+that may not be under the daemon administrator's control.  This situation
+often arises for sites that have multiple virtual servers; the administrator
+for a given virtual server may be allowed to configure their particular
+server via an <code>Include</code>d file.  <b>If possible, avoid this</b>.
+
+<p>
+Here's why: by delegating a configuration, you are trusting someone else with
+a great deal of possible control over the daemon.  A given
+<code>&lt;VirtualHost&gt;</code> section can have an <code>AuthUserFile</code>.
+In that <code>AuthUserFile</code>, the virtual server administrator could
+define a user who has a UID of 0, thus basically giving herself root access.
+Most sites probably would not like this.  The trouble here is the lack of
+control over the contents of <code>AuthUserFile</code>s (and
+<code>AuthGroupFile</code>s).  There are a couple of ways of handling this
+situation.  First, the daemon administrator can make sure that any
+<code>Include</code> directives occur as early as possible in the
+<code>proftpd.conf</code> file.  Most configuration directives in the
+<code>Include</code>d file can be overridden by setting the directive again,
+after the <code>Include</code>, in the main <code>proftpd.conf</code>.
+
+<p>
+The <a href="../modules/mod_auth_file.html"><code>mod_auth_file</code></a>
+module, now part of the core distribution, was developed specifically to
+provide finer control over the contents of <code>AuthUserFile</code> and
+<code>AuthGroupFile</code> files.  It does so by enhancing these configuration
+directives to support optional &quot;filters&quot; that restrict the UIDs, GIDs,
+user names, and/or home directories in such files.
+
+<p><a name="Miscellaneous"></a>
+<b>Miscellaneous</b><br>
+For the security-wary administrator, there are a few more directives that
+may be of interest: <a href="../modules/mod_auth.html#AnonRejectPasswords"><code>AnonRejectPasswords</code></a>,
+which configures a regular expression that matches and blocks scripted FTP
+clients that try to find and exploit ill-configured anonymous FTP sites, and
+<a href="../modules/mod_auth.html#RootRevoke"><code>RootRevoke</code></a>,
+which causes <code>proftpd</code> to drop root privileges completely (read the
+description for details).
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

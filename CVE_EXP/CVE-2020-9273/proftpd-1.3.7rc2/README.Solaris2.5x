@@ -1,0 +1,43 @@
+Using ProFTPD with Solaris 2.5.1 (possibly even other versions):
+
+[Ed: Note, in Solaris 2.6 this is no longer necessary]
+
+Solaris 2.5.1 has an odd problem involving tcp sockets inside of a
+chroot()  [as used w/ DefaultRoot and Anonymous logins].  Apparently, due
+to the Solaris xti code, socket operations initially attempt to open a few
+devices, including /dev/tcp, /dev/udp, /dev/zero and /dev/ticotsord.  This
+is most likely caused by the networking libraries, and is completely out
+of the control and/or scope of ProFTPD.
+
+Solaris 2.5.1 users wishing to use ProFTPD will have to do something like
+the following in their anonymous or otherwise chroot'ed directories:
+
+[ !!NOTE!!  Do not use the major/minor device numbers below verbatim.
+  Solaris on different archs will use different major/minors.  Check
+  your OS documentation first before doing this. ]
+
+mkdir dev
+mknod dev/tcp c 11 42
+mknod dev/udp c 11 41
+mknod dev/zero c 13 12
+mknod dev/ticotsord c 105 1
+
+Solaris 2.5 (and possibly 2.5.1) requires these additional device
+nodes to be created in order to avoid a system panic when the
+loopback interface is used:
+
+mknod dev/ticlts c 105 2
+mknod dev/ticots c 105 0
+
+# the following is necessary to allow proftpd to create a socket
+# when in non-low-port mode (such as during passive transfers)
+chmod 0666 dev/tcp
+
+Failure to create these files will result in "socket() failed in
+inet_create_connection(): No such file or directory" when a user logs in
+anonymously and attempts to transfer data of any type (including a simple
+directory listing).
+
+If you receive errors such as "socket() failed in
+inet_create_connection(): Permission denied", you need to chmod 0666 your
+dev/tcp device. 

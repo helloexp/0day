@@ -1,0 +1,320 @@
+DBM Libraries for use with Exim
+-------------------------------
+
+Background
+----------
+
+Exim uses direct-access (so-called "dbm") files for a number of different
+purposes. These are files arranged so that the data they contain is indexed and
+can quickly be looked up by quoting an appropriate key. They are used as
+follows:
+
+1. Exim keeps its "hints" databases in dbm files.
+
+2. The configuration can specify that certain things (e.g. aliases) be looked
+   up in dbm files.
+
+3. The configuration can contain expansion strings that involve lookups in dbm
+   files.
+
+4. The filter commands "mail" and "vacation" have a facility for replying only
+   once to each incoming address. The record of which addresses have already
+   received replies may be kept in a dbm file, depending on the configuration
+   option once_file_size.
+
+The runtime configuration can be set up without specifying 2 or 3, but Exim
+always requires the availability of a dbm library, for 1 (and 4 if configured
+that way).
+
+
+DBM Libraries
+-------------
+
+The original library that provided the dbm facility in Unix was called "dbm".
+This seems to have been superseded quite some time ago by a new version called
+"ndbm" which permits several dbm files to be open at once. Several operating
+systems, including those from Sun, contain ndbm as standard.
+
+A number of alternative libraries also exist, the most common of which seems to
+be Berkeley DB (just called DB hereinafter). Release 1.85 was around for
+some time, and various releases 2.x began to appear towards the end of 1997. In
+November 1999, version 3.0 was released, and the ending of support for 2.7.7,
+the last 2.x release, was announced for November 2000. (Support for 1.85 has
+already ceased.) There were further 3.x releases, but by the end of 2001, the
+current release was 4.0.14.
+
+There are major differences in implementation and interface between the DB 1.x
+and 2.x/3.x/4.x releases, and they are best considered as two independent dbm
+libraries. Changes to the API were made for 3.0 and again for 3.1.
+
+Another DBM library is the GNU library, gdbm, though this does not seem to be
+very widespread.
+
+Yet another dbm library is tdb (Trivial Data Base) which has come out of the
+Samba project. The first releases seem to have been in mid-2000.
+
+Some older Linux releases contain gdbm as standard, while others contain no dbm
+library. More recent releases contain DB 1.85 or 2.x or later, and presumably
+will track the development of the DB library. Some BSD versions of Unix include
+DB 1.85 or later. All of the non-ndbm libraries except tdb contain
+compatibility interfaces so that programs written to call the ndbm functions
+should, in theory, work with them, but there are some potential pitfalls which
+have caught out Exim users in the past.
+
+Exim has been tested with ndbm, gdbm, DB 1.85, DB 2.x, DB 3.1, DB 4.0.14, and
+tdb 1.0.2, in various different modes in some cases, and is believed to work
+with all of them if it and they are properly configured.
+
+I have considered the possibility of calling different dbm libraries for
+different functions from a single Exim binary. However, because all bar one of
+the libraries provide ndbm compatibility interfaces (and therefore the same
+function names) it would require a lot of complicated, error-prone trickery to
+achieve this. Exim therefore uses a single library for all its dbm activities.
+
+However, Exim does also support cdb (Constant Data Base), an efficient file
+arrangement for indexed data that does not change incrementally (for example,
+alias files). This is independent of any dbm library and can be used alongside
+any of them.
+
+
+Locking
+-------
+
+The configuration option EXIMDB_LOCK_TIMEOUT controls how long Exim waits to
+get a lock on a hints database. From version 1.80 onwards, Exim does not
+attempt to take out a lock on an actual database file (this caused problems in
+the past). Instead, it takes out an fcntl() lock on a separate file whose name
+ends in ".lockfile". This ensures that Exim has exclusive access to the
+database before even attempting to open it. Exim creates the lock file the
+first time it needs it. It should never be removed.
+
+
+Main Pitfall
+------------
+
+The OS-specific configuration files that are used to build Exim specify the use
+of Berkeley DB on those systems where it is known to be standard. In the
+absence of any special configuration options, Exim uses the ndbm set of
+functions to control its dbm databases. This should work with any of the dbm
+libraries because those that are not ndbm have compatibility interfaces.
+However, there is one awful pitfall:
+
+Exim #includes a header file called ndbm.h which defines the functions and the
+interface data block; gdbm and DB 1.x provide their own versions of this header
+file, later DB versions do not. If it should happen that the wrong version of
+nbdm.h is seen by Exim, it may compile without error, but fail to operate
+correctly at runtime.
+
+This situation can easily arise when more than one dbm library is installed on
+a single host. For example, if you decide to use DB 1.x on a system where gdbm
+is the standard library, unless you are careful in setting up the include
+directories for Exim, it may see gdbm's ndbm.h file instead of DB's. The
+situation is even worse with later versions of DB, which do not provide an
+ndbm.h file at all.
+
+One way out of this for gdbm and any of the versions of DB is to configure Exim
+to call the DBM library in its native mode instead of via the ndbm
+compatibility interface, thus avoiding the use of ndbm.h. This is done by
+setting the USE_DB configuration option if you are using Berkeley DB, or
+USE_GDBM if you are using gdbm. This is the recommended approach.
+
+
+NDBM
+----
+
+The ndbm library holds its data in two files, with extensions .dir and .pag.
+This makes atomic updating of, for example, alias files, difficult, because
+simple renaming cannot be used without some risk. However, if your system has
+ndbm installed, Exim should compile and run without any problems.
+
+
+GDBM
+----
+
+The gdbm library, when called via the ndbm compatibility interface, makes two
+hard links to a single file, with extensions .dir and .pag. As mentioned above,
+gdbm provides its own version of the ndbm.h header, and you must ensure that
+this is seen by Exim rather than any other version. This is not likely to be a
+problem if gdbm is the only dbm library on your system.
+
+If gdbm is called via the native interface (by setting USE_GDBM in your
+Local/Makefile), it uses a single file, with no extension on the name, and the
+ndbm.h header is not required.
+
+The gdbm library does its own locking of the single file that it uses. From
+version 1.80 onwards, Exim locks on an entirely separate file before accessing
+a hints database, so gdbm's locking should always succeed.
+
+
+Berkeley DB 1.8x
+----------------
+
+1.85 was the most widespread DB 1.x release; there is also a 1.86 bug-fix
+release, but the belief is that the bugs it fixes will not affect Exim.
+However, maintenance for 1.x releases has been phased out.
+
+This dbm library can be called by Exim in one of two ways: via the ndbm
+compatibility interface, or via its own native interface. There are two
+advantages to doing the latter: (1) you don't run the risk of Exim's seeing the
+"wrong" version of the ndbm.h header, as described above, and (2) the
+performance is better. It is therefore recommended that you set USE_DB=yes in an
+appropriate Local/Makefile-xxx file. (If you are compiling for just one OS, it
+can go in Local/Makefile itself.)
+
+When called via the compatibility interface, DB 1.x creates a single file with
+a .db extension. When called via its native interface, no extension is added to
+the file name handed to it.
+
+DB 1.x does not do any locking of its own.
+
+
+Berkeley DB 2.x
+---------------
+
+DB 2.x was released in 1997. It is a major re-implementation and its native
+interface is incompatible with DB 1.x, though a compatibility interface was
+introduced in DB 2.1.0, and there is also an ndbm.h compatibility interface.
+
+Like 1.x, it can be called from Exim via the ndbm compatibility interface or
+via its native interface, and once again setting USE_DB in order to get the
+native interface is recommended. If USE_DB is *not* set, then you will have to
+provide a suitable version of ndbm.h, because one does not come with the DB 2.x
+distribution. A suitable version is:
+
+  /*************************************************
+  *              ndbm.h header for DB 2.x          *
+  *************************************************/
+
+  /* This header should replace any other version of ndbm.h when Berkeley DB
+  version 2.x is in use via the ndbm compatibility interface. Otherwise, any
+  extant version of ndbm.h may cause programs to misbehave. There doesn't seem
+  to be a version of ndbm.h supplied with DB 2.x, so I made this for myself.
+
+  Philip Hazel 12/Jun/97
+  */
+
+  #define DB_DBM_HSEARCH
+  #include <db.h>
+
+  /* End */
+
+When called via the compatibility interface, DB 2.x creates a single file with
+a .db extension. When called via its native interface, no extension is added to
+the file name handed to it.
+
+DB 2.x does not do any automatic locking of its own; it does have a set of
+functions for various forms of locking, but Exim does not use them.
+
+
+Berkeley DB 3.x
+---------------
+
+DB 3.0 was released in November 1999 and 3.1 in June 2000. The 3.x series is a
+development of the 2.x series and the above comments apply. Exim can
+automatically distinguish between the different versions, so it copes with the
+changes to the API without needing any special configuration.
+
+When Exim creates a DBM file using DB 3.x (e.g. when creating one of its hints
+databases), it specified the "hash" format. However, when it opens a DB 3 file
+for reading only, it specifies "unknown". This means that it can read DB 3
+files in other formats that are created by other programs.
+
+
+Berkeley DB 4.x
+---------------
+
+The 4.x series is a development of the 2.x and 3.x series, and the above
+comments apply.
+
+
+tdb
+---
+
+tdb 1.0.2 was released in September 2000. Its origin is the database functions
+that are used by the Samba project.
+
+
+
+Testing Exim's dbm handling
+---------------------------
+
+Because there have been problems with dbm file locking in the past, I built
+some testing code for Exim's dbm functions. This is very much a lash-up, but it
+is documented here so that anybody who wants to check that their configuration
+is locking properly can do so. Now that Exim does the locking on an entirely
+separate file, locking problems are much less likely, but this code still
+exists, just in case. Proceed as follows:
+
+. Build Exim in the normal way. This ensures that all the makesfiles etc. get
+  set up.
+
+. From within the build directory, obey "make test_dbfn". This makes a binary
+  file called test_dbfn. If you are experimenting with different configurations
+  you *must* do "make makefile" after changing anything, before obeying "make
+  test_dbfn" again, because the make target for test_dbfn isn't integrated
+  with the making of the makefile.
+
+. Identify a scratch directory where you have write access. Create a sub-
+  directory called "db" in the scratch directory.
+
+. Type the command "test_dbfn <scratch-directory>". This will output some
+  general information such as
+
+    Exim's db functions tester: interface type is db (v2)
+    DBM library: Berkeley DB: Sleepycat Software: DB 2.1.0: (6/13/97)
+    USE_DB is defined
+
+  It then says
+
+    Test the functions
+    >
+
+. At this point you can type commands to open a dbm file and read and write
+  data in it. First type the command "open <name>", e.g. "open junk". The
+  response should look like this
+
+    opened DB file <scratch-directory>/db/junk: flags=102
+    Locked
+    opened 0
+    >
+
+  The tester will have created a dbm file within the db directory of the
+  scratch directory. It will also have created a file with the extension
+  ".lockfile" in the same directory. Unlike Exim itself, it will not create
+  the db directory for itself if it does not exist.
+
+. To test the locking, don't type anything more for the moment. You now need to
+  set up another process running the same test_dbfn command, e.g. from a
+  different logon to the same host. This time, when you attempt to open the
+  file it should fail after a minute with a timeout error because it is
+  already in use.
+
+. If the second process doesn't produce any error message, but gets back to the
+  > prompt, then the locking is not working properly.
+
+. You can check that the second process gets the lock when the first process
+  releases it by exiting from the first process with ^D, q, or quit; or by
+  typing the command "close".
+
+. There are some other commands available that are not related to locking:
+
+     write <key> <data>
+     e.g.
+     write abcde the quick brown fox
+
+  writes a record to the database,
+
+     read <key>
+     delete <key>
+
+  read and delete a record, respectively, and
+
+     scan
+
+  scans the entire database. Note that the database is purely for testing the
+  dbm functions. It is *not* one of Exim's regular databases, and you should
+  not try running this testing program on any of Exim's real database
+  files.
+
+Philip Hazel
+Last update: June 2002

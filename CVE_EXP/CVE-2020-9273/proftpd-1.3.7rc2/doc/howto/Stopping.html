@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Stopping and Starting</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b><i>ProFTPD: Stopping and Starting</i></b></h2></center>
+<hr>
+
+<p>
+The starting and stopping of a ProFTPD server is a straightforward process,
+once the means intended for such things are understood.  Starting the
+server is easy.  Stopping and/or restarting the server are the more complicated
+tasks.  Stopping and/or restarting can be accomplish either using signals or
+<code>ftpshut</code>, depending on your needs.  Use of signals will fulfill
+most requirements; the <code>ftpshut</code> program is used for a
+<a href="#ftpshut">specific way of shutting down</a> a <code>proftpd</code>
+server.
+
+<p><a name="Starting"></a>
+<b>Starting <code>proftpd</code></b><br>
+The <a href="ServerType.html"><code>ServerType</code></a> configured in
+your <code>proftpd.conf</code> determines how you should start your
+<code>proftpd</code> daemon.  A <code>ServerType</code> of "inetd" means
+that you are letting inetd/xinetd handle the starting of the server; using
+"standalone" means that you will probably end up using some kind of
+script (<i>e.g.</i> <code>init.d</code> shell scripts).
+
+<p>
+All start scripts end up using, in some form or another, the various
+command-line options supported by <code>proftpd</code>:
+<pre>
+  /usr/local/sbin/proftpd [options]
+</pre>
+where <code>/usr/local/sbin</code> is determined by <code>configure</code>
+and <code>[options]</code> are described below (or in <em>proftpd(8)</em>):
+<pre>
+ -h, --help
+     Display proftpd usage
+ -n, --nodaemon
+     Disable background daemon mode and send all output to stderr)
+ -q, --quiet
+     Don't send output to stderr when running with -n or --nodaemon
+ -d [level], --debug
+     Set debugging level (0-9, 9 = most debugging)
+ -D [definition], --define
+     Set arbitrary IfDefine definition
+ -c [config-file], --config
+     Specify alternate configuration file
+ -p [0|1], --persistent
+     Enable/disable default persistent passwd support
+ -l, --list
+     List all compiled-in modules
+ -t, --configtest
+     Test the syntax of the specified config
+ -v, --version
+     Print version number and exit
+ -vv, --version-status
+     Print extended version information and exit
+</pre>
+
+<p><a name="Signals"></a>
+<b>Signals</b><br>
+You will notice many <code>proftpd</code> processes running on your system,
+but you should not send signals to any of them except the parent, whose PID is
+in the <code>PidFile</code>. That is to say, you should not ever need to
+send signals to any process except the parent. There are two signals that you
+can send the parent: <code>TERM</code> and <code>HUP</code>, which will be
+described below.
+
+<!--
+<GeekBoy> timeouts left child processes going... I kill -9 both of them and it proceeds to tell me max num of allowed clients are connected
+<castaglia> don't use -9
+<GeekBoy> hmmmm, ok
+<castaglia> there's no way proftpd can handle killed sessions if you use -9
+<GeekBoy> let's try this again
+<castaglia> no app can
+<castaglia> if you need to kill a session
+<GeekBoy> was unaware of the low level workings of the various kill signals
+<castaglia> just use 'kill <pid>'
+<castaglia> -9 is SIGKILL
+<GeekBoy> ok
+<castaglia> and an application cannot catch or handle that particular signal
+<castaglia> the kernel will not allow it
+<castaglia> as that one signal is reserved, to make sure that the kernel can use it to kill any process
+<castaglia> as when the server is shutting down
+<GeekBoy> ok
+<castaglia> unfortunately, it also means that the application can't catch the -9 and do any proper cleanup
+<castaglia> imho, people use -9 too much these days
+<GeekBoy> i see
+<GeekBoy> I'll avoid using it when the default doesn't work
+<GeekBoy> which is 15, right?
+<castaglia> ummm...yes
+<castaglia> SIGTERM
+-->
+
+<p>
+To send a signal to the parent you should issue a command such as:
+<pre>
+  kill -TERM `cat /usr/local/var/proftpd.pid`
+</pre>
+You can read about its progress by issuing: 
+<pre>
+  tail -f /usr/local/var/logs/proftpd.log
+</pre>
+Modify those examples to match your <code>SystemLog</code> and
+<code>PidFile</code> settings. 
+
+<p>
+<b>The <code>TERM</code> Signal</b> <i>(stop now)</i><br>
+Sending the <code>TERM</code> signal to the daemon parent process causes it
+to immediately attempt to kill off all of its children. It may take it several
+seconds to complete killing off its children.  The daemon itself then exits.
+Any transfers in progress are terminated, and no further session requests
+are served.
+
+<p>
+Servers run out of <code>inetd</code> or <code>xinetd</code> (<i>e.g.</i> with
+a <code>ServerType</code> setting of <code>inetd</code>) will not need this
+signal, as their &quot;parent&quot; is the <code>inetd</code> or
+<code>xinetd</code> process.
+
+<p>
+<b>The <code>HUP</code> Signal</b> <i>(restart now)</i><br>
+Sending the <code>HUP</code> signal to the daemon parent process causes it to
+re-read its configuration file(s), and re-opens any log files.  Then it
+returns to handling new sessions.  Any existing sessions will <b>not</b>
+be terminated.
+
+<p>
+Servers run out of <code>inetd</code> or <code>xinetd</code> will not need
+this signal; a new server process is started by the superserver process
+(<i>e.g.</i> <code>inetd</code> or <code>xinetd</code>) for every session
+request.  This means that any changes to the configuration file will be
+visible to the next session after saving the changes to the file.
+
+<p>
+Note that if your configuration file has errors in it when you issue a restart
+then your parent will not restart, it will exit with an error. To avoid this,
+perform a syntax check of the file before sending the signal:
+<pre>
+  proftpd -t -d5
+</pre>
+
+<p><a name="InitScripts"></a>
+<b>Example <code>init.d</code> script</b><br>
+If your particular Unix/Linux distribution and/or <code>proftpd</code>
+package does not provide an init shell script for <code>proftpd</code>, or
+you want to write your own, here is a simple example script to demonstrate
+what one would look like:
+<pre>
+  #!/bin/sh
+
+  # ProFTPD files
+  FTPD_BIN=/usr/local/sbin/proftpd
+  FTPD_CONF=/usr/local/etc/proftpd.conf
+  PIDFILE=/var/run/proftpd.pid
+
+  # If PIDFILE exists, does it point to a proftpd process?
+
+  if [ -f $PIDFILE ]; then
+   pid=`cat $PIDFILE`
+  fi
+
+  if [ ! -x $FTPD_BIN ]; then
+    echo "$0: $FTPD_BIN: cannot execute"
+    exit 1
+  fi
+
+  case $1 in
+
+    start)
+      if [ -n "$pid" ]; then
+        echo "$0: proftpd [PID $pid] already running"
+        exit
+      fi
+
+      if [ -r $FTPD_CONF ]; then
+        echo "Starting proftpd..."
+
+        $FTPD_BIN -c $FTPD_CONF
+
+      else
+        echo "$0: cannot start proftpd -- $FTPD_CONF missing"
+      fi
+      ;;
+
+    stop)
+      if [ -n "$pid" ]; then
+        echo "Stopping proftpd..."
+        kill -TERM $pid
+
+      else
+        echo "$0: proftpd not running"
+        exit 1
+      fi
+      ;;
+
+    restart)
+      if [ -n "$pid" ]; then
+        echo "Rehashing proftpd configuration"
+        kill -HUP $pid
+
+      else
+        echo "$0: proftpd not running"
+        exit 1
+      fi
+      ;;
+
+    *)
+      echo "usage: $0 {start|stop|restart}"
+      exit 1
+      ;;
+
+  esac
+
+  exit 0
+</pre>
+
+<p>
+For Mac OSX users, here is an example Launcher/launchd <code>plist</code>
+configuration for <code>proftpd</code>:
+<pre>
+  &lt;?xml version="1.0" encoding="UTF-8"?&gt;
+  &lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
+    &lt;plist version="1.0"&gt;
+      &lt;dict&gt;
+        &lt;key&gt;KeepAlive&lt;/key&gt;
+          &lt;dict&gt;
+            &lt;key&gt;SuccessfulExit&lt;/key&gt;
+              &lt;true/&gt;
+          &lt;/dict&gt;
+        &lt;key&gt;Label&lt;/key&gt;
+          &lt;string&gt;org.proftpd.proftpd&lt;/string&gt;
+        &lt;key&gt;ProgramArguments&lt;/key&gt;
+          &lt;array&gt;
+            &lt;string&gt;/usr/local/sbin/proftpd&lt;/string&gt;
+            &lt;string&gt;-n&lt;/string&gt;
+          &lt;/array&gt;
+        &lt;key&gt;RunAtLoad&lt;/key&gt;
+          &lt;true/&gt;
+        &lt;key&gt;ServiceIPC&lt;/key&gt;
+          &lt;false/&gt;
+      &lt;/dict&gt;
+    &lt;/plist&gt;
+</pre>
+This has been reported to run successfully on Mac OSX 10.4 and 10.5.
+
+<p>
+<a name="ftpshut"><b>The <code>ftpshut</code> program</b><br>
+The <code>ftpshut</code> program that comes as part of ProFTPD can also
+be used to shut down a <code>proftpd</code> server, in a sense.  This program
+does not actually cause the server to stop completely, but rather places
+the server in an &quot;administrative shutdown&quot; state.  This means
+that the server will still be handling session requests, but will deny
+incoming requests, telling clients to come back later.  <code>ftpshut</code>
+allows the administrator to configure the server to start refusing
+connections at some future date, and also to disconnect existing sessions
+at some future date.
+
+<p>
+The situation in which this ability is most useful (a
+<a href="http://www.proftpd.org/docs/faq/proftpdfaq-4.html#ss4.17">FAQ</a>) is
+one where filesystem maintainenance or work needs to be done in the area from
+which the FTP server is serving files, but the server need not be shutdown.
+By placing the server in an &quot;administrative shutdown&quot; mode, clients
+are barred from their file while the administrative work is being done. Once
+completed, the server can be put back in normal operating mode by simply
+deleting the shutdown message file, described below.
+
+<p>
+The <code>ftpshut</code> program works by creating a file, usually
+<code>/etc/shutmsg</code>, for which the server checks periodically.  This
+file will contain the time at which the server is to place itself in
+&quot;administrative shutdown&quot; mode, and times (if any) of refusing
+incoming connections, disconnecting existing connections.  Unfortunately,
+many third-party administration tools use <code>ftpshut</code> to shut
+down <code>proftpd</code> servers, rather than using the method above.  The
+problem with this approach is that, once restarted, the server will check
+for <code>/etc/shutmsg</code>, and will not accept incoming connections,
+leading to this
+<a href="http://www.proftpd.org/docs/faq/faq_full.html#AEN373">FAQ</a>;
+the third-party administration tool often forgets to delete that file once
+done.
+
+<p>
+Read <code>ftpshut</code>'s
+<a href="../utils/ftpshut.html">man</a> page for more detailed information on
+its usage.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

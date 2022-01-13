@@ -1,0 +1,36 @@
+/*************************************************
+*     Exim - an Internet mail transport agent    *
+*************************************************/
+
+/* Copyright (c) University of Cambridge 2001 */
+/* See the file NOTICE for conditions of use and distribution. */
+
+/* OSF1-specific code. This is concatenated onto the generic src/os.c file.
+OSF1 has an apparently unique way of getting the load average, so we provide a
+unique function here, and define OS_LOAD_AVERAGE to stop src/os.c trying to
+provide the function. The macro may be set initially anyway, when compiling os.
+for utilities that don't want this function. */
+
+#ifndef OS_LOAD_AVERAGE
+#define OS_LOAD_AVERAGE
+
+#include <sys/table.h>
+
+int
+os_getloadavg(void)
+{
+double avg;
+struct tbl_loadavg load_avg;
+
+table (TBL_LOADAVG, 0, &load_avg, 1, sizeof (load_avg));
+
+avg = (load_avg.tl_lscale == 0)?
+  load_avg.tl_avenrun.d[0] :
+  (load_avg.tl_avenrun.l[0] / (double)load_avg.tl_lscale);
+
+return (int)(avg * 1000.0);
+}
+
+#endif  /* OS_LOAD_AVERAGE */
+
+/* End of os.c-OSF1 */

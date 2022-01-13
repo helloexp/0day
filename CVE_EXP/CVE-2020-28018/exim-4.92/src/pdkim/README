@@ -1,0 +1,9 @@
+PDKIM - a RFC4871 (DKIM) implementation
+http://duncanthrax.net/pdkim/
+Copyright (C) 2009      Tom Kistner <tom@duncanthrax.net>
+
+No longer includes code from the PolarSSL project.
+Copyright (C) 2016 Jeremy Harris <jgh@exim.org>
+
+This copy of PDKIM is included with Exim. For a standalone distribution,
+visit http://duncanthrax.net/pdkim/.

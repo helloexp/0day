@@ -1,0 +1,64 @@
+CC=@CC@
+@SET_MAKE@
+
+# Note: we include the additional tweaking of top_builddir, so that LIBTOOL
+# resolves to the correct place.
+top_builddir=@top_builddir@/../../../
+top_srcdir=@top_srcdir@
+module_srcdir=@top_builddir@/..
+srcdir=@srcdir@
+VPATH=@srcdir@
+
+include $(top_builddir)/Make.rules
+
+# Necessary redefinitions
+INCLUDES=-I. -I.. -I$(top_srcdir) -I$(top_srcdir)/include @INCLUDES@
+CPPFLAGS=$(ADDL_CPPFLAGS) -DHAVE_CONFIG_H $(DEFAULT_PATHS) $(PLATFORM) $(INCLUDES)
+LDFLAGS=-L$(top_srcdir)/lib @LIBDIRS@
+
+EXEEXT=@EXEEXT@
+
+TEST_API_DEPS=\
+  $(top_srcdir)/src/pool.o \
+  $(top_srcdir)/src/sets.o \
+  $(top_srcdir)/src/str.o \
+  $(top_srcdir)/src/support.o \
+  $(top_srcdir)/src/table.o \
+  $(top_srcdir)/src/netaddr.o \
+  $(top_srcdir)/src/event.o \
+  $(top_srcdir)/src/fsio.o \
+  $(top_srcdir)/src/log.o \
+  $(top_srcdir)/src/privs.o \
+  $(module_srcdir)/crypto.o \
+  $(module_srcdir)/base32.o \
+  $(module_srcdir)/otp.o
+
+TEST_API_LIBS=-lcheck
+
+TEST_API_OBJS=\
+  api/base32.o \
+  api/otp.o \
+  api/stubs.o \
+  api/tests.o
+
+
+all:
+	@echo "Running make from top level directory."
+	cd ../; $(MAKE) all
+
+dummy:
+
+Makefile: Makefile.in ../config.status
+	cd ../ && ./config.status
+
+api/.c.o:
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $<
+
+api-tests$(EXEEXT): $(TEST_API_OBJS) $(TEST_API_DEPS)
+	$(LIBTOOL) --mode=link --tag=CC $(CC) $(LDFLAGS) -o $@ $(TEST_API_DEPS) $(TEST_API_OBJS) $(LIBS) $(TEST_API_LIBS)
+	./$@
+
+check-api: dummy api-tests$(EXEEXT)
+
+clean:
+	$(LIBTOOL) --mode=clean $(RM) *.o api/*.o api-tests$(EXEEXT) api-tests.log

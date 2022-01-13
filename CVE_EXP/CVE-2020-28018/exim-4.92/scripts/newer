@@ -1,0 +1,21 @@
+#! /bin/sh
+
+# Script to determine whether the first file is newer than the second.
+# If the first does not exist, the answer is "no";
+# if the second does not exist, the answer is "yes";
+# otherwise their ages are compared using "find".
+
+if [ $# -ne 2 ]; then
+  echo "*** Two file names needed for 'newer' ***"
+  exit 2;
+fi
+
+if [ ! -f $1 ]; then exit 1; fi
+if [ ! -f $2 ]; then exit 0; fi
+
+case `find $1 -newer $2 -print` in
+'')	exit 1;;
+*)	exit 0;;
+esac
+
+# End

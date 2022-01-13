@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD Logging: Log Levels</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD Logging: Log Levels</b></h2></center>
+<hr>
+
+<p>
+<b>Log Levels</b>
+As mentioned in the <a href="Logging.html#Syslog">logging</a> documentation,
+log messages are logged at different <em>log levels</em> (also known as
+log <em>priorities</em>), and with different <em>facilities</em> (<i>i.e.</i>
+the component generating the log message).
+
+<p>
+The following table lists the supported log levels, in descending priority
+order.  Thus the <code>DEBUG</code> level has the lowest priority, and the
+<code>EMERG</code> level has the highest priority.
+
+<p>
+<table border=1 summary="Log Levels">
+  <tr>
+    <td><b>&nbsp;Level&nbsp;</b></td>
+    <td><b>&nbsp;Description&nbsp;</b></td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>EMERG</code>&nbsp;</td>
+    <td>&nbsp;Fatal/unrecoverable error/condition, application is unusable and
+        stops immediately&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>ALERT</code>&nbsp;</td>
+    <td>&nbsp;Condition requires <b>immediate</b> intervention by
+        administrator/operator&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>CRIT</code>&nbsp;</td>
+    <td>&nbsp;Condition <b>should</b> be corrected immediately, but indicates
+        <i>e.g.</i> failure in secondary system/library&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>ERR</code>&nbsp;</td>
+    <td>&nbsp;Non-urgent failure conditions that should be relayed to developers
+        and/or administrators; <b>should</b> be resolved/corrected soon&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>WARNING</code>&nbsp;</td>
+    <td>&nbsp;Unexpected error/condition that <i>may</i> require intervention to
+        review/correct&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>NOTICE</code>&nbsp;</td>
+    <td>&nbsp;Significant/noteworthy condition, no intervention/action
+        required&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>INFO</code>&nbsp;</td>
+    <td>&nbsp;Normal operating conditions, no intervention/action
+        required&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;<code>DEBUG</code>&nbsp;</td>
+    <td>&nbsp;Internal details of application operations useful to developers,
+        not necessarily useful during normal operations&nbsp;</td>
+  </tr>
+</table>
+
+<p>
+The <code>proftpd</code> daemon can use any or all of the above log levels for
+its emitted log messages, depending on the situation.  You might find that
+you only want <code>proftpd</code> to log messages above a certain level; for
+example, you might not be interested in <code>INFO</code> and <code>DEBUG</code>
+level messages.  ProFTPD logs all levels by default.  To tell
+<code>proftpd</code> to silently ignore all log messages below a certain level,
+use the <a href="../modules/mod_core.html#SyslogLevel"><code>SyslogLevel</code></a> directive.  Thus to ignore <code>INFO</code>/<code>DEBUG</code> messages,
+you would use:
+<pre>
+  SyslogLevel notice
+</pre>
+
+<p>
+Note that additional log filtering is also done by the <code>syslogd</code>
+daemon, to which <code>proftpd</code> logs by default.  You will need to
+consult your <code>syslogd</code> configuration (typically found in
+<code>/etc/syslog.conf</code>) to see whether it is capturing log messages
+from the facility used by <code>proftpd</code> (default is "daemon"), and
+whether it is filtering out messages below a certain level/priority.
+
+<p>
+If you need to tell <code>proftpd</code> to use a different facility,
+so that it matches your <code>/etc/syslog.conf</code> settings for example,
+you can use the <a href="../modules/mod_core.html#SyslogFacility"><code>SyslogFacility</code></a> directive like so:
+<pre>
+  # Tell proftpd to log using the "ftp" facility, rather than "daemon"
+  SyslogFacility ftp
+</pre>
+
+<p><a name="DebugLevel">
+<b>The <code>DEBUG</code> Level</b><br>
+ProFTPD treats the <code>DEBUG</code> log level a little differently.  There
+are so many conditions which are relevant only when triaging a specific issue
+(such as figuring out why a user cannot log in, or why a file cannot be
+uploaded) that the <code>DEBUG</code> level would become cluttered.  Additional
+filtering of these debug messages is needed.  Thus ProFTPD imposes its own
+notion of debug levels within the <code>DEBUG</code> logging level/priority.
+
+<p>
+The <a href="../modules/mod_core.html#DebugLevel"><code>DebugLevel</code></a>
+directive is used to control the granularity/verbosity of the <code>DEBUG</code>
+level messages; the default level is 0, and goes to 10 (inclusive).  In general,
+the higher the <code>DebugLevel</code>, the more debug messages will be emitted
+by <code>proftpd</code> to the <code>DEBUG</code> logging level/priority.
+
+<p><a name="TraceLog">
+<b>Additional Logging</b><br>
+Note that ProFTPD also supports even finer-grained logging of internals via
+its <a href="Tracing.html">trace logging</a>.  Trace logging, however, is
+completely unrelated to <code>syslogd</code>, and thus the syslog
+<em>facility</em> and <em>level</em> concepts/filtering do <b>not</b> apply
+to trace logging.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2013-2019 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

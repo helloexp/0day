@@ -1,0 +1,32 @@
+# Exim: OS-specific make file for DGUX
+#
+# Written by Ken Bailey (K.Bailey@rbgkew.org.uk) Feb 1998
+# on dgux R4.11MU04 generic AViiON mc88100
+# with no X
+
+# Minor tidies to remove settings that are actually the default,
+# in line with the style of other system files - PH.
+
+BASENAME_COMMAND=/bin/basename
+CHOWN_COMMAND=/bin/chown
+CHGRP_COMMAND=/bin/chgrp
+CHMOD_COMMAND=/bin/chmod
+
+# PERL
+# Perl is not necessary for running Exim itself, but some Perl utilities
+# are provided for processing the logs. Perl 5 is assumed.
+# DG ship perl version 4.036 in /bin/perl so need to use locally installed perl
+
+PERL_COMMAND=/usr/local/bin/perl
+
+# dg's version of gcc likes O2
+
+CFLAGS=-O2
+
+RANLIB=@true
+LIBS=-lsocket -lnsl -lm
+LIBRESOLV=-lresolv
+DBMLIB=-ldbm
+
+# End
+

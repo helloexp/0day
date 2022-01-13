@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ftpmail: Automated Email Notifications of Uploads</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b><code>ftpmail</code>: Automated Email Notifications of Uploads</b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>ftpmail</code> program is a Perl script designed to read
+ProFTPD's <code>TransferLog</code> log entries, watching for uploads, and
+to send an automatic email notification when uploads occur.  To use
+<code>ftpmail</code>, you configure your <code>proftpd</code> daemon to
+write its <code>TransferLog</code> to a <a href="http://www.proftpd.org/docs/howto/Logging.html#FIFOs">FIFO</a>; the <code>ftpmail</code> program is a FIFO
+reading program which then processes those log messages.
+
+<p>
+The most current version of <code>ftpmail</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this program.
+
+<p>
+<hr><br>
+<h2><a name="Usage">Usage</a></h2>
+First, you have the following Perl modules installed:
+<ul>
+  <li>Mail::Sendmail
+  <li>Time::HiRes
+</ul>
+You can easily determine if your Perl has these modules present, using:
+<pre>
+  $ perl -MMail::Sendmail -e0
+  $ perl -MTime::HiRes -e0
+</pre>
+If you see an error similar to:
+<pre>
+  Can't location Mail/Sendmail.pm in @INC (@INC contains: <i>...</i>)
+</pre>
+it means that you do not have that Perl module installed.  Go to <a href="http://search.cpan.org">search.cpan.org</a> to download the latest versions of
+these modules, and install them as per their instructions.
+
+<p>
+Next, you need to create the FIFO that <code>ftpmail</code> will read from.
+See the <code>mkfifo(1)</code> man page for instructions on how to create
+a FIFO.  Note that you <b>must</b> use <code>mkfifo</code> to create a FIFO;
+using an ordinary file that happens to have a ".fifo" extension will not work
+for this.
+
+<p>
+After that, you need to start <code>ftpmail</code> running, <i>before</i>
+starting <code>proftpd</code>.  For example, you might do:
+<pre>
+   $ ./ftpmail \
+       --fifo=/var/proftpd/log/transfer.fifo \
+       --from='tj@castaglia.org' \
+       --recipient='tj@castaglia.org' \
+       --smtp-server=mail.domain.com \
+       --attach-file \
+       --log=/var/proftpd/log/transfer.log &amp;
+</pre>
+The key is to make <code>ftpmail</code> run in the background, so that it is
+constantly running.  If the <code>ftpmail</code> process dies, then
+<code>proftpd</code> will not be able to write the <code>TransferLog</code>.
+
+<p>
+The next step is to configure your <code>proftpd</code> daemon to write to
+the FIFO you created.  Thus in your <code>proftpd.conf</code>, you would
+use the same path as given to <code>ftpmail</code>'s <code>--fifo</code>
+option, <i>e.g.</i>:
+<pre>
+  TransferLog /var/proftpd/log/transfer.fifo
+</pre>
+ 
+<p>
+Then start <code>proftpd</code>, log in, upload a file, and see what happens.
+One user modified their <code>init</code> for <code>proftpd</code> such
+that the <code>ftpmail</code> program was automatically started before
+the <code>proftpd</code> daemon was started.
+
+<p>
+<b>Options</b><br>
+The following shows the full list of <code>ftpmail</code> options; this
+can also be obtained by running:
+<pre>
+  $ ftpmail --help
+
+  usage: ftpmail [--help] [--fifo $path] [--from $addr] [--log $path]
+    [--recipient $addrs] [--upload-recipient \$addrs]
+    [--download-recipient $addrs] [--subject $string] [--smtp-server $addr]
+    [--attach-file] [--ignore-users $regex | --watch-users $regex]
+
+  The purpose of this script is to monitor the TransferLog written by proftpd
+  for uploaded files.  Whenever a file is uploaded by a user, an email
+  will be sent to the specified recipients.  In the email there will be
+  the timestamp, the name of the user who uploaded the file, the path to
+  the uploaded file, the size of the uploaded file, and the time it took
+  to upload.
+
+  Command-line options:
+
+    --attach-file         If used, this will cause a copy of the uploaded file
+                          to be included, as an attachment, in the generated
+                          email.
+
+    --auth $path          Configures the path to a file containing SMTP
+                          authentication information.
+
+                          The configured file should look like this:
+
+                              user = $user
+                              password = $password
+
+    --fifo $path          Indicates the path to the FIFO to which proftpd is
+                          writing its TransferLog.  That is, this is the path
+                          that you used for the TransferLog directive in your
+                          proftpd.conf.  This parameter is REQUIRED.
+
+    --from $addr          Specifies the email address to use in the From header.
+                          This parameter is REQUIRED.
+
+    --help                Displays this message.
+
+    --ignore-users $regex Specifies a Perl regular expression.  If the
+                          uploading user name matches this regular expression,
+                          then an email notification is NOT sent; otherwise,
+                          an email is sent.
+
+    --log $path           Since this script reads the TransferLog using FIFOs,
+                          the actual TransferLog file is not written by default.
+                          Use this option to write the normal TransferLog file,
+                          in addition to watching for uploads.
+
+    --recipient $addr     Specifies an email address to which to send an email
+                          notification of the upload.  This option can be
+                          used multiple times to specify multiple recipients.
+                          AT LEAST ONE recipient is REQUIRED.
+
+    --upload-recipient $addr
+                          Same as --recipient.
+
+    --download-recipient $addr
+                          Specifies an email address to which to send an email
+                          notification of the download.  This option can be
+                          used multiple times to specify multiple recipients.
+
+                          If this option is specified, then ftpmail will watch
+                          for FTP downloads as well as uploads.
+
+    --smtp-server $addr   Specifies the SMTP server to which to send the email.
+                          This parameter is REQUIRED.
+
+    --subject $string     Specify a custom Subject header for the email sent.
+                          The default Subject is:
+
+                            User '$user' uploaded file '$file' via FTP
+
+    --watch-users $regex  Specifies a Perl regular expression.  If the
+                          uploading user name matches this regular expression,
+                          then an email notification is sent; otherwise,
+                          no email is sent.
+</pre>
+
+<p><a name="FAQ"></a>
+<b>FAQ</b><br>
+
+<p>
+<font color=red>Question</font>: I would like to use <code>ftpmail</code>
+to send emails, but only for files uploaded to specific domains.  How do
+I do this?<br>
+<font color=blue>Answer</font>: To do this, you will need to configure
+different <code>TransferLog</code> files in your different
+<code>&lt;VirtualHost&gt;</code> sections in your <code>proftpd.conf</code>.
+
+<p>
+The TransferLog file format does not include a field indicating the IP
+address (or DNS name) of the server on which the file transfer is occurring.
+This means that <code>ftpmail</code> does not know which server is handling
+the transfer.  So, in order to have <code>ftpmail</code> send emails only
+for certain domains/servers, you will have to do something like:
+<pre>
+ &lt;VirtualHost a.b.c.d&gt;
+    ...
+    TransferLog /path/to/vhost1.xferlog
+    ..
+  &lt;/VirtualHost&gt;
+
+  &lt;VirtualHost e.f.g.h&gt;
+    ...
+    TransferLog /path/to/vhost2.xferlog
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+Then start instances of <code>ftpmail</code> running, but only for the
+<code>TransferLog</code> files of the domains/virtual servers to be monitored.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2008-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

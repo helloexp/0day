@@ -1,0 +1,33 @@
+@SET_MAKE@
+
+top_builddir=@top_builddir@
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+
+LS=/bin/ls
+VPATH=@srcdir@
+
+include $(top_builddir)/Make.rules
+
+.SUFFIXES: .h
+
+.PHONY: ""
+
+all:
+	@echo "Running make from top level directory."
+	cd .. && $(MAKE) all
+
+Makefile: Makefile.in ../config.status
+	cd ../ && ./config.status
+
+# BSD install -d doesn't work, so ...
+$(DESTDIR)$(includedir) $(DESTDIR)$(includedir)/proftpd:
+	@if [ ! -d $@ ]; then \
+		mkdir -p $@; \
+		chown $(INSTALL_USER):$(INSTALL_GROUP) $@; \
+		chmod 0755 $@; \
+	fi
+
+install: $(DESTDIR)$(includedir)/proftpd
+	(cd $(srcdir) && $(INSTALL_MAN) *.h $(DESTDIR)$(includedir)/proftpd/)
+	(cd $(top_builddir) && $(INSTALL_MAN) *.h $(DESTDIR)$(includedir)/proftpd/)

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_quotatab_file</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_quotatab_file</code></b></h2>
+</center>
+<hr><br>
+
+This <code>mod_quotatab</code> submodule is contained in the
+<code>mod_quotatab_file.c</code>, and is found in the <code>contrib/</code>
+area of the ProFTPD source distribution.  See the <code>mod_quotatab</code>
+<a href="mod_quotatab.html#Installation">installation</a> instructions.
+
+<p>
+This submodule provides the file-specific &quot;driver&quot; for storing quota
+table information in files.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<p>
+<hr><h2><a name="FileTables">File Quota Tables</a></h2>
+Using file-based quota tables (<em>source-type</em> of &quot;file&quot;) the
+data will be stored in binary fixed-record format.  This module is accompanied
+by a tool, <a href="ftpquota.html"><code>ftpquota</code></a>, to help in
+creating and managing these file-based tables.
+
+<p>
+The <code>mod_quotatab_file</code> module supports the &quot;file&quot; string
+for the <em>source-type</em> parameter of the
+<a href="mod_quotatab.html#QuotaLimitTable"><code>QuotaLimitTable</code></a>
+and
+<a href="mod_quotatab.html#QuotaTallyTable"><code>QuotaTallyTable</code></a>
+configuration directives.  If the &quot;file&quot; <em>source-type</em>
+is used, then the <em>source-info</em> parameter must be the full path to
+the file table.
+
+<p>
+<code>mod_quotatab_file</code> treats any number <b>zero or less</b> for a
+<b>bytes limit</b> as &quot;unlimited&quot;.  Similarly, it treats a value of
+<b>zero</b> for any of the <b>files limit</b>s as &quot;unlimited&quot;.
+&quot;Unlimited&quot; values are ignored, in that any limit that is
+&quot;unlimited&quot; is not used in any of <code>mod_quotatab</code>'s
+calculations.
+
+<p>
+Examples:
+<pre>
+  # Using a file-based limit table
+  QuotaLimitTable file:/usr/local/proftpd/ftpquota.limittab
+
+  # Using a file-based tally table
+  QuotaTallyTable file:/usr/local/proftpd/ftpquota.tallytab
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2013 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

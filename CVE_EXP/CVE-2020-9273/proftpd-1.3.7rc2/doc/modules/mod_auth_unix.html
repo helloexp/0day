@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_auth_unix</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_auth_unix</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+This module is contained in the <code>mod_auth_unix.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is compiled by default.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#AuthUnixOptions">AuthUnixOptions</a>
+  <li><a href="#PersistentPasswd">PersistentPasswd</a>
+</ul>
+
+<hr>
+<h3><a name="AuthUnixOptions">AuthUnixOptions</a></h3>
+<strong>Syntax:</strong> AuthUnixOptions <em>opt1 ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_auth_unix<br>
+<strong>Compatibility:</strong> 1.3.3rc2
+
+<p>
+The <code>AuthUnixOptions</code> directive is used to tweak various
+Unix-specific authentication behaviors in <code>mod_auth_unix</code>.  The
+currently implemented options are:
+<ul>
+  <li><code>AIXNoRLogin</code><br>
+    <p>
+    In <a href="http://bugs.proftpd.org/show_bug.cgi?id=1896">Bug#1896</a>,
+    support for checking some AIX-specific functions for whether a login
+    should be accepted was added; this happens only on AIX servers, of course.
+
+    <p>
+    However, some AIX admins like to configure "rlogin=false", yet still want
+    to allow FTP logins.  To enable this specific behavior, a new
+    <code>AuthUnixOptions</code> setting (only honored on AIX) was added:
+<pre>
+        AuthUnixOptions AIXNoRLogin
+</pre>
+    If this setting is used on any other server, it is silently ignored.
+    <a href="http://bugs.proftpd.org/show_bug.cgi?id=3300">Bug#3300</a> has
+    the full details.
+  </li>
+
+  <p>
+  <li><code>MagicTokenChroot</code><br>
+    <p>
+    This option causes <code>mod_auth_unix</code> to examine the home
+    directory retrieved for a user for the magic "/./" token.  If found,
+    the portion of the directory before the token will be used for the
+    <code>chroot()</code> for the process; the portion after the token
+    will be the default directory for the process.
+
+    <p>
+    <b>Note</b> that this will override any configured <code>DefaultRoot</code>
+    and <code>DefaultChdir</code> directives.
+
+    <p>
+    This option is intended for use for sites which are migrating from
+    old <code>wuftpd</code>-based installations.
+  </li>
+
+  <p>
+  <li><code>NoGetgrouplist</code><br>
+    <p>
+    On systems which support it, the <code>getgrouplist(3)</code> function
+    can be used to get the group membership list of a user in a <i>much</i>
+    faster way.  However, use of this function can have strange interactions
+    with NSS modules, depending on the NSS modules used (see
+    <a href="http://bugs.proftpd.org/show_bug.cgi?id=3475">Bug#3475</a>).
+    Use this option to disable use of the <code>getgrouplist(3)</code>
+    function, <i>e.g.</i>:
+<pre>
+        AuthUnixOptions NoGetgrouplist
+</pre>
+    This setting has no effect on systems which do not support the
+    <code>getgrouplist(3)</code> function.
+  </li>
+
+  <p>
+  <li><code>NoInitgroups</code><br>
+    <p>
+    On systems which support it, the <code>initgroups(3)</code> function
+    can be used to get the group membership list of a user in a <i>much</i>
+    faster way.  However, there are limits to the number of groups to which
+    a user can belong, use of this function means that groups which exceed
+    that limit <b>will be silently ignored</b>.  Thus for sites which need
+    users to belong to a <i>large</i> number of groups, use this option to
+    disable the use of the <code>initgroups(3)</code> function, <i>e.g.</i>:
+<pre>
+        AuthUnixOptions NoInitgroups
+</pre>
+    This setting has no effect on systems which do not support the
+    <code>initgroups(3)</code> function.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h3><a name="PersistentPasswd">PersistentPasswd</a></h3>
+<strong>Syntax:</strong> PersistentPasswd <em>on|off</em><br>
+<strong>Default:</strong> off<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_auth_unix<br>
+<strong>Compatibility:</strong> 1.2.0
+
+<p>
+The <code>PersistentPasswd</code> directive controls how
+<code>mod_auth_unix</code> handles authentication, user/group lookups, and
+user/group to name mapping.  If set to <em>on</em>, <code>mod_auth_unix</code>
+will attempt to open the system-wide <code>/etc/passwd</code>,
+<code>/etc/group</code> (and potentially <code>/etc/shadow</code>) files
+itself, holding them open even during a <code>chroot()</code>ed login.  (Note
+that <code>/etc/shadow</code> is never held open, for security reasons).
+
+<p>
+On some platforms, you <b>must</b> turn this option on, as the libc functions
+are incapable of accessing these databases from inside of a
+<code>chroot()</code>.
+
+<p>
+Note: <code>NIS</code>/<code>NIS+</code> and <code>NSS</code> users will most
+likely want to disable this feature.  Failure to disable this will make your
+<code>NIS</code>/<code>NIS+</code> maps and <code>NSS</code> lookups not work!
+On certain systems, you may also need to use the
+<code>--enable-autoshadow</code> option in order to authenticate both users
+from <code>NIS</code> maps or <code>NSS</code> lookups, and local users.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_auth_unix</code> module is compiled by default.
+
+<p>
+<b>Logging</b><br>
+The <code>mod_auth_unix</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>auth.unix
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace auth.unix:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="Password8Characters">
+<font color=red>Question</font>: I found that only the first 8 characters of
+passwords are used! This is a security bug!<br>
+<font color=blue>Answer</font>: No, it is not.
+
+<p>
+The default Unix password hashing scheme uses the <a href="http://en.wikipedia.org/wiki/Data_Encryption_Standard">Data Encryption Standard</a> (DES) algorithm.
+As per the <code>crypt(3)</code> man page, <b>only the first 8 characters
+of the password are used</b>.  Thus this 8 character limitation comes from
+the underlying system authentication, <b>not</b> from proftpd.  The whole
+purpose of the PAM system was to enable replacing the use of DES with other
+authentication algorithms, which do not have this 8 character limitation.
+
+<p>
+Later, other <code>crypt(3)</code> implementations were made which can also
+support algorithms such as MD5, or Blowfish.  Some platforms support these
+enhanced versions of <code>crypt(3)</code>, some do not.
+
+<p><a name="ExpiredPasswords">
+<font color=red>Question</font>: It appears that the handling of expired
+passwords by <code>mod_auth_unix</code> is wrong.  Is this a bug?<br>
+<font color=blue>Answer</font>: Not really.  Different implementations
+have implemented expired passwords differently.  One particular implementation
+even has special values, <i>e.g.</i> for the date of last password change:
+<blockquote>
+  The value 0 has a special meaning, which is that the user should
+  change her password the next time she will log in the system.
+</blockquote>
+
+<p>
+These special cases vary from implementation to implementation; in the end,
+it is better to use the
+<a href="mod_auth_pam.html"><code>mod_auth_pam</code></a> module and a PAM
+configuration which can better handle password expiration according to your
+site's needs.
+
+<p><a name="CachedUsers">
+<font color=red>Question</font>: I've added new user to my system (<i>i.e.</i>
+in the <code>/etc/passwd</code> file), but my <code>proftpd</code> does not
+see the new user until I have restarted it.  Is there any way to not have
+to restart <code>proftpd</code>, to disable its caching of system users?<br>
+<font color=blue>Answer</font>: ProFTPD is not caching system users, per se.
+Instead, this behavior is a side-effect of the
+<a href="#PersistentPasswd"><code>PersistentPasswd</code></a> setting.  Check
+to see if you have:
+<pre>
+  PersistentPasswd on
+</pre>
+in your <code>proftpd.conf</code>. If you do (or if you do not have
+<code>PersistentPasswd</code> in your config at all), then change your
+<code>proftpd.conf</code> to have:
+<pre>
+  PersistentPasswd off
+</pre>
+
+<p>
+Why is this necessary?  When you use <code>PersistentPasswd on</code>,
+then <code>proftpd</code> will open a <i>file descriptor</i> on the system
+<code>/etc/passwd</code> file during server startup.  This descriptor is kept
+open during the lifetime of the daemon.  Later, when you add a new user to the
+system <code>/etc/passwd</code> file, the system tools create a new version of
+that file, then rename the new file to have the <code>/etc/passwd</code> name.
+But <code>proftpd</code> still has a descriptor to the <i>old</i> file, and
+does not see/know that the file has changed.  That is why it can look like
+<code>proftpd</code> is "caching" your system users.
+
+<p><a name="DeleteViaPasswd">
+<font color=red>Question</font>: I recently deleted a user's password using:
+<pre>
+  $ passwd -d <em>user</em>
+</pre>
+This successfully prevented the user from logging in via <code>ssh</code>,
+but they <i>were</i> able to successfully login using <code>proftpd</code>.
+This is a bug, right?<br>
+<font color=blue>Answer</font>: No, not really.  It's more of a nasty gotcha.
+
+<p>
+Per the <code>passwd(1)</code> man page, the <code>-d</code> option does not
+do what you might assume/think it does:
+<pre>
+  -d
+  This is a quick way to delete a password for an account. It will set
+  the named account passwordless. Available to root only.
+</pre>
+Thus the <code>-d</code> option only <i>deletes the password</i>; it does
+<b>not</b> lock the account by setting a password of "*", and it does <b>not</b>
+delete the account/entry.  Rather than using <code>passwd -d</code>, I would
+strongly recommend using <code>passwd -l</code> (to <em>lock</em> the account),
+or <code>userdel(8)</code> or equivalent (to <em>remove</em> the account
+entirely).
+
+<p>
+The issue then is that <code>proftpd</code> does not <b>require</b> that
+clients provide non-empty passwords by default.  Thus a client providing
+an empty string as the password for a so-called "deleted" account would be
+able to successfully log in.  To address this, there is the
+<a href="./mod_auth.html#AllowEmptyPasswords"><code>AllowEmptyPasswords</code></a> directive.  For example, setting this in your <code>proftpd.conf</code>
+should make using <code>passwd -d</code> work as you'd expect:
+<pre>
+  &lt;Global&gt;
+    AllowEmptyPassword off
+  &lt;/Global&gt;
+</pre>
+
+<p>
+<hr><br>
+
+<font size=2><b><i>
+&copy; Copyright 2010-2015 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

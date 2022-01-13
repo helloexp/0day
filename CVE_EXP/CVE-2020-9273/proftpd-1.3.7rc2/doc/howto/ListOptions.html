@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Directory Lists and ListOptions</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>Directory Lists and <code>ListOptions</code></b></h2></center>
+<hr>
+
+<p>
+The <code><a href="../modules/mod_ls.html#ListOptions">ListOptions</a></code>
+directive of ProFTPD can be used to control how directory listings are
+generated.  Directory listings are sent in response to the <code>LIST</code>
+and <code>NLST</code> FTP commands.
+
+<p>
+The <code>ListOptions</code> directive supports the following options:
+<ul>
+  <li><dt>-1</dt>
+      <dd>List one file per line</dd>
+  <li><dt>-A</dt>
+      <dd>List all files except &quot;.&quot; and &quot;..&quot;</dd>
+  <li><dt>-a</dt>
+      <dd>List all files including those whose names start with &quot;.&quot;</dd>
+  <li><dt>-B</dt>
+      <dd>Force printing of non-printable filename characters as \<i>xxx</i>, where <i>xxx</i> is the octal value of the character</dd>
+  <li><dt>-C</dt>
+      <dd>List entries by columns</dd>
+  <li><dt>-c<dt>
+      <dd>Sort by file status change time when <code>-t</code> is also used</dd>
+  <li><dt>-d</dt>
+      <dd>List directory entries instead of directory contents</dd>
+  <li><dt>-F</dt>
+      <dd>Append file type indicator (one of &quot;*&quot;, &quot;/&quot;, &quot;=&quot;, &quot;@&quot; or &quot;|&quot;) to names</dd>
+  <li><dt>-h</dt>
+      <dd>Print file sizes in human-readable format (<i>e.g.</i> 1K, 234M, 2G)</dd>
+  <li><dt>-L</dt>
+      <dd>List files pointed to by symlinks</dd>
+  <li><dt>-l</dt>
+      <dd>Use a long listing format</dd>
+  <li><dt>-n</dt>
+      <dd>List numeric UIDs/GIDs instead of user/group names</dd>
+  <li><dt>-R</dt>
+      <dd>List subdirectories recursively</dd>
+  <li><dt>-r</dt>
+      <dd>Sort filenames in reverse order</dd>
+  <li><dt>-S</dt>
+      <dd>Sort by file size</dd>
+  <li><dt>-t</dt>
+      <dd>Sort by file modification time</dd>
+  <li><dt>-U<dt>
+      <dd>Do not sort; list entries in directory order</dd>
+  <li><dt>-u<dt>
+      <dd>Sort by file access time when <code>-t</code> is also used</dd>
+</ul>
+
+<p>
+Although not strictly supported by the FTP RFCs, many FTP clients send these
+options with the <code>LIST</code> and <code>NLST</code> commands, and many
+FTP servers honor them.  The <code>ListOptions</code> directive configures
+default options to be used, in addition to any sent by the client.  For
+example, to show all files except the &quot;hidden&quot; files for clients,
+you could use:
+<pre>
+  ListOptions -a
+</pre>
+
+<p>
+Another use of <code>ListOptions</code> is to <i>prevent</i> certain options
+from being used.  The <code>-R</code> option, for recursively listing
+all subdirectories, can use a lot of system resources, especially on very
+large and/or very deep directory structures, as <code>proftpd</code> scans
+all of the files.  For this reason, some sites may wish to prevent the
+<code>-R</code> option from being used.  <code>ListOptions</code> supports
+this with use of the &quot;+&quot; character.  Options are enabled using the
+&quot;-&quot; character, thus they are disabled using &quot;+&quot;--think
+of the &quot;+&quot; as cancelling out the &quot;-&quot;.  For example:
+<pre>
+  ListOptions +R strict
+</pre>
+would disable all use of the <code>-R</code> option.
+
+<p>
+Where did the <code>strict</code> come from in the example above?
+<code>ListOptions</code> configures a set of default options, but if a client
+sends its own directory options, <code>proftpd</code> will use the client's
+options instead.  To ignore the client options and use <i>only</i> the
+<code>ListOptions</code> configured, one uses the &quot;strict&quot; keyword.
+That is why the <code>+R</code> example above required
+&quot;strict&quot;--it causes <code>proftpd</code> to ignore any
+<code>-R</code> option the client might send.
+
+<p>
+What if you wanted to enable some options and disable others in the same
+<code>ListOptions</code> directive?  You would surround your options in quotation marks, like so:
+<pre>
+  ListOptions &quot;-a +R&quot; strict
+</pre>
+
+<p>
+If you are <b>not</b> using the <code>--enable-nls</code> configure option,
+<i>and</i> you want to see non-printable characters in filenames when listing
+directories, you should use:
+<pre>
+  ListOptions -B
+</pre>
+
+<p>
+The following keywords are supported, in addition to &quot;strict&quot;:
+<ul>
+  <li><dt>maxfiles</dt>
+      <dd>Sets a maximum limit on the number of files listed in one directory listing</dd>
+  <li><dt>maxdirs</dt>
+      <dd>Sets a maximum limit on the number of directories listed in one directory listing</dd>
+  <li><dt>maxdepth</dt>
+      <dd>Sets a maximum recursion depth, if the <code>-R</code> option is allowed</dd>
+  <li><dt>LISTOnly</dt>
+      <dd>Applies the <code>ListOptions</code> only to <code>LIST</code> commands (and not <code>NLST</code> or <code>STAT</code> commands)
+  <li><dt>NLSTOnly</dt>
+      <dd>Applies the <code>ListOptions</code> only to <code>NLST</code> commands (and not <code>LIST</code> or <code>STAT</code> commands)
+  <li><dt>NoErrorIfAbsent</dt>
+      <dd>Causes a 226 response code to be returned for <code>LIST/NLST</code> commands for files which do not exist, rather than 450
+  <li><dt>SortedNLST</dt>
+      <dd>Causes the <code>NLST</code> results to be sorted by name
+</ul>
+These keywords were added for finer-grained control over directory listings.
+They make it possible to allow recursive listings and yet still apply limits,
+to keep the recursion from taking too long:
+<pre>
+  ListOptions -a maxfiles 2000 maxdepth 3
+</pre>
+This configures the <code>-a</code> option by default, and limits the maximum
+files in the generated listing to 2000.  If the client uses the <code>-R</code>
+option, <code>proftpd</code> will not recurse into directories more than 3
+levels deep when generating the listing.
+
+<p>
+Or perhaps you want the one-file-per-line format, but only for
+<code>NLST</code> commands and <b>not</b> <code>LIST</code> commands.  You
+would thus use something like:
+<pre>
+  ListOptions "-1" strict NLSTOnly
+</pre>
+
+<p>
+Note that <code><a href="Limit.html">&lt;Limit&gt;</a></code> sections can be
+used to block the <code>LIST</code> and <code>NLST</code> commands altogether.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

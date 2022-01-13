@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_ratio</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_ratio</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_ratio</code> module
+
+<p>
+This module is contained in the <code>mod_ratio.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>; a discussion
+on <a href="#Usage">usage</a> is also available.
+
+<p>
+The most current version of <code>mod_ratio</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#AnonRatio">AnonRatio</a>
+  <li><a href="#ByteRatioErrMsg">ByteRatioErrMsg</a>
+  <li><a href="#CwdRatioMsg">CwdRatioMsg</a>
+  <li><a href="#FileRatioErrMsg">FileRatioErrMsg</a>
+  <li><a href="#GroupRatio">GroupRatio</a>
+  <li><a href="#HostRatio">HostRatio</a>
+  <li><a href="#LeechRatioMsg">LeechRatioMsg</a>
+  <li><a href="#RatioFile">RatioFile</a>
+  <li><a href="#Ratios">Ratios</a>
+  <li><a href="#RatioTempFile">RatioTempFile</a>
+  <li><a href="#SaveRatios">Ratios</a>
+  <li><a href="#UserRatio">UserRatio</a>
+</ul>
+
+<p>
+<hr>
+<h3><a name="AnonRatio">AnonRatio</a></h3>
+<strong>Syntax:</strong> AnonRatio <em>name file-ratio file-credit byte-ratio byte-credit</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>AnonRatio</code> directive
+
+<p>
+<hr>
+<h3><a name="ByteRatioErrMsg">ByteRatioErrMsg</a></h3>
+<strong>Syntax:</strong> ByteRatioErrMsg <em>message</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>ByteRatioErrMsg</code> directive
+
+<p>
+<hr>
+<h3><a name="CwdRatioMsg">CwdRatioMsg</a></h3>
+<strong>Syntax:</strong> CwdRatioMsg <em>message</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>CwdRatioMsg</code> directive
+
+<p>
+<hr>
+<h3><a name="FileRatioErrMsg">FileRatioErrMsg</a></h3>
+<strong>Syntax:</strong> FileRatioErrMsg <em>message</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>FileRatioErrMsg</code> directive
+
+<p>
+<hr>
+<h3><a name="GroupRatio">GroupRatio</a></h3>
+<strong>Syntax:</strong> GroupRatio <em>name file-ratio file-credit byte-ratio byte-credit</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>GroupRatio</code> directive
+
+<p>
+<hr>
+<h3><a name="HostRatio">HostRatio</a></h3>
+<strong>Syntax:</strong> HostRatio <em>name file-ratio file-credit byte-ratio byte-credit</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>HostRatio</code> directive
+
+<p>
+<hr>
+<h3><a name="LeechRatioMsg">LeechRatioMsg</a></h3>
+<strong>Syntax:</strong> LeechRatioMsg <em>message</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>LeechRatioMsg</code> directive
+
+<p>
+<hr>
+<h3><a name="RatioFile">RatioFile</a></h3>
+<strong>Syntax:</strong> RatioFile <em>path</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>RatioFile</code> directive
+
+<p>
+<hr>
+<h3><a name="Ratios">Ratios</a></h3>
+<strong>Syntax:</strong> Ratios <em>on|off</em><br>
+<strong>Default:</strong> Off<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>Ratios</code> directive
+
+<p>
+<hr>
+<h3><a name="RatioTempFile">RatioTempFile</a></h3>
+<strong>Syntax:</strong> RatioTempFile <em>path</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>RatioTempFile</code> directive
+
+<p>
+<hr>
+<h3><a name="SaveRatios">SaveRatios</a></h3>
+<strong>Syntax:</strong> SaveRatios <em>on|off</em><br>
+<strong>Default:</strong> Off<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>SaveRatios</code> directive
+
+<p>
+<hr>
+<h3><a name="UserRatio">UserRatio</a></h3>
+<strong>Syntax:</strong> UserRatio <em>name file-ratio file-credit byte-ratio byte-credit</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Directory&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_ratio<br>
+<strong>Compatibility:</strong> 1.2.2 and later
+
+<p>
+The <code>UserRatio</code> directive
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_ratio</code> module is distributed with ProFTPD.  Simply follow
+the normal steps for using third-party modules in ProFTPD:
+<pre>
+  $ ./configure --with-modules=mod_ratio
+  $ make
+  $ make install
+</pre>
+Alternatively, <code>mod_ratio</code> can be built as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_ratio ...
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+For those with an existing ProFTPD installation, you can use the
+<code>prxs</code> tool to add <code>mod_ratio</code>, as a DSO module, to
+your existing server:
+<pre>
+  $ prxs -c -i -d mod_ratio.c
+</pre>
+
+<p>
+<hr><br>
+<h2><a name="Usage">Usage</a></h2>
+To use <code>mod_ratio</code>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2013 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

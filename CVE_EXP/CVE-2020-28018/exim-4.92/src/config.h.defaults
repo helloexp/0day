@@ -1,0 +1,227 @@
+/*************************************************
+*     Exim - an Internet mail transport agent    *
+*************************************************/
+
+/* Copyright (c) University of Cambridge 1995 - 2018 */
+/* Copyright (c) The Exim Maintainers 2018 */
+/* See the file NOTICE for conditions of use and distribution. */
+
+/* The default settings for Exim configuration variables. A #define without
+any data just defines the existence of the variable; it won't get included
+in config.h unless some value is defined in Local/Makefile. If there is data,
+it's a default value.
+
+Do not put spaces between # and the 'define'.
+*/
+
+#define ALT_CONFIG_PREFIX
+#define TRUSTED_CONFIG_LIST
+
+#define APPENDFILE_MODE            0600
+#define APPENDFILE_DIRECTORY_MODE  0700
+#define APPENDFILE_LOCKFILE_MODE   0600
+
+#define AUTH_CRAM_MD5
+#define AUTH_CYRUS_SASL
+#define AUTH_DOVECOT
+#define AUTH_GSASL
+#define AUTH_HEIMDAL_GSSAPI
+#define AUTH_PLAINTEXT
+#define AUTH_SPA
+#define AUTH_TLS
+
+#define AUTH_VARS                     3
+
+#define BIN_DIRECTORY
+
+#define CONFIGURE_FILE
+#define CONFIGURE_FILE_USE_EUID
+#define CONFIGURE_FILE_USE_NODE
+#define CONFIGURE_GROUP
+#define CONFIGURE_OWNER
+#define CYRUS_PWCHECK_SOCKET
+#define CYRUS_SASLAUTHD_SOCKET
+
+#define DEFAULT_CRYPT              crypt
+#define DELIVER_IN_BUFFER_SIZE     8192
+#define DELIVER_OUT_BUFFER_SIZE    8192
+#define DISABLE_DNSSEC
+#define DISABLE_DKIM
+#define DISABLE_EVENT
+#define DISABLE_PRDR
+#define DISABLE_OCSP
+#define DISABLE_D_OPTION
+
+#define ENABLE_DISABLE_FSYNC
+
+#define EXIMDB_DIRECTORY_MODE      0750
+#define EXIMDB_LOCK_TIMEOUT          60
+#define EXIMDB_LOCKFILE_MODE       0640
+#define EXIMDB_MODE                0640
+#define EXIM_CLIENT_DH_MIN_MIN_BITS         512
+#define EXIM_CLIENT_DH_DEFAULT_MIN_BITS    1024
+#define EXIM_GNUTLS_LIBRARY_LOG_LEVEL
+#define EXIM_SERVER_DH_BITS_PRE2_12
+#define EXIM_PERL
+/* Both uid and gid are triggered by this */
+#define EXIM_UID
+#define EXPAND_DLFUNC
+#define EXPAND_LISTMATCH_RHS
+
+#define FIXED_NEVER_USERS         "root"
+
+#define HAVE_CRYPT16
+#define HAVE_LOCAL_SCAN
+#define HAVE_SA_LEN
+#define HEADERS_CHARSET           "ISO-8859-1"
+#define HEADER_ADD_BUFFER_SIZE    (8192 * 4)
+#define HEADER_MAXSIZE            (1024*1024)
+
+#define INPUT_DIRECTORY_MODE       0750
+#define IPV6_USE_INET_PTON
+
+#define LDAP_LIB_TYPE
+#define LOCAL_SCAN_HAS_OPTIONS
+
+#define LOG_DIRECTORY_MODE         0750
+#define LOG_FILE_PATH
+#define LOG_MODE                   0640
+
+#define LOOKUP_CDB
+#define LOOKUP_DBM
+#define LOOKUP_DNSDB
+#define LOOKUP_DSEARCH
+#define LOOKUP_IBASE
+#define LOOKUP_LDAP
+#define LOOKUP_LSEARCH
+#define LOOKUP_MYSQL
+#define LOOKUP_NIS
+#define LOOKUP_NISPLUS
+#define LOOKUP_ORACLE
+#define LOOKUP_PASSWD
+#define LOOKUP_PGSQL
+#define LOOKUP_REDIS
+#define LOOKUP_SQLITE
+#define LOOKUP_TESTDB
+#define LOOKUP_WHOSON
+#define LOOKUP_WILDLSEARCH
+#define LOOKUP_NWILDLSEARCH
+
+#define LOOKUP_MODULE_DIR
+
+#define MAX_FILTER_SIZE           (1024*1024)
+#define MAX_LOCALHOST_NUMBER        256
+#define MAX_INCLUDE_SIZE          (1024*1024)
+#define MAX_INTERFACES              250
+#define MAX_NAMED_LIST               16
+#define MSGLOG_DIRECTORY_MODE      0750
+
+#define NVALGRIND
+
+#define PID_FILE_PATH
+
+#define RADIUS_CONFIG_FILE
+#define RADIUS_LIB_TYPE
+
+#define REGEX_VARS                 9
+
+#define ROUTER_ACCEPT
+#define ROUTER_DNSLOOKUP
+#define ROUTER_IPLITERAL
+#define ROUTER_IPLOOKUP
+#define ROUTER_MANUALROUTE
+#define ROUTER_QUERYPROGRAM
+#define ROUTER_REDIRECT
+
+#define SPOOL_DIRECTORY
+#define SPOOL_DIRECTORY_MODE       0750
+#define SPOOL_MODE                 0640
+#define STRING_SPRINTF_BUFFER_SIZE (8192 * 4)
+
+#define SUPPORT_CRYPTEQ
+#define SUPPORT_DANE
+#define SUPPORT_I18N
+#define SUPPORT_I18N_2008
+#define SUPPORT_MAILDIR
+#define SUPPORT_MAILSTORE
+#define SUPPORT_MBX
+#define SUPPORT_MOVE_FROZEN_MESSAGES
+#define SUPPORT_PAM
+#define SUPPORT_PROXY
+#define SUPPORT_SOCKS
+#define SUPPORT_SPF
+#define SUPPORT_TLS
+#define SUPPORT_TRANSLATE_IP_ADDRESS
+
+#define SYSLOG_LOG_PID
+#define SYSLOG_LONG_LINES
+
+#define TCP_WRAPPERS_DAEMON_NAME "exim"
+#define TIMEZONE_DEFAULT
+#define EXIM_TMPDIR
+
+#define TRANSPORT_APPENDFILE
+#define TRANSPORT_AUTOREPLY
+#define TRANSPORT_LMTP
+#define TRANSPORT_PIPE
+#define TRANSPORT_SMTP
+
+#define USE_DB
+#define USE_GDBM
+#define USE_GNUTLS
+#define AVOID_GNUTLS_PKCS11
+#define USE_READLINE
+#define USE_TCP_WRAPPERS
+#define USE_TDB
+
+#define WHITELIST_D_MACROS
+
+#define WITH_CONTENT_SCAN
+#define DISABLE_MAL_FFROTD
+#define DISABLE_MAL_FFROT6D
+#define DISABLE_MAL_DRWEB
+#define DISABLE_MAL_AVE
+#define DISABLE_MAL_FSECURE
+#define DISABLE_MAL_KAV
+#define DISABLE_MAL_SOPHIE
+#define DISABLE_MAL_CLAM
+#define DISABLE_MAL_MKS
+#define DISABLE_MAL_AVAST
+#define DISABLE_MAL_SOCK
+#define DISABLE_MAL_CMDLINE
+
+/* EXPERIMENTAL features */
+#define EXPERIMENTAL_ARC
+#define EXPERIMENTAL_BRIGHTMAIL
+#define EXPERIMENTAL_DCC
+#define EXPERIMENTAL_DSN_INFO
+#define EXPERIMENTAL_DMARC
+    #define DMARC_TLD_FILE "/etc/exim/opendmarc.tlds"
+#define EXPERIMENTAL_LMDB
+#define EXPERIMENTAL_PIPE_CONNECT
+#define EXPERIMENTAL_REQUIRETLS
+#define EXPERIMENTAL_QUEUEFILE
+#define EXPERIMENTAL_SRS
+
+
+/* For developers */
+#define WANT_DEEPER_PRINTF_CHECKS
+
+/* Things that are not routinely changed but are nevertheless configurable
+just in case. */
+
+#define DNS_MAXNAME                1024
+#define EXPAND_MAXN                  20
+#define ROOT_UID                      0
+#define ROOT_GID                      0
+
+/* Sizes for integer arithmetic.
+Go for 64bit; can be overridden in OS/Makefile-FOO
+If you make it a different number of bits, provide a definition
+for EXIM_ARITH_MAX and _MIN in OS/oh.h-FOO */
+#define int_eximarith_t int64_t
+#define PR_EXIM_ARITH "%" PRId64		/* C99 standard, printf %lld */
+#define SC_EXIM_ARITH "%" SCNi64		/* scanf incl. 0x prefix */
+#define SC_EXIM_DEC   "%" SCNd64		/* scanf decimal */
+
+/* End of config.h.defaults */

@@ -1,0 +1,59 @@
+.TH ftpcount 1 "March 2003"
+.\" Process with
+.\" groff -man -Tascii ftpcount.1 
+.\"
+.SH NAME
+ftpcount \- show current number of connections for each proftpd server
+configuration
+.SH SYNOPSIS
+.B ftpcount
+.SH DESCRIPTION
+The
+.BI ftpcount
+command shows the current number of connections per server and
+virtualhost/anonymous configuration defined in the proftpd.conf file.
+Connections spawned by inetd are counted separately from those created
+by a master proftpd
+.I standalone
+server.
+.SH OPTIONS
+.TP 12
+.B \-h,\--help
+Display a short usage description, including all available options.
+.TP
+.BI \-f,\--file " scoreboard\-file"
+Specify the full path to proftpd's run\-time scoreboard file (configured
+via the \fBScoreboardFile\fP directive in
+.I proftpd.conf
+).  If proftpd's
+default directory has been changed via this directive, \fBftpcount\fP
+must either be recompiled or this option must be used in order to find
+proftpd's scoreboard.
+.TP
+.BI \-S,\--server " server\-name"
+Specify the ServerName for a specific virtual host.  If used,
+.I ftpcount
+will only show the session count for the given virtual host.
+.SH FILES
+.PD 0
+.B @BINDIR@/ftpcount
+.br
+.B @LOCALSTATEDIR@/proftpd.scoreboard
+.PD
+.SH AUTHORS
+.PP
+ProFTPD is written and maintained by a number of people, full credits
+can be found on
+.BR http://www.proftpd.org/credits.html
+.PD
+.SH SEE ALSO
+.BR inetd(8), ftp(1), proftpd(8), ftpwho(1), ftptop(1), ftpshut(8)
+.PP
+Full documentation on ProFTPD, including configuration and FAQs, is available at
+.BR http://www.proftpd.org/
+.PP 
+For help/support, try the ProFTPD mailing lists, detailed on
+.BR http://www.proftpd.org/lists.html
+.PP
+Report bugs at
+.BR http://bugs.proftpd.org/

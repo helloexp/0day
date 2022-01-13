@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Symlinks and chroot()</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b><i><code>DefaultRoot</code>, Symlinks and <code>chroot()</code></i></b></h2></center>
+<hr>
+
+<p>
+<b>Restricting Users' Directories</b><br>
+One of the most common questions for new users of ProFTPD is &quot;How do I
+restrict my users to only certain directories?&quot; or, phrased another
+way, &quot;How can I put my users in a chroot jail?&quot;  As a common
+question, it definitely has a place in the
+<a href="http://www.proftpd.org/docs/faq/linked/faq-ch5.html#AEN524">FAQ</a>.
+Many users, I fear, do not read the FAQ carefully, and so miss that section.
+The answer is ProFTPD's <a href="../modules/mod_auth.html#DefaultRoot"><code>DefaultRoot</code></a> configuration
+directive, which accomplishes this functionality by using the
+<code>chroot(2)</code> function.
+
+<p><a name="GroupExpressions"></a>
+This configuration directive may appear in the <code>&lt;VirtualHost&gt;</code>,
+<code>&lt;Global&gt;</code>, and the &quot;server config&quot; (meaning
+not in any <code>&lt;VirtualHost&gt;</code> or <code>&lt;Global&gt;</code>
+sections) configuration contexts.  The most common configuration requested
+is to restrict users to their home directories, which can be done simply
+by adding the following line to your <code>proftpd.conf</code>:
+<pre>
+  DefaultRoot ~
+</pre>
+The <code>~</code> (tilde) is a Unix-ism that is expanded to the logging-in
+user's home directory.  For slightly more complex setups, administrators
+may want to restrict only a subset of their users into home directories
+(or some other directory), but leave some privileged users unrestricted.
+For example, say you have your privileged users all as members of a group
+called <code>ftp-special</code>.  The <code>DefaultRoot</code>'s optional
+second parameter, a <i>group-expression</i>, can then be used, like so:
+<pre>
+  DefaultRoot ~ !ftp-special
+</pre>
+This says to <code>chroot()</code> every user who is <b>not</b> a member of
+group <code>ftp-special</code> to their respective home directory, and:
+<pre>
+  DefaultRoot /path/to/dir group1,group2
+</pre>
+will <code>chroot()</code> users who are members of <b>both</b>
+<code>group1</code> <b>and</b> <code>group2</code> into
+<code>/path/to/dir</code>.  More complex <i>group-expressions</i> can be used
+as needed.
+
+<p>
+Note that the execute bit (<code>--x</code>) must be on in order to
+<code>chroot()</code> a user into that directory.  This bit is also needed
+for a user to be able to <code>chdir</code> into that directory.
+
+<p><a name="Symlinks"></a>
+<b>Symlinks</b><br>
+There have been many questions on the ProFTPD user mailing list about why
+symlinked directories are not visible to <code>chroot</code>ed users (this
+includes <code>&lt;Anonymous&gt;</code> users as well as users restricted using
+<code>DefaultRoot</code>. This document is intended to clarify the issues and
+discuss some ways of achieving what is commonly desired.
+
+<p>
+These issues are not specific to ProFTPD, but rather to the workings of a
+Unix system.  First, a brief review of how links work, and why
+<code>chroot(2)</code> poses such a problem.  Then a look at ways around
+the issue.
+
+<p>
+<b>How Links Work</b><br>
+There are two types of links in Unix: hard and symbolic.
+
+<p>
+A <i>hard</i> link is a file that is, for all intents and purposes, <i>the</i>
+file to which it is linked.  The difference between a hardlink and the linked
+file is one of placement in the filesystem.  Editing the hardlink edits the
+linked file.  One limitation of hard links is that linked files cannot reside
+on different filesystems.  This means that if <code>/var</code> and
+<code>/home</code> are two different mount points in <code>/etc/fstab</code>
+(or <code>/etc/vfstab</code>), then a file in <code>/var/tmp</code> cannot be
+hardlinked with a file in <code>/home</code>:
+<pre>
+  <b># pwd</b>
+  /var/tmp
+  <b># ln /home/tj/tmp/tmpfile tmplink</b>
+  ln: cannot create hard link `tmplink' to `/home/tj/tmp/tmpfile': Invalid cross-device link
+</pre>
+A <i>symbolic</i> link (also referred to as a &quot;symlink&quot;) is a file
+whose contents contain the name of the file to which the symbolic link
+points.  For example:
+<pre>
+  lrwxrwxrwx   1 root     root           11 Mar  2  2000 rmt -&gt; /sbin/rmt
+</pre>
+The file <code>rmt</code> contains the nine characters <code>/sbin/rmt</code>.
+The reason symbolic links fail when <code>chroot(2)</code> is used to
+change the position of the root (<code>/</code>)of the filesystem is that,
+once <code>/</code> is moved, the pointed-to file path changes.  If, for
+example, if <code>chroot(2)</code> is used to change the filesystem root
+to <code>/ftp</code>, then the symlink above would be actually be pointing
+to <code>/ftp/sbin/rmt</code>.  Chances that that link, if
+<code>chroot(2)</code> is used, now points to a path that does not exist.
+Symbolic links that point to nonexistent files are known as <i>dangling</i>
+symbolic links.  Note that symbolic links to files underneath the new
+root, such as symlinks to a file in the same directory:
+<pre>
+  <b># pwd</b>
+  /var/ftp
+  <b># ls -l</b>
+  -rw-r--r--   1 root     root            0 Jan 16 11:50 tmpfile
+  lrwxrwxrwx   1 root     root            7 Jan 16 11:50 tmplink -&gt; tmpfile
+</pre>
+will be unaffected; only paths that point outside/above the new root will be
+affected.
+
+<p>
+<B>Link Creation Tricks</b><br>
+Knowing the above, it is now possible to demonstrate how <i>some</i> symlinks
+<i>can</i> work within a chrooted session, depending on how you create them.
+
+<p>
+Here is an example to demonstrate this point.  Assume the following
+directory structure:
+<pre>
+  /path/to/ftp/
+  /path/to/ftp/folders/
+  /path/to/ftp/folders/incoming/
+  /path/to/ftp/incoming --&gt; /path/to/ftp/folders/incoming/ (<i>symlink</i>)
+</pre>
+And assume that you have the following in your <code>proftpd.conf</code>:
+<pre>
+  DefaultRoot /path/to/ftp/
+</pre>
+
+<p>
+If the symlink is created using:
+<pre>
+  # ln -s /path/to/ftp/folders/incoming /path/to/ftp/incoming
+</pre>
+then that symlink will <b>not</b> work in the chrooted session; the path you
+gave ("/path/to/ftp/folders/incoming") is an absolute path, and will not exist
+after the chroot.
+
+<p>
+Instead, if you create the symlink using:
+<pre>
+  # cd /path/to/ftp
+  # ln -s folders/incoming incoming 
+</pre>
+then that symlink should work within the chroot; the key is to use relative
+paths which <i>do not go above your <code>DefaultRoot</code> directory</i>.
+
+<p>
+If your symlink <i>does</i> need to go above the <code>DefaultRoot</code>
+directory, then you need to use one of the other tricks described below.
+
+<p>
+<b>Filesystem Tricks</b><br>
+A typical scenario is one where &quot;<code>DefaultRoot ~</code>&quot; is
+used to restrict users to their home directories, and where the administrator
+would like to have a shared upload directory, say
+<code>/var/ftp/incoming</code>, in each user's home directory.  Symbolic
+links would normally be used to provide an arrangement like this.  As
+mentioned above, though, when <code>chroot(2)</code> is used (which is what
+the <code>DefaultRoot</code> directive does), symlinks that point outside the
+new root (the user's home directory in this case) will not work.  To get
+around this apparent limitation, it is possible on modern operating systems to
+mount directories at several locations in the filesystem.
+
+<p>
+To have an exact duplicate of the <code>/var/ftp/incoming directory</code>
+available in <code>/home/bob/incoming</code> and
+<code>/home/dave/incoming</code>, use one of these commands:
+<ul>
+  <li>Linux (as of the 2.4.0 kernel):
+<pre>
+  mount --bind /var/ftp/incoming /home/bob/incoming
+  mount --bind /var/ftp/incoming /home/dave/incoming
+</pre>
+or, alternatively:
+<pre>
+  mount -o bind /var/ftp/incoming /home/bob/incoming
+  mount -o bind /var/ftp/incoming /home/dave/incoming
+</pre>
+  </li>
+
+  <li>BSD (as of 4.4BSD):
+<pre>
+  mount_null /var/ftp/incoming /home/bob/incoming
+  mount_null /var/ftp/incoming /home/dave/incoming
+</pre>
+  </li>
+
+  <li>Solaris:
+<pre>
+  mount -F lofs /var/ftp/incoming /home/bob/incoming
+  mount -F lofs /var/ftp/incoming /home/dave/incoming
+</pre>
+  </li>
+</ul>
+The same technique can be used for <code>&lt;Anonymous&gt;</code> directories,
+which also operate in a <code>chroot()</code>ed environment.  Also, it
+should be possible to mount specific <i>files</i> this way, in addition to
+directories, should you need to (a directory is just another file in Unix).
+
+<p>
+As usual, more information can be found by consulting the man pages for
+the appropriate command for your platform.  The commands for other flavors
+of Unix will be added as needed.
+
+<p>
+In order to have these tricks persist, to survive a system reboot, the
+<code>/etc/fstab</code> (or <code>/etc/vfstab</code>) file may need to have
+these mounts added.  Consult your local <code>fstab(5)</code> (or
+<code>vfstab(4)</code> for Solaris) man pages for more information.
+
+<p>
+<b>Chroots and Remote Filesystems</b><br>
+If the chroot directories for your users happen to reside on an NFS
+partition, then you need to make sure that root privileges are <b>not</b>
+blocked (<i>e.g.</i> often referred to as "root squash") by the NFS
+mount.  Otherwise, the chroot will fail.
+
+<p><a name="FAQ"></a>
+<b>Frequently Asked Questions</b><br>
+
+<p>
+<font color=red>Question</font>: I am using the <code>DefaultRoot</code>
+directive, but my logins are failing.  The debug logging shows the following:
+<pre>
+  USER <i>user</i>: Login successful.
+  Preparing to chroot to directory '/home/users/<i>user</i>'
+  <i>user</i> chroot("/home/users/<i>user</i>"): Permission denied
+  error: unable to set default root directory
+</pre>
+I am starting <code>proftpd</code> with root privileges, so why is the
+<code>chroot()</code> failing with "Permission denied"?<br>
+<font color=blue>Answer</font>: The above situation can happen in cases
+where even root privileges are insufficient.  There have been reports of
+this happening for security-hardened systems (<i>e.g.</i> SELinux, OpenWall,
+<i>etc</i>); it can <i>also</i> happen when NFS is involved.
+
+<p>
+If the <code>DefaultRoot</code> directory in question is mounted via NFS, make
+sure that the NFS configuration mounts the directory with root privileges.  The
+<code>chroot(2)</code> system call <i>requires</i> root privileges; a
+no-root-privs mounted NFS directory does not allow the <code>chroot(2)</code>
+to succeed.
+
+<p>
+Similarly, instead of "Permission denied", you might see "No such file or
+directory":
+<pre>
+  <i>user</i> chroot("~"): No such file or directory
+</pre>
+The reasons for this error are explained
+<a href="Authentication.html#homedir">here</a>.
+
+<p><a name="MultipleRoots">
+<font color=red>Question</font>: Is it possible to configure <code>DefaultRoot</code> for all users <i>except</i> some special users, which will have a different root directory?<br>
+<font color=blue>Answer</font>: Yes, this is possible.  ProFTPD supports
+having multiple <code>DefaultRoot</code> directives in the proftpd.conf at the
+same time; <code>proftpd</code> checks all of them
+<i>in the order they appear</i>.  The first one which matches the logging-in
+user is applied.
+
+<p>
+To illustrate, here's an example.  Keep in mind that the optional parameters to
+the <code>DefaultRoot</code> directive are <i>group</i> names, <b>not</b> user
+names.
+<pre>
+  DefaultRoot /path/to/admin/dir admin-group
+  DefaultRoot /path/to/special/dir special-group
+  DefaultRoot ~  <font color=blue># everyone else</font>
+</pre>
+
+<p>
+If the logging-in user is a member of group 'admin-group', then
+<code>proftpd</code> will chroot to the <code>/path/to/admin/dir</code>
+directory.  If the logging-in user is not a member of group 'admin-group' but
+<b>is</b> a member of group 'special-group', then
+<code>/path/to/special/dir</code> is used for the chroot.  And if the user
+is not a member of either of these groups, then the normal home directory is
+used for the chroot.  It's always a good idea of have a "applies to everyone"
+<code>DefaultRoot</code> directive in your proftpd.conf, at the
+<i>end of the list</i> of <code>DefaultRoot</code>s, as a catch-all.
+
+<p><a name="SymlinksFAQ">
+<font color=red>Question</font>: Does <code>DefaultRoot</code> work properly if
+the path/home directory is a symlink?<br>
+<font color=blue>Answer</font>: Yes.
+
+<p>
+Note that some sites consider this a security risk; if that home directory
+can be deleted by remote users, and replaced with a symlink of their own
+creation (<i>e.g.</i> via SSH or some other webapp), this can be a problem.
+To help mitigate situations like this, you can use the <a href="../modules/mod_auth.html#AllowChrootSymlinks"><code>AllowChrootSymlinks</code></a> directive:
+<pre>
+  # Do not follow symlinks when chrooting
+  AllowChrootSymlinks off
+</pre>
+As stated in the documentation, using <code>AllowChrootSymlinks</code> does
+<b>not</b> prevent this problem entirely; it simply means that
+<i><code>proftpd</code></i> cannot be used to get around the restrictions.
+
+<p><a name="ChrootNotWorking">
+<font color=red>Question</font>: I have configured <code>DefaultRoot</code> in my proftpd.conf, but my clients still see the root directory.  Is it a bug?<br>
+<font color=blue>Answer</font>.  Usually not.
+
+<p>
+First, make sure that you have restarted <code>proftpd</code>, so that the
+config changes you made (<i>e.g.</i> adding/modifying your
+<code>DefaultRoot</code> settings) are picked up by the running daemon.
+
+<p>
+Second, make sure that you have cleared any client cache.  Many FTP clients
+(especially browsers) will cache the directory listings that they have obtained
+from an FTP server.  Thus once you have restarted <code>proftpd</code> and
+you still see the root filesystem displayed by your client, you need to make
+sure that that client is actually getting that listing from the FTP server,
+rather than showing you a stale/cached copy.  The command-line
+<code>ftp(1)</code> client is good for testing this situation, as it is very
+simplistic and does not cache such things.
+
+<p>
+Last, double-check the proftpd <a href="Debugging.html">debug logging</a>.
+It could be that <code>proftpd</code> is not using the configuration like you
+assume it is.  Maybe a different config file is being used than the one you
+edited, or maybe the <code>DefaultRoot</code> directive is not in a
+<code>&lt;Global&gt;</code> section and you are using
+<code>&lt;VirtualHost&gt;</code> sections, <i>etc</i>.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

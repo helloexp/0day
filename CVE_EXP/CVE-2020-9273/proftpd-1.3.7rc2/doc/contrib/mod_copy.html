@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_copy</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_copy</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_copy</code> module implements <code>SITE CPFR</code>
+and <code>SITE CPTO</code> commands (analogous to <code>RNFR</code> and
+<code>RNTO</code>), which can be used to copy files/directories from one place
+to another on the server without having to transfer the data to the client and
+back.
+
+<p>
+This module is contained in the <code>mod_copy.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_copy</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#CopyEngine">CopyEngine</a>
+  <li><a href="#CopyOptions">CopyOptions</a>
+</ul>
+
+<h2><code>SITE</code> Commands</h2>
+<ul>
+  <li><a href="#SITE_CPFR">SITE CPFR</a>
+  <li><a href="#SITE_CPTO">SITE CPTO</a>
+</ul>
+
+<p>
+<hr>
+<h3><a name="CopyEngine">CopyEngine</a></h3>
+<strong>Syntax:</strong> CopyEngine <em>on|off</em><br>
+<strong>Default:</strong> CopyEngine on<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_copy<br>
+<strong>Compatibility:</strong> 1.3.6rc1 and later
+
+<p>
+The <code>CopyEngine</code> directive enables or disables the module's
+handling of <code>SITE COPY</code> <i>et al</i> commands.  If it is set to
+<em>off</em> this module ignores these commands.
+
+<p>
+<hr>
+<h3><a name="CopyOptions">CopyOptions</a></h3>
+<strong>Syntax:</strong> CopyOptions <em>opt1 ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_copy<br>
+<strong>Compatibility:</strong> 1.3.6rc3 and later
+
+<p>
+The <code>CopyOptions</code> directive is used to configure various optional
+behavior of <code>mod_copy</code>.
+
+<p>
+The currently implemented options are:
+<ul>
+  <li><code>NoDeleteOnFailure</code><br>
+    <p>
+    The <code>mod_copy</code> file, when a copying operation fails, will
+    delete the <i>destination</i> file by default.  If, however, you <b>do</b>
+    want to keep that destination file when a failure happens, use this option.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h3><a name="SITE_CPFR">SITE CPFR</a></h3>
+This <code>SITE</code> command specifies the source file/directory to use
+for copying from one place to another directly on the server.
+
+<p>
+The syntax for <code>SITE CPFR</code> is:
+<pre>
+  SITE CPFR <i>source-path</i>
+</pre>
+
+<p>
+See also: <a href="#SITE_CPTO">SITE CPTO</a>
+
+<p>
+<hr>
+<h3><a name="SITE_CPTO">SITE CPTO</a></h3>
+This <code>SITE</code> command specifies the destination file/directory to use
+for copying from one place to another directly on the server.
+
+<p>
+The syntax for <code>SITE CPTO</code> is:
+<pre>
+  SITE CPTO <i>destination-path</i> 
+</pre>
+
+<p>
+A client wishing to copy a file/directory first sends a <code>SITE CPFR</code>
+command, then a <code>SITE CPTO</code>; this is similar to how renames are
+handled using <code>RNFR</code> and <code>RNTO</code>.
+
+<p>
+Use of these <code>SITE</code> command can be controlled via
+<code>&lt;Limit&gt;</code> sections, <i>e.g.</i>:
+<pre>
+  &lt;Limit SITE_COPY&gt;
+    AllowUser alex
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+
+<p>
+See also: <a href="#SITE_CPFR">SITE CPFR</a>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_copy</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>copy
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace copy:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_copy</code> module is distributed with ProFTPD.  Simply follow
+the normal steps for using third-party modules in ProFTPD.  For including
+<code>mod_copy</code> as a statically linked module:
+<pre>
+  $ ./configure --with-modules=mod_copy
+</pre>
+To build <code>mod_copy</code> as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_copy
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+For those with an existing ProFTPD installation, you can use the
+<code>prxs</code> tool to add <code>mod_copy</code>, as a DSO module, to
+your existing server:
+<pre>
+  $ prxs -c -i -d mod_copy.c
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2009-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

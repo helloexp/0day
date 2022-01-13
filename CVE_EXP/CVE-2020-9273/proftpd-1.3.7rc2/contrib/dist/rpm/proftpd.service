@@ -1,0 +1,16 @@
+[Unit]
+Description = ProFTPD FTP Server
+Wants=network-online.target
+After=network-online.target nss-lookup.target local-fs.target remote-fs.target
+
+[Service]
+Type = simple
+Environment = PROFTPD_OPTIONS=
+EnvironmentFile = -/etc/sysconfig/proftpd
+ExecStartPre = /usr/sbin/proftpd --configtest
+ExecStart = /usr/sbin/proftpd --nodaemon $PROFTPD_OPTIONS
+ExecReload = /bin/kill -HUP $MAINPID
+PIDFile = /run/proftpd/proftpd.pid
+
+[Install]
+WantedBy = multi-user.target

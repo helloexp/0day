@@ -1,0 +1,1730 @@
+Upgrading Exim from Release 3.33 to 4.xx
+----------------------------------------
+
+Exim 4.00 represents the largest upheaval in Exim's history. There are a lot of
+changes to the way some parts of Exim work, and a lot of incompatible changes
+to the run time configuration file.
+
+This document is in two parts. The first part contains instructions and
+suggestions for how you might go about performing the upgrade. The second part
+is a brief list of all the changes that have taken place. For full details of
+all the new features, please consult the current version of the reference
+manual.
+
+
+HOW TO UPGRADE YOUR EXIM
+------------------------
+
+When you compile Exim 4, a Perl script called convert4r4 is built in the build
+directory. It is not installed by the install script, because it is likely that
+you will run it only once.
+
+This script is provided to assist in updating Exim configuration files. It
+reads an Exim 3 configuration file on the standard input, and writes a modified
+file on the standard output. It also writes comments about what it has done to
+the standard error file. It assumes that the input is a valid Exim 3
+configuration file. A typical call to the conversion script might be
+
+  ./convert4r4  </etc/exim/configure  >/etc/exim/configure.new
+
+The output file MUST be checked and tested before trying to use it on a live
+system. The conversion script is just an aid which does a lot of the "grunt
+work". It does not guarantee to produce an Exim 4 configuration that behaves
+exactly the same as the Exim 3 configuration it reads.
+
+Each option change in the new file is preceded by an identifying comment. In
+fact, the conversion script tends to make quite a mess of your configuration,
+and you should expect to go through it afterwards and tidy it up by hand.
+
+Unless you are running a very straightforward configuration, the automatic
+conversion is likely to generate a non-optimal configuration. You should not
+only check it thoroughly, but also run as many tests as you can, to ensure that
+it is working as you expect. In particular, you should test address routing,
+using -bt and -bv, and the policy controls, using -bh. If possible, you should
+also do some live tests (i.e. send and receive some messages) before putting
+Exim 4 into service.
+
+If you have a very complicated configuration, it is possible that convert4r4
+will break it in some situations, which is why thorough testing is strongly
+recommended.
+
+                   *********************************
+                   ***** You Have Been Warned ******
+                   *********************************
+
+
+HOW TO MOVE FROM AN EXIM 3 RELEASE TO AN EXIM 4 RELEASE
+-------------------------------------------------------
+
+One way of upgrading to Exim 4 from a version 3 release is as follows:
+
+1. Suppose your run time configuration file is called /usr/exim/configure, and
+   you want to continue with this name after upgrading. The first thing to do
+   is to make another copy of this file called, say, /usr/exim/configure.r3.
+
+2. Rebuild your existing Exim to use the copy of the run time configuration
+   file instead of the standard file. Install this version of Exim and HUP your
+   daemon. You can check on the name of the configuration file by running
+
+     exim -bP configure_file
+
+   Ensure that everything is running smoothly. You now have something you can
+   fall back to. IMPORTANT: when you do this re-install, you should also
+   re-install the utilities because four of them (exicyclog, eximon, exinext,
+   and exiwhat) also refer to the configuration file.
+
+3. Build the new release, configured to use the standard configuration file.
+
+4. Use the convert4r4 utility to upgrade your configuration file for the new
+   release. After running the conversion utility, check the file by hand, and
+   tidy it up.
+
+5. Test, test, test! And test some more!
+
+6. You can run complete tests, including actual deliveries, from an uninstalled
+   binary, but you have to tell it where it is, so that any re-executions can
+   be done. You can do this by temporarily inserting a setting such as
+
+   exim_path = /source/exim/exim-4.00/build-SunOS5-5.8-sparc/exim
+
+   into the run time configuration. If you want to, you can also insert
+   settings for spool_directory and log_file_path to divert those away from
+   their normal places. Remember to remove these temporary settings when you
+   eventually install the binary for real.
+
+7. The new installation script installs the new release as exim-4.00-1, and
+   set a symbolic link called "exim" to point to it. The old version of Exim
+   will be renamed to something like exim-3.33-1.
+
+8. You can now easily change between the new and old releases simply by moving
+   the symbolic link and HUPping your daemon. The format of message files on
+   Exim's spool has _not_ changed, so there should be no problem in changing
+   between releases while there are messages on the queue.
+
+9. HOWEVER: If you do change back and forth between releases, you must also
+   change the utilities exicyclog, eximon, exinext, and exiwhat if you are
+   going to use them. Installing Exim 4 will have left the old versions with a
+   .O suffix. It might be helpful to rename these so that you don't lose them.
+
+
+WHAT HAS NOT CHANGED IN EXIM 4.00
+---------------------------------
+
+The basic overall philosophy, design, and process structure has not changed.
+The format of spool files is the same. The transports have had only minor
+modifications. The command line options remain the same, with a couple of
+additions.
+
+The general run time configuration approach has not changed, but the actual
+details of the configuration file are different.
+
+The Exim monitor has not changed, and there have been only very minor changes
+to other Exim utilities.
+
+
+WHAT HAS CHANGED IN EXIM 4.00
+-----------------------------
+
+The rest of this document lists the very many changes that have taken place.
+I'm going to give only brief details here, because this part of the document is
+intended as a way of alerting you to areas of difference. The reference manual
+describes how the new features work in detail.
+
+
+Named domain, host, address, and local part lists
+-------------------------------------------------
+
+A new feature makes it possible to give names to lists of domains, hosts,
+addresses, and local parts. The syntax used is
+
+  domainlist    <name> = <a domain list>
+  hostlist      <name> = <a host list>
+  addresslist   <name> = <an address list>
+  localpartlist <name> = <a list of local parts>
+
+For example:
+
+  domainlist  local_domains = *.my.domain
+  addresslist bad_senders = cdb;/etc/badsenders
+
+These lists are referenced in options by giving the name preceded by a + sign.
+For example, in a router you might have
+
+  domains = +local_domains
+
+At first sight, these lists might seem to be the same as macros, but they are
+not. Macros are just textual substitutions. If you write
+
+  ALIST = host1 : host2
+  auth_advertise_hosts = !ALIST
+
+it probably won't do what you want, because that is exactly the same as
+
+  auth_advertise_hosts = !host1 : host2
+
+Notice that the second host name is not negated. However, if you use a host
+list, and write
+
+  hostlist alist = host1 : host2
+  auth_advertise_hosts = ! +alist
+
+the negation applies to the whole list, and so that is equivalent to
+
+  auth_advertise_hosts = !host1 : !host2
+
+These named lists also have a performance advantage. When Exim is routing an
+address or checking an incoming message, it caches the result of tests on the
+lists. So, if you have a setting such as
+
+  domains = +local_domains
+
+on several of your routers, the actual test is done only for the first one.
+However, this caching works only if there are no expansions within the list
+itself or any sublists that it references. In other words, caching happens only
+if the list is known to be the same each time it is referenced.
+
+By default, there may be up to 16 named lists of each type. This limit can be
+extended by changing a compile-time variable.
+
+The use of domain and host lists is recommended for concepts such as local
+domains, relay domains, and relay hosts. The default configuration is set up
+like this.
+
+
+Processing of domain, host, local part, and address lists
+---------------------------------------------------------
+
+The handling of these lists is now more uniform. Every list is expanded as a
+single string before it is used. (In Exim 3, some options were expanded and
+some weren't, and query-style lookup items were then re-expanded.)
+
+If an expansion is forced to fail, Exim behaves as if the item has not been
+found in the list.
+
+The confusing $key variable has been abolished. When processing a domain list,
+$domain contains the relevant domain and can be used in generating database
+queries. Other appropriate variables are set when processing other kinds of
+list; $sender_host and $sender_host_address for checking incoming hosts and
+$host and $host_address for checking outgoing hosts.
+
+Note that this means that any \ and $ characters in regular expressions must be
+escaped if they appear in one of these lists. The new expansion feature to turn
+off expansion (\N ... \N) which is described below can be helpful here.
+
+IMPORTANT: The details of the processing of address lists has been revised. In
+particular, the handling of the case of an item that is a single-key lookup has
+changed. It no longer looks up the domain on its own before looking up the
+complete address. You need to supply an explicit "*@" before the lookup if you
+want just the domain to be looked up. Please check the manual for full details.
+
+If an item in a host list is the empty string, it matches only when no host is
+defined. If used when checking an incoming message, it matches only when the
+message is arriving by SMTP on the standard input from a local process (using
+-bs). This provides a way of distinguishing between SMTP mail from local
+processes and from remote hosts.
+
+The +allow_unknown and +warn_unknown settings for host lists have been replaced
+by a single item, +include_unknown. By default, failure to find a host name
+when needed causes Exim to behave as if the host does not match the list, but
+if +include_unknown is set, the opposite behaviour happens. Whenever
++include_unknown is invoked, the incident is logged.
+
+
+Merge of Directors and Routers
+------------------------------
+
+There are no longer any directors in Exim 4. There are just routers. All
+addresses are passed to a single list of routers which typically makes use of
+the "domains" option to choose which way to handle specific groups of domains.
+
+A consequence of this is that the code no longer contains any concept of "local
+domains". However, a typical configuration will probably define a named domain
+list (see above) called local_domains, and use it to control routing something
+like this:
+
+  route_remote:
+    driver = dnslookup
+    domains = ! +local_domains
+    transport = remote_smtp
+    no_more
+
+  system_aliases:
+    ....
+
+The first router does DNS routing for all domains that are not in the named
+list of local domains, and no_more ensures that it is the last router for those
+domains. All other domains fall through to the system_aliases and subsequent
+routers. For a complete configuration example, look at the default
+configuration file in src/configure.default.
+
+
+Router Actions
+--------------
+
+The concept of how the routers work is as follows:
+
+A number of pre-conditions are tested (details below). If any of them fails,
+control is passed to the next router. We say "the router is skipped". Otherwise
+the router is run, and can yield one of several different results:
+
+. accept: The router accepts the address, and either queues it for a transport,
+or generates one or more "child" addresses. Processing the original address
+ceases, unless "unseen" is set on the router, in which case the address is
+passed to the next router. Processing of any child addresses starts with the
+first router by default, or at the router defined by redirect_router if it is
+set. This may be any router in the list.
+
+. decline: The router declines to accept the address because it does not
+recognize it at all. The address is passed to the next router, unless no_more
+is set, in which case the address fails.
+
+. pass: The router recognizes the address, but cannot handle it itself. It
+requests that the address be passed to another router. This overrides no_more.
+By default the address is passed to the next router, but this can be changed by
+setting pass_router. However, in this case (unlike redirect_router) the named
+router must be below the current router (to avoid loops).
+
+. fail: The router determines that the address should fail, and queues it for
+the generation of a bounce message. There is no further processing of the
+original address, unless "unseen" is set.
+
+. defer: The router cannot handle the address at the present time. (For
+example, a database may be offline.) No further processing of the address
+happens in this delivery attempt. It is tried again next time.
+
+. error: There is some error in the router (for example, a syntax error in
+its configuration). The action is as for defer.
+
+
+Router pre-conditions
+---------------------
+
+In Exim 3 there are some strange interactions between the generic options that
+test things before running a director or router and the no_more test that
+happens afterwards.
+
+In Exim 4 it is all more straightforward. If any of the pre-condition tests
+fail, the router is skipped and control passes to the next router. The no_more
+option has an effect only if the router is actually run - that is, if all the
+pre-condition tests succeed. The order in which these tests are run is:
+
+  verify status, expn status, domains, local_parts, check_local_user
+
+If all those match, the debug_print string is output when debugging. Exim then
+goes on to test
+
+  senders, require_files, condition
+
+Note that require_files comes near the end of the list, so you cannot use it to
+check for the existence of a file in which to lookup up a domain, local part,
+or sender. However, as these options are all expanded, you can use the "exists"
+expansion condition to make such tests. The require_files option is intended
+for checking files that the router may be going to use internally, or which are
+needed by a specific transport (e.g. .procmailrc).
+
+In Exim 4, local part prefixes and suffixes are recognized and removed before
+any of the other pre-condition tests are done (in Exim 3 they were removed
+afterwards). Note that this means that the local_parts option now tests the
+local part without its prefix or suffix.
+
+If you want to use local parts that include any affixes in a pre-condition
+test, you can do so by using a "condition" option that uses the variables
+$local_part, $local_part_prefix, and $local_part_suffix as necessary.
+
+
+A New Set of Routers
+--------------------
+
+The two sets of routers and directors of Exim 3 have been replaced by a single
+set of routers for Exim 4. These are as follows:
+
+. accept        Always accepts an address. It has no private options.
+
+. dnslookup     Routes by DNS lookup (descended from lookuphost).
+
+. ipliteral     Routes IP literal addresses (unchanged).
+
+. iplookup      Special-purpose lookup router (unchanged).
+
+. manualroute   Routes domains from explicit data (descended from domainlist).
+
+. queryprogram  Routes addresses by running a program (detail changed).
+
+. redirect      Redirects addresses; handles all the functions previously
+                supported by aliasfile, forwardfile, and smartuser without
+                a transport.
+
+
+Saving duplication of effort while routing
+------------------------------------------
+
+Early versions of Exim used to copy the routing of one address for all other
+addresses in the same domain, thereby possibly saving some repeated DNS
+lookups. This feature was removed for release 2.12, after the possibility of
+varying the router actions according to the local part (the local_parts option)
+was added. (In fact, the use of $local_part could have broken it earlier.)
+
+For Exim 4, I have added an option called same_domain_copy_routing to the
+dnslookup and manualroute routers. When one of these routers routes an address
+to a remote transport and this option is set, any other addresses in the
+message that have the same domain are automatically given the same routing, but
+only if the router does not set headers_add or headers_remove, and does not
+`widen' the domain during the routing.
+
+
+Generic Router Options
+----------------------
+
+. The global locally_caseless option is replaced by a generic router option
+  called caseful_local_part. By default, routers handle local parts caselessly.
+
+. check_local_user is now a generic option that is needed to check for a local
+  account. Typically used on redirect (for user's forward files) and on accept
+  (for local deliveries).
+
+. The setting self=local has been removed (since there's no concept of local
+  domains in the code). The same kind of effect can be achieved by using
+  self=reroute or self=pass.
+
+. expn is now a generic router option.
+
+. local_part_prefix and local_part_suffix are now generic router options,
+  replacing prefix and suffix on directors.
+
+. Exim 3 has two logging styles for delivery, depending on whether the domain
+  is a local domain or not. For local domains, the address is given just as the
+  local part - this makes these deliveries easier to spot in the log. In Exim 4
+  there's no concept of local domains, so this functionality cannot be
+  automatic. Instead, there's a generic router option called log_as_local which
+  requests "local-style" logging. This option defaults on for the "accept"
+  router, and off for all the others.
+
+. There's an option called retry_use_local_part which is the default for any
+  router that has check_local_user set, and it applies to routing delays. (The
+  same option for transports applies to transport delays.)
+
+. transport_home_directory and transport_current_directory are new generic
+  options on all routers. They set up default values for home_directory and
+  current_directory on the transport to which they route an address. Any
+  settings in the transport override.
+
+. If transport_home_directory is not set, but check_local_user is set, the
+  user's home directory is used as a default value.
+
+. The special fudge that exists in Exim 3 for handling home_directory settings
+  in forwardfile directors is not needed in Exim 4. It has therefore been
+  removed.
+
+. The new_director option in Exim 3 allows the direction of redirected
+  addresses to start at a given director, instead of the first one. In Exim 4,
+  this option is now called redirect_router. The option is used when a redirect
+  router succeeds, and when a queryprogram router returns a "redirect"
+  response.
+
+. There is a new option called pass_router, which specifies the router to go to
+  when a router "passes" on an address. The named router must follow the
+  current router (to avoid routing loops). Note: if a router declines, control
+  always passes to the next router, unless no_more is set.
+
+. There is a new router option called address_data. This is set to a string
+  which is expanded just before the router is run, that is, after all the
+  pre-tests have succeeded. If the expansion is forced to fail, the router
+  declines. Other expansion failures cause delivery of the address to be
+  deferred.
+
+  When the expansion succeeds, the value is retained with the address, and can
+  be accessed using the variable $address_data. Even if the router declines or
+  passes, the value remains with the address, though it can be changed by
+  another address_data setting on a subsequent router. If a router generates
+  child addresses, the value of $address_data propagates to them.
+
+  The idea of address_data is that you can use it to look up a lot of data for
+  the address once, then then pick out parts of the data later. For example,
+  you could use an LDAP lookup to return a string of the form
+
+    uid=1234 gid=5678 mailbox=/mail/xyz forward=/home/xyz/.forward
+
+  In the transport you could then pick out the mailbox by a setting such as
+
+    file = ${extract{mailbox}{$address_data}}
+
+  This makes the configuration file less messy, and also reduces the number of
+  lookups. (Exim does cache the most recent lookup, but there may be several
+  addresses with different lookups.)
+
+. When a transport is run for several addresses simultaneously, the values of
+  $address_data, $local_part_data, and $domain_data are taken from the first
+  address that the transport handles. However, the order in which multiple
+  addresses are processed is not defined. You therefore need to be careful if
+  you want to use these variables with multiple addresses. The smtp transport
+  is the only one which by default handles multiple addresses.
+
+. When an address is routed by a router with the "unseen" option set, a "clone"
+  address is created, and it starts being routed at the next router. (This is
+  what people expect. In Exim 3 it starts at the top - in simple cases that has
+  the same effect because of the anti-looping rule, but if aliases are involved
+  it sometimes doesn't do what you want.)
+
+. The way that require_files works has been changed. Each item in the list is
+  now separately expanded as the test proceeds. The use of leading ! and +
+  characters is unchanged. However, user and group checking is done differently.
+  Previously, seteuid() was used, but seteuid() is no longer used in Exim (see
+  "Security" below). Instead, Exim now scans along the components of the file
+  path and checks the access for the given uid and gid. It expects "x" access
+  on directories and "r" on the final file. This means that file access control
+  lists (on those operating systems that have them) are ignored.
+
+
+Other Consequences of the Director/Router Merge
+-----------------------------------------------
+
+. The -odqr option is abolished, as there is no inbuilt concept of remote
+  domains.
+
+. The -odqs option is equivalent to queue_smtp_domains = *.
+
+. queue_remote_domains is renamed queue_domains, and applies to any domain.
+
+. The -ql option now suppresses remote delivery; routing always happens.
+
+. The "remote" facility of queue_only_file has been removed.
+
+. The match_directory option for forwardfile and localuser has been entirely
+  abolished. Its function can be achieved using the "condition" option in
+  conjunction with check_local_user.
+
+. When an address is being verified, if it is redirected to a single new
+  address, verification continues with that address. If it is redirected to
+  more than one address, verification ceases with a success result. (In Exim 3,
+  this applied only to aliasing, not to forwarding.)
+
+
+The dnslookup router
+--------------------
+
+This router replaces the lookuphost router of Exim 3. It is much the same,
+except that the "gethostbyname" option has been removed. It now does only DNS
+routing - hence the change of name. Routing using gethostbyname() can be done
+by the manualroute router.
+
+
+The manualroute router
+----------------------
+
+This is the new name for the domainlist router, supposedly to make its function
+clearer and to avoid confusion with the "domainlist" that is used to set up
+named domain lists. Several things have been removed and reorganized.
+
+. The old search mechanism (route_file, route_query, route_queries,
+  search_type) have been removed. Instead there is a new option called
+  route_data, which is an expanded string. It should expand to a single routing
+  entry. If the expansion ends up empty (or is forced to fail), the router
+  declines. The route_list option still exists, for convenient listing of a few
+  inline routes.
+
+. There is no longer any MX processing function in this router. The keywords
+  bydns_mx and bydns_a have been removed, leaving just
+
+    bydns  => find IP addresses from address records in the DNS
+    byname => find IP addresses by calling gethostbyname()
+
+  The default lookup type is "byname", and this can be omitted from a route
+  data line. If an IP address is given, both "byname" and "bydns" are ignored
+  (so typically you omit this field).
+
+. The qualify_single and search_parents options have also been removed.
+
+. A transport is always required to be set, unless verify_only is set.
+
+. The host_find_failed option can be set to "decline", to cause the router to
+  decline if it can't find an IP address for a listed host.
+
+. If manualroute routes to a local transport, there is no need to specify
+  byname or bydns in the routing data. Any supplied host list is passed as a
+  string in $host, but $host_address is unset.
+
+
+The queryprogram router
+-----------------------
+
+This router has been re-designed:
+
+. You must now specify a user and group for the program to be run using
+  command_user and (if necessary) command_group. It no longer defaults to
+  "nobody". These options are expanded.
+
+. The command is now split up and each argument expanded separately, as happens
+  for the pipe transport. The command name is also expanded.
+
+. The return value "forcefail" has been renamed "fail", and it causes delivery
+  to fail. (The original usage of "fail" meaning "decline" has finally been
+  removed.)
+
+. The $route_option variable, which queryprogram used to be able to set has
+  been abolished. A facility to set the new $address_data variable replaces it.
+
+. The string returned from queryprogram must now be one of:
+
+  DECLINE
+  FAIL text
+  DEFER text
+  PASS
+  FREEZE text
+  REDIRECT text
+  ACCEPT TRANSPORT=transport HOSTS=host list LOOKUP=byname|bydns DATA=text
+
+The text returned for "redirect" is a list of new addresses. The text for FAIL
+is returned in the SMTP dialogue when the router is run as part of address
+verification. It is also logged. The text for DEFER and FREEZE is just logged.
+
+The data items in the "accept" return can be given in any order, and all are
+optional. If no transport is included in the "accept" return, the router's
+default transport is used. The host list and lookup type are needed only if the
+transport is an smtp transport that does not itself have a host list. The
+default lookup type is "byname". If the "data" field is set, its value is
+placed in the $address_data variable.
+
+
+The redirect router
+-------------------
+
+This router replaces forwardfile, appendfile, and the use of smartuser without
+a transport. It has two mutually exclusive options for specifying the data that
+it uses. If "file" is set, the data is taken from a file. Otherwise "data" must
+be set, and the data is the expanded value of that option.
+
+The data may be an alias list, possibly including special entries such as
+:fail:, or it may be a list of filtering instructions.
+
+If "file" is set, but the file does not exist or is empty, or its contents have
+no effect (entirely comments, or a filter that does nothing), the router
+declines. This also happens if the expansion of "file" is forced to fail. Any
+other expansion failure causes the router to defer.
+
+Ownership of the file is checked if check_local_user is set or if owners is
+set, unless check_owner is explicitly set false.
+
+Likewise, the group is checked if owngroups is set, or if check_local_user is
+set and a modemask not containing 020 is set, unless check_group is explicitly
+set false.
+
+If "data" is set, a forced expansion causes the router to decline. This also
+happens if "data" is an empty string or a string that causes nothing to be
+generated and no action to be taken.
+
+Because "data" is now used for traditional /etc/aliases lookups, an empty alias
+no longer gives an error. It behaves in the same way as :unknown: (which is
+still recognized, but ignored).
+
+. If no_repeat_use is set, the router is skipped if _any_ ancestor of the
+  current address was routed by this router. This pre-test happens before any
+  of the others. (Contrast the default loop avoidance logic, which skips a
+  router if an ancestor with the same local part was routed by the router.)
+
+. If include_directory is set, :include: files are constrained to this
+  directory.
+
+. When an address is redirected to a file or a pipe, $address_file or
+  $address_pipe (as appropriate) is set when expanding the value of
+  file_transport or directory_transport.
+
+. There are new options forbid_filter_readfile and forbid_filter_run to lock
+  out the use of the new ${readfile and ${run expansion items in filters.
+
+. If one_time is set, forbid_pipe, forbid_file, and forbid_filter_reply are
+  forced to be true, and headers_add and headers_remove are forbidden.
+
+
+Generic transport options
+-------------------------
+
+. All remote deliveries are now done in subprocesses running with specified
+  UIDs and GIDs. (Formerly, only remote parallel deliveries were done in
+  subprocesses.) As a result, user and group are now generic options that can
+  be used on all transports. The default for both local and remote transports
+  is to run as the Exim user and group. For remote transports, this should not
+  normally be changed, but if it is, the user or group should be able to access
+  the hints databases, though failure to open a hints database is always
+  ignored.
+
+  If it turns out that a transport user is in the never_users list, Exim now
+  defers delivery and writes to the panic log. (Previously it just ran the
+  delivery as "nobody".) Because subprocesses (usually running as "exim")
+  are now always used for remote deliveries, you should *not* include "exim" in
+  the never_users list.
+
+. initgroups is now also a generic transport option.
+
+. home_directory and current_directory are generic options on all transports,
+  though some transports (e.g. smtp) make no use of them. If they are unset,
+  values supplied by the router are used.
+
+. The message_size_limit option is now expanded, which makes it possible to
+  have different limits for different hosts, for example.
+
+
+Multiple (batch) deliveries in the appendfile, lmtp, and pipe transports
+------------------------------------------------------------------------
+
+The options controlling batch deliveries, including BSMTP, were a mess, and
+have been reworked.
+
+. The batch option has been removed from all three transports, and the bsmtp
+  and bsmtp_helo options have been removed from appendfile and pipe.
+
+. The batch_max option defaults to 1 in all three transports.
+
+. A new option called use_bsmtp has been added to appendfile and pipe. When
+  set, the message is delivered in BSMTP format. If you want to have a HELO
+  line at the start of the message, you can configure this by making use of the
+  message_prefix option. You must include the terminating newline.
+
+. A new option called batch_id has been added to all three transports.
+
+Batching is now achieved by setting batch_max to a value greater than 1. This
+is recommended for lmtp. When multiple addresses are routed to the same
+transport that has a batch_max value greater than one, the addresses are
+delivered in a batch, subject to certain conditions:
+
+. If any of the transport's options contain a reference to "$local_part", no
+  batching is possible.
+
+. If any of the transport's options contain a reference to "$domain", only
+  addresses with the same domain are batched.
+
+. If batch_id is set, it is expanded for each address, and only those addresses
+  with the same expanded value are batched.
+
+. Batched addresses must also have the same errors address (where to send
+  delivery errors), the same header additions and removals, the same user and
+  group for the transport, and if a host list is present, the first host must
+  be the same.
+
+
+The appendfile transport
+------------------------
+
+. The prefix and suffix options have been renamed message_prefix and
+  message_suffix to avoid confusion with address affixes. The default values,
+  which are suitable for mbox deliveries, now apply only if "file" is set and
+  use_bsmtp is not set. Otherwise, the default values for these options are
+  unset. They can, of course, always be overridden.
+
+. If "directory" is set (which means that "file" is not set), the check_string
+  and escape_string options now default unset.
+
+. The require_lockfile options has been abolished. If use_lockfile is set, a
+  lock file is always required.
+
+. The quota_filecount option is now expanded.
+
+. The create_file option now also applies when delivering into an individual
+  file in a given directory, as well as when appending to a single file. In the
+  case of maildir delivery, the restriction applies to the top directory of the
+  maildir folder.
+
+. There's a new option called directory_file which is expanded to form the
+  final leaf name of files when "directory" is set, but neither maildir nor
+  mailstore is set. The default is "q${base62:$tod_epoch}-$inode", which
+  reproduces the old fixed value. The variable $inode is available only when
+  expanding this new option.
+
+
+The pipe transport
+------------------
+
+. The prefix and suffix options have been renamed message_prefix and
+  message_suffix to avoid confusion with address affixes. The default values
+  that are suitable for vacation deliveries now apply only if use_bsmtp is not
+  set. Otherwise the default values for these options are unset. They can, of
+  course, always be overridden.
+
+
+The smtp transport
+------------------
+
+. The badly-named batch_max option is now called connection_max_messages.
+
+. If hosts_randomize is set, it now affects host lists that come from a router
+  as well as the contents of the "hosts" option, but only if the hosts were not
+  obtained from MX records. Typically, such lists come from the manualroute
+  router. This change means that the router can provide the same host list for
+  multiple addresses - causing them all to be sent to the transport at once.
+  Randomizing is then done each time the transport is called. (If you set
+  hosts_randomize on the router, the randomizing happens for each address.)
+
+. The way that smtp operates when there are multiple addresses to be sent to
+  the same host is now different. Previously, the transport was called many
+  times, with a maximum of max_rcpt addresses per call. Each call made a new
+  connection to the host. When remote_max_parallel = 1, all the addresses are
+  now passed to the transport at once. It makes a single TCP/IP call, but may
+  send multiple copies of the message, each with no more than max_rcpt
+  recipients.
+
+  When remote_max_parallel is greater than 1, a heuristic is used. The number
+  of addresses passed to a single call of the transport is limited to
+
+    (the total number of recipients) / (the value of remote_max_parallel)
+
+  so, for example, if there are 100 recipients and remote_max_parallel is 2, no
+  more than 50 are passed in one call, even if max_rcpt is 100. (The idea is
+  that the other 50 will be passed to another call running in parallel.)
+
+  There is an option of the smtp transport called connection_max_messages
+  which limits the number of messages, or copies of a message, that Exim sends
+  down a single TCP/IP connection. This applies both to this mechanism for
+  multiple copies of a single message, and the re-use of a TCP/IP connection
+  for sending other messages destined for the same host, after a delivery
+  delay. The default value is 500.
+
+. The "interface" option is now expanded. If the result is a forced failure or
+  an empty string, it is ignored. Otherwise, the result must be a list of IP
+  addresses. The first one of the correct type (IPv4 or IPv6) for the outgoing
+  connection is used. If there isn't one of the correct type, the option is
+  ignored.
+
+. At the start of running the transport, the value of $host is taken from the
+  first host in a multi-host list. However, just before the transport connects
+  to a host, the value is changed to refer to that particular host. (This
+  applies to $host_address as well.) This means that options such as helo_data
+  and the tls_options can be made host-specific.
+
+. The tls_verify_ciphers option has been renamed tls_require_ciphers, in order
+  to leave the word "verify" as something that refers to the verification of
+  certificates.
+
+. The resolution of hosts and fallback_hosts used to look up MX records. This
+  was some kind of ancient silliness that I recently noticed. These are
+  definitely hosts, not mail domains. Exim 4 just looks up address records.
+  As a consequence of this, the mx_domains option of the smtp transport is
+  removed.
+
+. The authenticate_hosts option has been renamed as hosts_try_auth. A new
+  option called hosts_require_auth has been added; if authentication fails for
+  one of these hosts, Exim does _not_ try to send unauthenticated. It defers
+  instead. The deferral error is detectable in the retry rules, so this can be
+  turned into a hard failure if required.
+
+
+The System Filter
+-----------------
+
+. The system filter options that were called message_filter_xxx have all been
+  renamed as system_filter_xxx.
+
+. The value of system_filter is expanded.
+
+. message_filter_directory_transport and message_filter_file_transport are now
+  both expanded before use. If the filter set up any file or pipe deliveries,
+  $address_file and $address_pipe are set as appropriate while doing the
+  expansions.
+
+. message_filter_directory2_transport has been removed. The effect of using
+  different directory-style transports can be achieved by specifying a suitable
+  expansion string to system_filter_directory_transport.
+
+. When a system filter added recipients to a message, Exim 3 added an
+  X-Envelope-To: header, listing the real recipients (up to 100). This has been
+  abolished because you can do this kind of thing using "headers_add" nowadays.
+
+. The "fail" command has been extended to allow for two different messages, one
+  for Exim's log and the other to be returned to the sender. The syntax is
+
+    fail "<<log message>>user message"
+
+  That is, if the first two characters of the message are "<<" the following
+  text, up to ">>", is written to the log, and the remainder is returned to the
+  user. If there is no log message, the user message is logged. The motivation
+  for this feature was to reduce the amount of text logged, while being able to
+  send quite long (maybe even multi-line) messages back to the sender.
+
+
+Changes to Lookups
+------------------
+
+. Oracle support is available. It works like the mysql and pgsql support,
+  except that there is no "database name" involved, and the "host name" field
+  is used for what is called "service name" in Oracle. This often looks like a
+  host name. Also, semicolons are not used at the end of an SQL query for
+  Oracle.
+
+. There's a new single-key lookup type called dsearch. It searches a directory
+  for a file whose name matches the key. The result of a successful search is
+  the key. One possible use of this could be for recognizing virtual domains.
+  If each domain is represented by a file whose name is the domain name, you
+  needn't make a separate list of the domains. You could test for them in an
+  ACL (see below), for example, by a line like this
+
+     accept domains = dsearch;/etc/virtual/domains
+
+. The format of LDAP output has been changed for cases where multiple
+  attributes are requested. The data for each attribute is now always quoted.
+  Within the quotes, the quote character, backslash, and newline are escaped
+  with backslashes and commas are used to separate multiple values for the
+  attribute. Thus, the string in quotes takes the same form as the output when
+  a single attribute is requested. If multiple entries are found, their data is
+  still separated by a newline.
+
+. There's a new expansion condition called ldapauth which exists so that the
+  LDAP authentication mechanism can be used for user authentication. It is
+  described under "string expansion" below.
+
+. Exim now supports ldaps:// URLs as well as ldap:// URLs. The former do LDAP
+  over TLS (i.e. encrypted) connections.
+
+. There is now support for the "whoson" mechanism for doing "POP-before-SMTP"
+  authentication. This is provided by new query-style lookup type called
+  "whoson", with queries that consist of IP addresses. For example, in an ACL
+  you can write
+
+    require condition = ${lookup whoson {$sender_host_address}{yes}{no}}
+
+
+Special items in domain and host lists
+--------------------------------------
+
+. In a domain list, the special item @ matches the primary host name, and the
+  special item @[] matches any local interface address enclosed in square
+  brackets (as in domain literal email addresses). The special item @mx_any
+  matches any domain that has an MX record pointing to the local host. The
+  special items @mx_primary and @mx_secondary are similar, except that the
+  first matches only when the primary MX is to the local host, and the second
+  only when the primary MX is not the local host, but a secondary MX is.
+
+. In a host list, the special item @ matches the primary host name, and the
+  special item @[] matches any local interface address (not in brackets).
+
+
+Access Control Lists (ACLs)
+---------------------------
+
+All the policy control options for incoming messages have been replaced by
+Access Control Lists (ACLs). These give more flexibility to the sysadmin, and
+allow the order of testing to be specified. For example, using an ACL, it is
+possible to specify "accept if authenticated, even if from an RBL host, but
+otherwise deny if from an RBL host", which is not possible in Exim 3.
+
+ACLs are defined in a new part of the configuration file, and given names.
+Which ones to run are controlled by a new set of options that are placed in the
+main part of the configuration.
+
+  acl_smtp_auth   specifies the ACL to run when AUTH is received
+  acl_smtp_data   specifies the ACL to run after a message has been received
+  acl_smtp_etrn   specifies the ACL to run when ETRN is received
+  acl_smtp_expn   specifies the ACL to run when EXPN is received
+  acl_smtp_rcpt   specifies the ACL to run when RCPT is received
+  acl_smtp_vrfy   specifies the ACL to run when VRFY is received
+
+The default actions vary. If acl_smtp_auth is not defined, AUTH is always
+accepted (and an attempt is made to authenticate the session). If acl_smtp_data
+is not defined, no checks are done after a message has been received, and it is
+always accepted at that point.
+
+However, if any of the others are not defined, the relevant SMTP command is
+rejected. In particular, this means that acl_smtp_rcpt must be defined in order
+to receive any messages over an SMTP connection. The default configuration file
+contains a suitable default for this.
+
+ACLs can be provided in line, or in files, or looked up from databases. One ACL
+can call another in a subroutine-like manner. String expansion is used, and
+which ACL to run can be varied according to sender host or any other criterion
+that a string expansion can test.
+
+This is not the place to give a full specification of ACLs, but here is a
+typical example for checking RCPT commands, taken from the default
+configuration. The tests are performed in order.
+
+acl_check_rcpt:
+  # Accept if source is local SMTP (i.e. not over TCP/IP - undefined host)
+  accept  hosts = :
+
+  # Deny if the local part contains @ or % or /
+  deny    local_parts   = ^.*[@%/]
+
+  # Accept mail to postmaster in any local domain, regardless of the source,
+  # and without verifying the sender.
+  accept  domains       = +local_domains
+          local_parts   = postmaster
+
+  # Deny unless the sender address can be verified.
+  require verify        = sender
+
+  # Accept if the address is in a local domain, but only if the recipient can
+  # be verified. Otherwise deny. The "endpass" line is the border between
+  # passing on to the next ACL statement (if tests above it fail) or denying
+  # access (if tests below it fail).
+  accept  domains       = +local_domains
+          endpass
+          message       = unknown user
+          verify        = recipient
+
+  # We get here only for non-local domains. Accept if the message arrived over
+  # an authenticated connection, from any host. These messages are usually from
+  # MUAs, so recipient verification is omitted.
+  accept  authenticated = *
+
+  # Reaching the end of the ACL causes a "deny", but we might as well give
+  # an explicit message.
+  deny    message       = relay not permitted
+
+The following options have been abolished as a consequence of the introduction
+of ACLs:
+
+auth_hosts, auth_over_tls_hosts, headers_checks_fail, headers_check_syntax,
+headers_sender_verify, headers_sender_verify_errmsg, host_accept_relay,
+host_auth_accept_relay, host_reject_recipients, prohibition_message,
+rbl_domains, rbl_hosts, rbl_log_headers, rbl_log_rcpt_count,
+rbl_reject_recipients, rbl_warn_header, receiver_try_verify, receiver_verify,
+receiver_verify_addresses, receiver_verify_hosts, receiver_verify_senders,
+recipients_reject_except, recipients_reject_except_senders, relay_domains,
+relay_domains_include_local_mx, relay_match_host_or_sender,
+sender_address_relay, sender_address_relay_hosts, sender_reject,
+sender_reject_recipients, sender_try_verify, sender_verify,
+sender_verify_batch, sender_verify_hosts, sender_verify_fixup,
+sender_verify_hosts_callback, sender_verify_callback_domains,
+sender_verify_callback_timeout, sender_verify_max_retry_rate,
+sender_verify_reject, smtp_etrn_hosts, smtp_expn_hosts. smtp_verify, tls_hosts.
+
+The variable $prohibition_reason has been abolished.
+
+The host_reject option has been retained, but with its name changed to
+host_reject_connection, to emphasize that it causes a rejection at connection
+time. I've left it available just in case it is needed - but its use is not
+recommended in normal circumstances.
+
+
+Other Incoming SMTP Session Controls
+------------------------------------
+
+. The option smtp_accept_max_per_connection (default 1000) limits the number of
+  messages accepted over a single SMTP connection. This is a safety catch in
+  case some sender goes mad (incidents of this kind have been seen). After the
+  limit is reached, a 421 response is given to MAIL commands.
+
+. Some sites find it helpful to be able to limit the rate at which certain
+  hosts can send them messages, and the rate at which an individual message can
+  specify recipients. There are now options for controlling these two different
+  rates.
+
+  Rate limiting applies only to those hosts that match smtp_ratelimit_hosts,
+  whose value is a host list. When a host matches, one or both of the options
+  smtp_ratelimit_mail and smtp_ratelimit_rcpt may be set. They apply to the
+  rate of acceptance of MAIL and RCPT commands in a single SMTP session,
+  respectively.
+
+  The value of each option is a set of four comma-separated values:
+
+    1. A threshold, before which there is no rate limiting.
+    2. An initial time delay. Unlike other times in Exim, fractions are allowed
+       here.
+    3. A factor by which to increase the delay each time.
+    4. A maximum value for the delay.
+
+  For example, these settings have been used successfully at the site which
+  first suggested this feature, for controlling mail from their customers:
+
+    smtp_ratelimit_mail = 2, 0.5s, 1.05, 4m
+    smtp_ratelimit_rcpt = 4, 0.25s, 1.015, 4m
+
+. The default value for smtp_connect_backlog has been increased to 20.
+
+. The SMTP protocol specification requires the client to wait for a response
+  from the server at certain points in the dialogue. (Without PIPELINING these
+  are after every command; with PIPELINING they are fewer, but still exist.)
+  Some spamming sites send out a complete set of SMTP commands without waiting
+  for any response. Exim 4 protects against this by rejecting messages if the
+  client has sent further input when it should not have. The error response
+  "554 SMTP synchronization error" is sent, and the connection is dropped.
+
+  This check is controlled by smtp_enforce_sync, which is true by default.
+
+. helo_strict_syntax has been abolished. The default is now to enforce strict
+  domain syntax for HELO/EHLO arguments. You can use helo_accept_junk_hosts if
+  you want to avoid this.
+
+. There's a new option called helo_lookup_domains. If the domain given in a
+  HELO or EHLO command matches this list, a reverse lookup is done in order to
+  establish the host's true name. The default setting is
+
+    helo_lookup_domains = @ : @[]
+
+  That is, a lookup is forced if the client host gives the server's name or
+  [one of its IP addresses] in HELO or EHLO. (In Exim 3 this happened
+  automatically and was not configurable.)
+
+. The value of the global message_size_limit option is now expanded. For
+  locally submitted messages this happens at the start of message reception.
+  For messages from remote hosts, the expansion is done just after the host
+  connects, so that the value can depend on the host.
+
+
+Handling of Resent- Fields
+--------------------------
+
+RFC 2822 makes it clear that Resent- fields are purely informational. Exim used
+to make use of Resent-Reply-To: which does not actually exist, and it also used
+to use the last set of resent- fields for all the address fields it recognized.
+
+In Exim 4, resent- headers are dealt with as follows:
+
+. A Resent-From: header that just contains the login id as the address is
+  automatically rewritten in the same way as From: is (using qualify domain,
+  and user name from the passwd data).
+
+. If there's a rewrite rule for a header, it is also applied to resent- headers
+  of the same type. For example, a rule that rewrites From: headers also
+  rewrites Resent-From: headers.
+
+. For local messages, if Sender: is being removed on input, Resent-Sender: is
+  also removed.
+
+. If there are any resent- headers but no Resent-Date: or Resent-From: they are
+  added.
+
+. The logic for adding Sender: is now duplicated for Resent-Sender.
+
+. If there's no Resent-Message-Id: one is created, and it is the
+  Resent-Message-Id: which is included in the log line.
+
+
+Authentication
+--------------
+
+. The auth_hosts option has been abolished; this functionality is now
+  controlled by ACLs.
+
+. The auth_always_advertise option has been abolished because it depended on
+  auth_hosts and host_auth_accept_relay, both of which are no more. In its
+  place there is a new option called auth_advertise_hosts, whose default value
+  is *, meaning "advertise AUTH to all".
+
+. The value of server_setid is now used when logging failed authentication
+  attempts.
+
+. The -oMaa option allows trusted users to set the value of
+  $sender_host_authenticated (the authenticator name). This is normally used in
+  conjunction with -oMa.
+
+
+Encryption
+----------
+
+. Because tls_hosts is no more, tls_advertise_hosts is now the only means of
+  controlling the advertisement of STARTTLS (previously, tls_hosts overrode).
+
+. The global option tls_verify_ciphers has been abolished. There are now
+  facilities for checking which cipher is in use in ACLs.
+
+. There's a new option called tls_try_verify_hosts. Like tls_verify_hosts, this
+  causes the server to request a certificate from a client, and it verifies the
+  certificate that it receives. However, unlike tls_verify_hosts, Exim
+  continues with the SMTP connection (encrypted) if a client certificate is not
+  received, or if the certificate does not verify. This state can be detected
+  in an ACL, which makes it possible to implement policies such as "accept for
+  relay only if a verified certificate has been received but accept for local
+  delivery if encrypted, even without a verified certificate".
+
+  A match in tls_verify_hosts overrides tls_try_verify_hosts.
+
+
+The Daemon
+----------
+
+. local_interfaces can now specify a port number with each address, thus
+  allowing a single Exim daemon to listen on multiple ports. The format of each
+  address is either [aaaa]:ppp or aaaa.ppp where aaaa is an IP address and ppp
+  is a port number. For example:
+
+    local_interfaces = 192.168.3.4.25 : 192.168.3.4.26
+
+  If an address is listed without a port, the setting of daemon_smtp_port, or
+  the value of the -oX option, is the default.
+
+. The -oX option can now override local_interfaces. That is, it can supply IP
+  addresses as well as just a port. It is interpreted in this way if its value
+  contains any of the characters . : or []. For example:
+
+  exim -bd -oX 10.9.8.7:10.11.12.13.2525
+
+  The format of the string is identical to the format recognized by the
+  local_interfaces option.
+
+. The way the daemon wrote PID files was overly complicated and messy. It no
+  longer tries to be clever. A PID file is written if, and only if, -bd is used
+  and -oX is _not_ used. In other words, only if the daemon is started with its
+  standard options. There is only one PID file. If pid_file_path is unset, it
+  is exim-daemon.pid in Exim's spool directory. Otherwise the value of
+  pid_file_path is used. For backwards compatibility, "%s" in this value is
+  replaced by an empty string.
+
+
+Logging
+-------
+
+The log_level option and all the various independent logging control options
+have been abolished. In their place there is a single option called
+log_selector. It takes a string argument composed of names preceded by + or -
+characters. These turn on or off the logging of different things. For example:
+
+  log_selector = +arguments -retry_defer
+
+The optional logging items (defaults marked *) are:
+
+  address_rewrite             address rewriting
+  all_parents                 all parents in => lines
+  arguments                   exim arguments
+ *connection_reject           connection rejections
+ *delay_delivery              immediate delivery delayed (message queued)
+  delivery_size               add S=nnn to delivery lines
+ *dnslist_defer               defers of DNS list (aka RBL) lookups
+  incoming_interface          incoming interface on <= lines
+  incoming_port               incoming port on <= lines
+ *lost_incoming_connection    as it says (includes timeouts)
+ *queue_run                   start and end queue runs
+  received_sender             sender on <= lines
+  received_recipients         recipients on <= lines
+ *retry_defer                 "retry time not reached"
+  sender_on_delivery          add sender to => lines
+ *size_reject                 rejection because too big
+ *skip_delivery               "message is frozen"
+  smtp_confirmation           SMTP confirmation on <= lines
+  smtp_connection             SMTP connections
+  smtp_protocol_error         SMTP protocol errors
+  smtp_syntax_error           SMTP syntax errors
+  subject                     contents of Subject: on <= lines
+ *tls_cipher                  TLS cipher on <= lines
+  tls_peerdn                  TLS peer DN on <= lines
+
+  all                         all of the above
+
+"retry time not reached" is always omitted from individual message logs after
+the first delivery attempt.
+
+The log line "error message sent to" has been abolished, because the R= item on
+the incoming message line gives the relationship between the original message
+and the bounce.
+
+The logging options that have been abolished are: log_all_parents,
+log_arguments, log_incoming_port, log_interface, log_ip_options,
+log_level, log_queue_run_level, log_received_sender, log_received_recipients,
+log_rewrites, log_sender_on_delivery, log_smtp_confirmation,
+log_smtp_connections, log_smtp_syntax_errors, log_subject, tls_log_cipher,
+tls_log_peerdn.
+
+
+Debugging
+---------
+
+The debug_level option has been removed. The -dm option has been removed. The
+-df option has also be removed, along with its related build-time option
+STDERR_FILE. (To debug inetd usage, an auxiliary script should be used.)
+
+The -d option has been reworked. It no longer takes a debug level number
+argument, but instead takes a list of debugging names, each preceded by + or -
+to turn on or off individual sets of debugging messages.
+
+. The -v option now shows just the SMTP dialog and any log lines.
+
+. -d with no argument gives a lot of standard debugging data. This is in effect
+  the equivalent of the old -d9, the thing you ask people to set for an initial
+  debugging test.
+
+. -d+x      adds debugging option x to the default set
+  -d-x      removes debugging option x from the default set
+  -d-all+x  leaves only debugging option x
+
+The available debugging names are:
+
+  acl            ACL interpretation
+  auth           authenticators
+  deliver        general delivery logic
+  dns            DNS lookups (see also resolver)
+  dnsbl          DNS black list (aka RBL) code
+  exec           arguments for execv() calls
+  filter         filter handling
+  hints_lookup   hints data lookups
+  host_lookup    all types of name->IP address handling
+  ident          ident lookup
+  interface      lists of local interfaces
+  lists          matching things in lists
+  load           system load checks
+  lookup         general lookup code and all lookups
+  memory         memory handling (replaces the old -dm)
+  process_info   setting info for the process log
+  queue_run      queue runs
+  receive        general message reception logic
+  resolver       turn on the DNS resolver's debugging output; goes to stdout
+  retry          retry handling
+  rewrite        rewriting
+  route          address routing
+  tls            TLS logic
+  transport      transports
+  uid            changes of uid/gid and looking up uid/gid
+  verify         address verification logic
+
+  all            all of the above, and also -v
+
+The default (-d with no argument) includes all of the above, plus -v, with the
+exception of filter, interface, load, memory, and resolver. Some debugging
+output always happens unconditionally whenever any debugging is selected. This
+includes some initial output and every log line.
+
+-d without any value was previously allowed for non-admin users because it used
+to be synonymous with -v. In Exim 4, non-admin users may use -v, but not -d.
+
+If the debug_print option is set in any driver, it produces output whenever any
+debugging is selected, or if -v is used.
+
+
+Local Scan Function
+-------------------
+
+For customized message scanning, you can now supply a C function that is linked
+into the Exim binary. The function is called local_scan(), and it is called
+when Exim has received a message, but has not yet sent a final
+acknowledgement to the sender. This applies to all messages, whether local or
+remote, SMTP or not.
+
+From within your function you can inspect the message, change the recipients,
+add or remove headers, and tell Exim whether to accept or reject the message.
+
+The manual contains the specification of the API for this function.
+
+
+String Expansion
+----------------
+
+. The lookup feature that allowed for subkeys using the syntax
+
+    ${lookup {key:subkey} type {data...
+
+  has been abolished (a) because the effect can be achieved using ${extract,
+  and (b) because in non-lsearch lookups, a colon can be a valid character in a
+  key.
+
+. When a string key is used in a ${extract expansion item, it is now handled
+  case-insensitively.
+
+. A new expansion variable called $tod_epoch gives the time as a single decimal
+  number representing the number of seconds from the start of the Unix epoch.
+
+. There's a new expansion operator that can turn numbers into base 62, for
+  example, ${base62:$tod_epoch}.
+
+. ${extract{number} now recognizes a negative number as a request to count
+  fields from the right.
+
+. There's a new expansion feature for reading files:
+
+    ${readfile{/some/file}{eolstring}}
+
+  The contents of the file replace the item. If {eolstring} is present (it's
+  optional) any newlines in the file are replaced by that string.
+
+. There's a new expansion feature for running commands:
+
+    ${run{command args}{yes}{no}}
+
+  Like all the other conditional items, the {yes} and {no} strings are
+  optional. Omitting both is equivalent to {$value}. The standard output of the
+  command is put into $value if the command succeeds (returns a zero code). The
+  value of the code itself is put into $runrc, and this remains set afterwards,
+  so in a filter file you can do things like
+
+    if "${run{x y z}{}}$runrc" is 1 then ...
+    elsif $runrc is 2 then ...
+
+  As in other command executions from Exim, a shell is not used by default.
+  If you want a shell, you must explicitly code it.
+
+. The redirect router has options for forbidding ${readfile and ${run in
+  filters.
+
+. A feature is provided to suppress expansion of part of a string. Any
+  characters between two occurrences of \N are copied to the output string
+  verbatim. This is particularly useful for protecting regular expressions from
+  unwanted expansion effects. For example:
+
+    queue_smtp_domains = ! \N^ten-\d+\.testing\.com$\N
+
+  Without \N the \ and $ characters in the regex would have to be escaped.
+
+. Radius authentication is supported in a similar way to PAM. You must set
+  RADIUS_CONFIG_FILE in Local/Makefile to specify the location of the Radius
+  client configuration file. Then you can use expansions such as
+
+    server_condition = ${if radius{arguments}{yes}{no}}
+
+. User authentication can now also be done by attempting to bind to an LDAP
+  server. The syntax is again similar to PAM and Radius.
+
+    server_condition = ${if ldapauth{ldap query}{yes}{no}}
+
+  A user and password are required to be supplied with the query. No actual
+  data is looked up; Exim just does a bind to the LDAP server and sets the
+  condition according to the result. Here's an example of an SMTP
+  authenticator:
+
+    login:
+      driver = plaintext
+      public_name = LOGIN
+      server_prompts = "Username:: : Password::"
+      server_condition = ${if ldapauth \
+        {user="uid=${quote_ldap:$1},ou=people,o=example.org" pass="$2" \
+        ldap://ldap.example.org/}{yes}{no}}
+      server_set_id = uid=$1,ou=people,o=example.org
+
+
+
+Security
+--------
+
+Exim 3 could be run in a variety of ways as far as security was concerned. This
+has all been simplified in Exim 4. The security-conscious might like to know
+that it no longer makes any use of the seteuid() function.
+
+. A UID and GID are required to be specified when Exim is compiled. They can be
+  now specified by name as well as by number, so the relevant options are now
+  called EXIM_USER and EXIM_GROUP. If you really feel you have to run Exim as
+  root, you can specify root here, but it is not recommended.
+
+. The "security" option has been abolished. Exim always releases its root
+  privilege when it can. In a conventional configuration, that means when it is
+  receiving a message, when it is delivering a message, when it is running a
+  queryprogram router, and when it is obeying users' filter files (and system
+  filters if it has been given a user for that purpose).
+
+. One important change is that Exim 4 runs as root while routing addresses for
+  delivery. Exim 3 used seteuid() to give up privilege temporarily while
+  routing. Apart from the unliked use of seteuid(), this sometimes gave rise to
+  permissions problems on configuration files.
+
+. However, Exim still runs as the Exim user while receiving messages, and
+  therefore while using the routing logic for verifying at SMTP time.
+
+. There is a new option called deliver_drop_privilege. If this is set, Exim
+  gives up its privilege right at the start of a delivery process, and runs the
+  entire delivery as the Exim user. This is the same action that used to be
+  requested by setting security=unprivileged.
+
+
+Hints Databases
+---------------
+
+. A single "misc" hints database is now used for ETRN and host serialization.
+  There have been appropriate consequential changes to the utilities for
+  managing the hints.
+
+. The exim_tidydb -f option has been abolished. A full tidy is now always done
+  (it hasn't proved to be very expensive).
+
+
+The run time Configuration File
+------------------------------
+
+. The format of the configuration file has changed. Instead of using "end" to
+  terminate sections, it now uses "begin <name>" to start sections. This means
+  that the sections, apart from the first, may appear in any order.
+
+. You can now include other files inside Exim run time configuration files, by
+  using this syntax:
+
+  .include <file name>
+
+. Quotes round the file name are optional. Includes may be nested to any depth,
+  but remember that Exim reads its configuration file often. The processing of
+  .include happens early, at a physical line level, so, like comment lines, it
+  can be used in the middle of an options setting, for example:
+
+  hosts_lookup = a.b.c \
+                 .include /some/file
+
+  Include processing happens _before_ macro processing. Its effect is simply to
+  process the lines of the file as if they occurred inline where the .include
+  appears.
+
+. A macro at the start of a configuration line can now turn the line into an
+  empty line or a comment line. This applies to _logical_ input lines, that is,
+  after any concatenations have been done.
+
+
+Format of spool files
+---------------------
+
+. -local_scan is used in spool files to record the value of $local_scan_data,
+  the string returned from the locally-provided local_scan() function.
+
+
+Renamed Options
+---------------
+
+Some options have been renamed, to make their function clearer, or for
+consistency.
+
+. receiver_unqualified_hosts has been renamed as recipient_unqualified_hosts.
+  I'm going to use "recipient" everywhere in future.
+
+. helo_verify has become helo_verify_hosts.
+
+. remote_sort has become remote_sort_domains.
+
+. In the appendfile and pipe transports, "prefix" and "suffix" have become
+  "message_prefix" and "message_suffix". In the generic router options,
+  "prefix" and "suffix" have become "local_part_prefix" and "local_part_suffix".
+
+
+Miscellaneous
+-------------
+
+. ETRN serialization now uses a double fork, so that an Exim process (detached
+  from the original input process) can wait for the command to finish. This
+  means that it works whatever command ETRN causes to run. (Previously it
+  worked only if ETRN ran "exim -Rxxx".)
+
+. For incoming messages, the server's port number is preserved, and is
+  available in $interface_port. The privileged option -oMi can be used to
+  set this value.
+
+. The -Mmd option (to mark addresses delivered) now operates in a
+  case-sensitive manner.
+
+. Checks for duplicate deliveries are now case-sensitive in the local part.
+
+. The number of situations where Exim panics has been reduced. For example,
+  expansion failures for the "domains" or "local_parts" options in a router now
+  cause deferral instead of a panic.
+
+. EXPN no longer attempts to distinguish local and remote addresses (but you
+  can cause it to be rejected for certain arguments in the ACL).
+
+. accept_timeout has been renamed as receive_timeout, to match
+  smtp_receive_timeout.
+
+. The ability to check an ident value as part of an item in a host list has
+  been removed.
+
+. The reject log shows a message's headers only if the rejection happens after
+  the SMTP DATA command (because they aren't available for earlier checks). The
+  sender, and up to five recipients are listed in Envelope-from: and
+  Envelope-to: header lines. After the headers, a line of separator characters
+  is output. Separators are no longer used for other reject log entries.
+
+. Because header checks are now done as part of ACLs, they now apply only to
+  SMTP input.
+
+. The port number on SMTP connections is now logged in the format [aaaa]:ppp
+  where aaaa is an IP address and ppp is a port, instead of in the format
+  [aaaa.ppp] because the former format causes some software to complain about
+  bad IP addresses.
+
+. The -oMa and -oMi options can now use the [aaaa]:ppp notation to set a port
+  number, but they still also recognize the aaaa.ppp notation.
+
+. The build-time option HAVE_AUTH is abolished. Exim automatically includes
+  authentication code if any authenticators are configured.
+
+. The nobody_user and nobody_group options have been abolished.
+
+. The $message_precedence variable has been abolished. The value is now
+  available as $h_precedence:.
+
+. There's a new utility script called exim_checkaccess which packages up a call
+  to Exim with the -bh option, for access control checking. The syntax is
+
+    exim_checkaccess <IP address> <email address> [exim options]
+
+  It runs "exim -bh <IP address>", does the SMTP dialogue, tests the result and
+  outputs either "accepted" or "Rejected" and the SMTP response to the RCPT TO
+  command. The sender is <> by default, but can be changed by the use of the
+  -f option.
+
+. The default state of Exim is now to forbid domain literals. For this reason,
+  the option that changes this has been renamed as allow_domain_literals.
+
+. The dns_check_names boolean option has been abolished. Checking is now turned
+  off by unsetting dns_check_names_pattern.
+
+. The errors_address and freeze_tell_mailmaster options have been abolished. In
+  their place there is a new option called freeze_tell, which can be set to a
+  list of addresses. A message is sent to these addresses whenever a message is
+  frozen - with the exception of failed bounce messages (this is not changed).
+
+. The message_size_limit_count_recipients option has been abolished on the
+  grounds that it was a failed experiment.
+
+. The very-special-purpose X rewrite flag has been abolished. The facility it
+  provided can now be done using the features of ACLs.
+
+. The timestamps_utc option has been abolished. The facility is now provided by
+  setting timezone = utc.
+
+. The value of remote_max_parallel now defaults to 2.
+
+. ignore_errmsg_errors has been abolished. The effect can be achieved by
+  setting ignore_bounce_errors_after = 0s. This option has been renamed from
+  ignore_errmsg_errors_after to make its function clearer. The default value
+  for ignore_bounce_errors_after is now 10w (10 weeks - i.e. likely to be
+  longer than any other timeouts, thereby disabling the facility).
+
+. The default for message_size_limit is now 50M as a guard against DoS attacks.
+
+. The -qi option does only initial (first time) deliveries. This can be helpful
+  if you are injecting message onto the queue using -odq and want a queue
+  runner just to process new messages. You can also use -qqi if you want.
+
+. Rewriting and retry patterns are now anything that can be single address list
+  items. They are processed by the same code, and are therefore expanded before
+  the matching takes place. Regular expressions must be suitably quoted. These
+  patterns may now be enclosed in double quotes so that white space may be
+  included. Normal quote processing applies.
+
+. Some scripts were built in the util directory, which was a mistake, because
+  they might be different for different platforms. Everything that is built is
+  now built in the build directory. The util directory just contains a couple
+  of scripts that are not modified at build time.
+
+. The installation script now installs the Exim binary as exim-v.vv-bb (where
+  v.vv is the version number and bb is the build number), and points a symbolic
+  link called "exim" to this binary. It does this in an atomic way so that
+  there is no time when "exim" is non-existent. The script is clever enough to
+  cope with an existing non-symbolic-link binary, converting it to the new
+  scheme automatically (and atomically).
+
+. When installing utilities, Exim now uses cp instead of mv to add .O to the
+  old ones, in order to preserve the permissions.
+
+. If the installation script is installing the default configuration, and
+  /etc/aliases does not exist, the script installs a default version. This does
+  not actually contain any aliases, but it does contain comments about ones
+  that should be created. A warning is output to the user.
+
+. A delay warning message is not sent if all the addresses in a message get a
+  "retry time not reached" error. Exim waits until a delivery is actually
+  attempted, so as to be able to give a more informative message.
+
+. The existence of the three options deliver_load_max, queue_only_load, and
+  deliver_queue_load_max was confusing, because their function overlapped. The
+  first of them has been abolished. We are left with
+
+    queue_only_load         no immediate delivery if load is high when
+                            message arrives
+    deliver_queue_load_max  no queued delivery if load is too high
+
+. The ability to edit message bodies (-Meb and the Eximon menu item) has been
+  removed, on the grounds that it is bad practice to do this.
+
+. Eximstats is now Steve Campbell's patched version, which displays sizes in K
+  and M and G, and can optionally generate HTML.
+
+. If bounce_sender_authentication is set to an email address, this address is
+  used in an AUTH option of the MAIL command when sending bounce messages, if
+  authentication is being used. For example, if you set
+
+    bounce_sender_authentication = mailer-daemon@your.domain
+
+  a bounce message will be sent over an authenticated connection using
+
+    MAIL FROM:<> AUTH=mailer-daemon@your.domain
+
+. untrusted_set_sender has changed from a boolean to an address pattern. It
+  permits untrusted users to set sender addresses that match the pattern. Like
+  all address patterns, it is expanded. The identity of the user is in
+  $sender_ident, so you can, for example, restrict users to setting senders
+  that start with their login ids by setting
+
+    untrusted_set_sender = ^$sender_ident-
+
+  The effect of the previous boolean can be achieved by setting the value to *.
+  This option applies to all forms of local input.
+
+. The always_bcc option has been abolished. If an incoming message has no To:
+  or Cc: headers, Exim now always adds an empty Bcc: line. This makes the
+  message valid for RFC 822 (sic). In time, this can be removed, because RFC
+  2822 does not require there to be a recipient header.
+
+. ACTION_OUTPUT=no is now the default in the Exim monitor.
+
+. dns_ipv4_lookup has changed from a boolean into a domain list, and it now
+  applies only to those domains. Setting this option does not stop Exim from
+  making IPv6 calls: if an MX lookup returns AAAA records, Exim will use them.
+  What it does is to stop Exim looking for AAAA records explicitly.
+
+. The -G option is ignored (another Sendmail thing).
+
+. If no_bounce_return_message is set, the original message is not included in
+  bounce messages. If you want to include additional information in the bounce
+  message itself, you can use the existing errmsg_file and errmsg_text
+  facilities.
+
+. -bdf runs the daemon in the foreground (i.e. not detached from the terminal),
+  even when no debugging is requested.
+
+. Options for changing Exim's behaviour on receiving IPv4 options have been
+  abolished. Exim now always refuses calls that set these options, and logs the
+  incident. The abolished options are kill_ip_options, log_ip_options, and
+  refuse_ip_options.
+
+. The pattern for each errors_copy entry is now matched as an item in an
+  address list.
+
+. A number of options and variables that used the word "errmsg" have been
+  changed to use "bounce" instead, because it seems that "bounce message" is
+  now a reasonably well-understood term. I used it in the book and am now using
+  it in the manual; it's a lot less cumbersome than "delivery error
+  notification message". The changes are:
+
+  $errmsg_recipient          => $bounce_recipient
+  errmsg_file                => bounce_message_file
+  errmsg_text                => bounce_message_text
+  ignore_errmsg_errors_after => ignore_bounce_errors_after
+
+  For consistency, warnmsg_file has been changed to warn_message_file. However,
+  the two variables $warnmsg_delay and $warnmsg_recipients are unchanged.
+
+  The hide_child_in_errmsg option has not changed, because it applies to both
+  bounce and delay warning messages.
+
+. smtp_accept_max_per_host is now an expanded string, so it can be varied on
+  a per-host basis. However, because this test happens in the daemon before it
+  forks, the expansion should be kept as simple as possible (e.g. just inline
+  tests of $sender_host_address).
+
+. The retry rules can now recognize the error "auth_failed", which happens when
+  authentication is required, but cannot be done.
+
+. There's a new option called local_sender_retain which can be set if
+  no_local_from_check is set. It causes Sender: headers to be retained in
+  locally-submitted messages.
+
+. The -dropcr command line option now turns CRLF into LF, and leaves isolated
+  CRs alone. Previously it simply dropped _all_ CR characters. There is now
+  also a drop_cr main option which, if turned on, assumes -dropcr for all
+  non-SMTP input.
+
+
+Removal of Obsolete Things
+--------------------------
+
+. The obsolete values "fail_soft" and "fail_hard" for the "self" option have
+  been removed.
+
+. The obsolete "log" command has been removed from the filter language.
+
+. "service" was an obsolete synonym for "port" when specifying IP port numbers.
+  It has been removed.
+
+. The obsolete option collapse_source_routes has been removed. It has done
+  nothing since release 3.10.
+
+. The obsolete from_hack option in appendfile and pipe transports has been
+  removed.
+
+. The obsolete ipv4_address_lookup has been abolished (dns_ipv4_lookup has been
+  a synonym for some time, but it's changed - see above).
+
+. The obsolete generic transport options add_headers and remove_headers have
+  been abolished. The new names, headers_add and headers_remove, have been
+  available for some time.
+
+Philip Hazel
+February 2002

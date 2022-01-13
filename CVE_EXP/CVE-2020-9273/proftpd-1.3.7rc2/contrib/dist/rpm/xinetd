@@ -1,0 +1,14 @@
+# default: off
+# description: The ProFTPD FTP server 
+service ftp
+{
+	flags           = REUSE
+	socket_type     = stream
+	wait            = no
+	user            = root
+	server          = /usr/sbin/in.proftpd
+	log_on_success  += DURATION
+	log_on_failure  += USERID
+	nice		= 10
+	disable         = yes
+}

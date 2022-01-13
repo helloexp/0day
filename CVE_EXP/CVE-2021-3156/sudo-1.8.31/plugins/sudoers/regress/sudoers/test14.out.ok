@@ -1,0 +1,6 @@
+Parses OK.
+
+Cmnd_Alias LS = sha224:d06a2617c98d377c250edd470fd5e576327748d82915d6e33b5f8db1 /bin/ls
+Cmnd_Alias SH = sha256:hOtoe/iK6SlGg7w4BfZBBdSsXjUmTJ5+ts51yjh7vkM= /bin/sh
+
+millert ALL = LS, SH, sha512:srzYEQ2aqzm+it3f74opTMkIImZRLxBARVpb0g9RSouJYdLt7DTRMEY4Ry9NyaOiDoUIplpNjqYH0JMYPVdFnw /bin/kill

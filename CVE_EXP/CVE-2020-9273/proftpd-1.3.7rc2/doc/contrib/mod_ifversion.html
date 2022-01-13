@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_ifversion</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_ifversion</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_ifversion</code> module is designed for use in testsuites and
+production deployments of <code>proftpd</code>, which may have to deal with
+different ProFTPD versions and different configurations.  The
+<code>&lt;IfVersion&gt;</code> sections supported by <code>mod_ifversion</code>
+allow flexible version checking, including numeric and regular expression
+comparisons.
+
+<p>
+This module is contained in the <code>mod_ifversion.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>; a discussion
+on <a href="#Usage">usage</a> is also available.
+
+<p>
+The most current version of <code>mod_ifversion</code> is distributed with
+the <code>proftpd</code> source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#IfVersion">&lt;IfVersion&gt;</a>
+</ul>
+
+<hr>
+<h3><a name="IfVersion">&lt;IfVersion&gt;</a></h3>
+<strong>Syntax:</strong> &lt;IfVersion <em>[[!]operator] version</em>&gt;<br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> <em>All</em><br>
+<strong>Module:</strong> mod_ifversion<br>
+<strong>Compatibility:</strong> 1.3.1rc1 and later
+
+<p>
+The <code>&lt;IfVersion&gt;</code> section encloses configuration directives
+which will be used only if the proftpd version matches the configured criteria.
+For normal (numeric) comparisons the version argument has the following
+syntax:
+<pre>
+  <i>major[.minor[.revision[suffix]]]</i>
+</pre>
+<i>e.g.</i> 1.3.1, 1.3.2a, or 1.3.3rc1. If the <em>minor</em> or
+<em>revision</em> fields are omitted, they are assumed to be zero.  An
+omitted suffix is assumed to be a stable release, instead of a release
+candidate (RC) or maintenance release.
+
+<p>
+The following numerical comparison operators are supported:
+<p>
+<table border=1 summary="Numeric Comparators">
+  <tr>
+    <td><em>operator</em></td>
+    <td>Description</td>
+  </tr>
+
+  <tr>
+    <td><code>=</code> or <code>==</code></td>
+    <td>proftpd version is equal</td>
+  </tr>
+
+  <tr>
+    <td><code>&gt;</code></td>
+    <td>proftpd version is greater than</td>
+  </tr>
+
+  <tr>
+    <td><code>&gt;=</code></td>
+    <td>proftpd version is greater or equal</td>
+  </tr>
+
+  <tr>
+    <td><code>&lt;</code></td>
+    <td>proftpd version is less than</td>
+  </tr>
+
+  <tr>
+    <td><code>&lt;=</code></td>
+    <td>proftpd version is less or equal</td>
+  </tr>
+</table>
+
+<p>
+It is also possible to use regular expressions to match the ProFTPD version.
+To use a regular expression, the <em>operators</em> are:
+<p>
+<table border=1 summary="Regex Operators">
+  <tr>
+    <td><em>operator</em></td>
+    <td>Description</td>
+  </tr>
+
+  <tr>
+    <td><code>=</code> or <code>==</code></td>
+    <td><em>version</em> has the form <code>/<em>regex</em>/</code></td>
+  </tr>
+
+  <tr>
+    <td><code>~</code></td>
+    <td><em>version</em> has the form <code><em>regex</em></code></td>
+  </tr>
+</table>
+
+<p>
+If you wish to reverse the meaning of the operator, prefix the <em>operator</em>
+with an exclamation mark (!), <i>e.g.</i>:
+<pre>
+  &lt;IfVersion != 1.3.1&gt;
+    # Do not use these directives if the version is 1.3.1
+  &lt;/IfVersion&gt;
+</pre>
+
+<p>
+If <em>operator</em> is omitted, it is assumed to be <code>=</code>.
+
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_ifversion</code> module is distributed with ProFTPD.  For
+including <code>mod_ifversion</code> as a statically linked module:
+<pre>
+  $ ./configure --with-modules=mod_ifversion
+</pre>
+To build <code>mod_ifversion</code> as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_ifversion
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+For those with an existing ProFTPD installation, you can use the
+<code>prxs</code> tool to add <code>mod_ifversion</code>, as a DSO module, to
+your existing server:
+<pre>
+  $ prxs -c -i -d mod_ifversion.c
+</pre>
+
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+
+<p>
+The following examples demonstrate how the <code>mod_ifversion</code> can
+be used.
+
+<p>
+Using a simple numeric comparison:
+<pre>
+  &lt;IfVersion &gt;= 1.3.1rc1&gt;
+    # Only use these directives for versions greater or equal 1.3.1rc1
+  &lt;/IfVersion&gt;
+</pre>
+
+<p>
+Using a regular expression:
+<pre>
+  &lt;IfVersion = /^rc[[:digit:]]$/&gt;
+    # Only use these directives for RC (release candidate) versions
+  &lt;/IfVersion&gt;
+</pre>
+
+<p>
+Using a reversed regular expression (<i>i.e.</i> in this case, meaning
+"proftpd version does not match this pattern"):
+<pre>
+  &lt;IfVersion !~ ^1.3.[012]$&gt;
+    # These directives are not for those versions
+  &lt;/IfVersion&gt;
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2009-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

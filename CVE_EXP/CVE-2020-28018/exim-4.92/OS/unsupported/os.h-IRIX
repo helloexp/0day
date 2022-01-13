@@ -1,0 +1,17 @@
+/* Exim: OS-specific C header file for IRIX */
+
+#define DN_EXPAND_ARG4_TYPE  u_char *
+
+#define LOAD_AVG_NEEDS_ROOT
+#define HAVE_DEV_KMEM
+#define LOAD_AVG_TYPE   long
+#define LOAD_AVG_SYMBOL "avenrun"
+#define KERNEL_PATH     "/unix"
+#define FSCALE          1000.0
+
+#define HAVE_MMAP
+#define HAVE_SYS_STATVFS_H
+#define F_FAVAIL        f_favail
+#define vfork fork
+
+/* End */

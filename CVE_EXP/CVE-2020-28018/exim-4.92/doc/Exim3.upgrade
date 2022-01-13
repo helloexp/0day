@@ -1,0 +1,671 @@
+This document contains information about upgrading Exim to the last of the 3.xx
+releases. It is provided to help anybody who is upgrading to release 4.xx from
+a release that is earlier than 3.33. It goes back as far as release 2.12. If
+you are upgrading to release 4.xx from an even earlier release, it is probably
+best to start again from the default configuration.
+
+
+Upgrading from release 3.16
+---------------------------
+
+1. The way LDAP returns values for multiple attributes has been changed to be
+the same as the NIS+ lookup.
+
+If you specify multiple attributes, they are returned as space-separated
+strings, quoted if necessary.
+
+e.g.   ldap:///o=base?attr1,attr2?sub?(uid=fred)
+
+       used to give:    attr1=value one, attr2=value2
+       now gives:       attr1="value one" attr2=value2
+
+If you don't specify any attributes in the search, you now get them in
+the tagged format as well.
+
+e.g.   ldap:///o=base??sub?(uid=fred)
+
+       used to give:    top, value one, value2
+       now gives:       objectClass=top attr1="value one" attr2=value2
+
+The reason for these changes is so that the results can be safely parsed -
+in fact, the existing ${extract{key}{val}} function does this nicely.
+This in turn allows a single LDAP query to be reused - one query can return
+the destination delivery address, the quota, and so forth.
+
+This is NOT a backwards compatible change, so there is a compile-time option
+to reverse it in the src/lookups/ldap.c module, for use in emergency. But it is
+not thought that the old behaviour was particularly useful as it stood, because
+a field that contained ',' or '=' would make the result unparseable.
+
+In the common case where you explicitly ask for a single attribute in your
+LDAP query, the behaviour is unchanged - the result is not quoted, and if there
+are multiple values they are comma-separated.
+
+2. The hosts_max_try option in the smtp transport limits the number of IP
+addresses that will actually be tried during one delivery attempt. The default
+is 5. Previously, all available addresses were tried.
+
+3. The extension of the "extract" expansion item has resulted in a change to
+the way Exim decides between the keyed form and the numeric form. If the first
+argument consists entirely of digits, the numeric form is assumed. This means
+that it is impossible to have keys that are digit strings, without manipulating
+the data first (e.g. by using ${sg} to add a letter to each key).
+
+
+Upgrading from release 3.15
+---------------------------
+
+1. The handling of "freeze" and "fail" in system filter files has changed.
+Previously, any deliveries set up by a filter that ended with "freeze" or
+"fail" were discarded. This no longer happens; such deliveries are honoured.
+A consequence of this is that first_delivery becomes false after freezing in a
+system filter; previously it remained true until a real delivery attempt
+happened.
+
+
+Upgrading from release 3.13
+---------------------------
+
+1. The handling of maildir_tag has been changed (see NewStuff). There are two
+small incompatibilities: (a) Exim now inserts a leading colon only if the
+string begins with an alphanumeric character. So if you were using a string
+starting with a special character, you will have to add the leading colon to
+it to remain compatible. (b) The expansion of maildir_tag now happens after the
+file has been written, and $message_size is updated to the correct file size
+before the expansion. The tag is not used on the temporary file (it was
+previously).
+
+2. The handling of Exim's configuration has changed in two ways:
+
+  (a) Any line may be continued by ending it with a backslash. Trailing white
+  space after the backslash, and leading white space on continuation lines is
+  ignored. This means that quotes are no longer needed just to make it possible
+  to continue an option setting. The difference between quoted and non-quoted
+  strings is that quoted strings are processed for internal backslashed items
+  such as \n. The only possible incompatibility of this change is if any
+  existing configuration has a non-quoted line ended in backslash, which seems
+  a very remote possibility.
+
+  (b) All lists, with the exception of log_file_path, can now use a different
+  character to colon as the separator. This is specified by starting the list
+  with <x where x is any punctuation character. For example:
+
+    local_interfaces = <; 127.0.0.1 ; ::1
+
+  The new feature is provided to make life easier with IPv6 addresses. It is
+  recommended that its use be confined to circumstances where it really is
+  needed, and that colon be used in most cases. I don't believe this change
+  is incompatible, because I don't think any list item can legitimately begin
+  with a '<' character.
+
+3. Previously, Exim took no action to ensure that the timestamps in its log
+files were "wall clock time". If the TZ environment variable was set when Exim
+was called, it could cause strange times to be logged. For the majority of
+operating systems, I have been able to fix this problem by deleting the entire
+environment. However, this doesn't work in some systems, and a macro called
+HANDS_OFF_ENVIRONMENT is defined in their OS/os.h files to suppress the action.
+These OS are: AIX, DGUX, HP-UX, IRIX, and SCO, and their behaviour should be
+unchanged from previous releases. On any other OS, if you find you are getting
+weird timestamps, it may be that your OS needs HANDS_OFF_ENVIRONMENT.
+
+4. As a result of the change described in 3, there may be some cases where Exim
+runs an external program that previously got passed the environment, and now do
+not. This does *not* apply to the pipe transport, where the environment has
+always been set up specifically, as described in the manual.
+
+5. The way in which Exim scans its queue when split_spool_directory is set has
+changed, but this shouldn't make any noticeable difference. See doc/NewStuff
+for details.
+
+
+Upgrading from release 3.03
+---------------------------
+
+The from_hack option in the appendfile and pipe transports has been replace by
+two string options, check_string and escape_string. If your configuration
+contains any references to from_hack they should be replaced. Exim continues to
+recognize from_hack as a transitional measure. If no_from_hack is specified in
+an appendfile transport, the two new options are forced to be unset. Otherwise
+the setting of from_hack is ignored.
+
+
+Upgrading from release 3.02
+---------------------------
+
+The exim_dbmbuild utility has been changed to write a warning to stderr on
+encountering a duplicate key, and to return a value of 1. Formerly, it ignored
+all but the last of a set of duplicates; now it ignores all but the first, to
+make dbm-searched files behave the same way as lsearch-searched files. However,
+there is an option -lastdup which makes it behave as before. The -nowarn option
+suppresses the individual warnings, but the number of duplicates is always
+listed on stdout at the end.
+
+
+Updating from a release prior to 3.00
+-------------------------------------
+
+Prior to release 3.00 a lot of options which contained lists of various kinds
+came in groups such as sender_accept, sender_reject, sender_reject_except. This
+style of configuration has been abolished. Instead, it is now possible to put
+negative entries in such lists, so that a single option is all that is
+required. In addition to this, net lists have been abolished, and instead,
+host lists can now contain items that specify networks as well as hosts. The
+names of some of these options have also been changed.
+
+As a result of these changes, most configuration files used for earlier
+versions of Exim need to be changed. The opportunity has therefore been taken
+to remove a number of other obsolete features and options.
+
+A Perl script is built in the file util/convert4r3 to assist in updating Exim
+configuration files. It reads a configuration file on the standard input,
+writes a modified file on the standard output, and writes comments about what
+it has done to the standard error file. It assumes that the input is a valid
+Exim configuration file. A typical call to the conversion script might be
+
+  util/convert4r3  </opt/exim/configure  >/opt/exim/configure.new
+
+The way the script merges an accept/reject/reject_except triple into a single
+accept option is to put the reject_except list first, followed by the reject
+list with every item negated, followed by the accept list. For example, if an
+old configuration file contains
+
+  sender_host_accept_relay        = *.c.d : e.f.g
+  sender_host_reject_relay        = *.b.c.d
+  sender_host_reject_relay_except = a.b.c.d
+
+the new configuration will contain
+
+  host_accept_relay = a.b.c.d : ! *.b.c.d : *.c.d : e.f.g
+
+The same ordering is used to merge a triple into a reject option, but this time
+the first and third sublists are negated. For example, if an old configuration
+file contains
+
+  sender_host_accept        = *.c.d : e.f.g
+  sender_host_reject        = *.b.c.d
+  sender_host_reject_except = a.b.c.d
+
+the new configuration file will contain
+
+  host_reject = ! a.b.c.d : *.b.c.d : ! *.c.d : ! e.f.g : *
+
+The output file should be checked before trying to use it. Each option change
+is preceded by an identifying comment. There are several specific things that
+you should look out for when checking:
+
+(1) If you are using macros to contain lists of items, and these have to be
+    negated in the new world, convert4r3 won't get it right. For example, if
+    the old configuration contains
+
+      ACCEPTHOSTS = *.c.d : e.f.g
+      sender_host_reject = ACCEPTHOSTS
+
+    then the rewritten configuration will be
+
+      ACCEPTHOSTS = *.c.d : e.f.g
+      host_reject = !ACCEPTHOSTS
+
+    but because this is just textual macro handling, that is equivalent to
+
+      host_reject = !*.c.d : e.f.g
+
+    which is not the correct translation, because the second item is not
+    negated. There is unfortunately no easy way to use a macro to provide a
+    list of things that are sometimes negated.
+
+(2) The conversion adds some settings of file_transport, pipe_transport, and
+    reply_transport to aliasfile and forwardfile directors. This is done
+    because the global implicit defaults for these options have been removed.
+    The default configuration now contains explicit settings, so convert4r3
+    makes these additions to be compatible with that. If your aliasfile and
+    forwardfile directors do not make use of the pipe, file, or autoreply
+    facilities, you can remove these new settings.
+
+(3) If you are using +allow_unknown in a host list which also has an exception
+    list, you may need to move +allow_unknown in the new configuration. For
+    example, if the old configuration contains
+
+      sender_host_reject = +allow_unknown : *.b.c
+      sender_host_reject_except = *.a.b.c
+
+    then the rewritten configuration will be
+
+      host_reject = ! *.a.b.c : +allow_unknown : *.b.c
+
+    Because the negated item contains a wild card, the reverse lookup for the
+    host name will occur before +allow_unknown is encountered, and therefore
+    +allow_unknown will have no effect. It should be moved to the start of the
+    list.
+
+One way of upgrading Exim from a pre-3.00 release to a post-3.00 release is as
+follows:
+
+1. Suppose your configuration file is called /opt/exim/configure, and you want
+   to continue with this name after upgrading. The first thing to do is to make
+   another copy of this file called, say, /opt/exim/configure.pre-3.00.
+
+2. Rebuild your existing Exim to use the copy of the configuration file instead
+   of the standard file. Install this version of Exim under a special name such
+   as exim-2.12, and point a symbolic link called "exim" at it. Then HUP your
+   daemon. You can check on the name of the configuration file by running
+
+     exim -bP configure_file
+
+   Ensure that everything is running smoothly.
+
+3. Build the new release, configured to use the standard configuration file.
+
+4. Use the convert4r3 utility to upgrade your configuration file for the new
+   release. After running it, check the file by hand.
+
+5. If any of the options that convert4r3 rewrote contained regular expressions
+   that had backslashes in them, and were not previously in quotes, they will
+   need modification if convert4r3 has put them into quotes. Either re-arrange
+   the option to remove the quoting, or escape each backslash. For example, if
+   you had
+
+     sender_reject_recipients = ^\d{8}@
+     sender_reject_except = ^\d{8}@x.y.z
+
+   convert4r3 will have combined the two settings into
+
+     sender_reject_recipients = "! ^\d{8}@x.y.z : \
+        ^\d{8}@"
+
+   This must be changed to
+
+     sender_reject_recipients = ! ^\d{8}@x.y.z : ^\d{8}@
+   or
+     sender_reject_recipients = "! ^\\d{8}@x.y.z : ^\\d{8}@"
+
+   In the second case, the quoted string could of course still be split
+   over several lines.
+
+6. If your configuration refers to any external lists of networks, check them
+   to ensure that all the masks are in the single-number form, because Exim no
+   longer recognizes the dotted quad form of mask. For example, if an item in
+   a netlist file is
+
+      131.111.8.0/255.255.255.0
+
+   you must change it to
+
+      131.111.8.0/24
+
+   Otherwise Exim will not recognize it as a masked IP address, and will treat
+   it as a host name. The convert4r3 utility makes this conversion for networks
+   that are mentioned inline in the configuration, but it does not handle
+   referenced files.
+
+7. Check the newly-built Exim as much as possible without installing; you can,
+   for example, use a command such as
+
+     ./exim -bV
+
+   in the build directory to test that it successfully reads the new
+   configuration file. You can also do tests using -bt and -bh.
+
+8. Install the new release under a special name such as exim-3.00.
+
+9. You can then easily change between the new and old releases simply by moving
+   the symbolic link and HUPping your daemon.
+
+
+Details of syntax changes at 3.00
+=================================
+
+1. A bare file name without a preceding search type may appear in a domain
+list; this causes each line of the file to be read and processed as if it were
+an item in the list, except that it cannot itself be a bare file name (that is,
+this facility cannot be used recursively). Wild cards and regular expressions
+may be used in the lines of the file just as in the main list.
+For example, if
+
+  local_domains = /etc/local-domains
+
+then the file could contain lines like
+
+  *.mydomain.com
+
+This is different to an lsearch file, which operates like any other lookup type
+and does an exact search for the key. If a # character appears anywhere in a
+line of the file, it and all following characters are ignored. Blank lines are
+also ignored.
+
+2. Any item in a domain list (including a bare file name) can be preceded by an
+exclamation mark character, to indicate negation. White space after the ! is
+ignored. If the domain matches the rest of the item, it is *not* in the set of
+domains that the option is defining. If the end of the list is reached, the
+domain is accepted if the last item was a negative one, but not if it was a
+positive one. If ! precedes a bare file name, then all items in the file are
+negated, unless they are preceded by another exclamation mark. For example:
+
+  relay_domains = !a.b.c : *.b.c
+
+sets up a.b.c as an exception to the more general item *.b.c, because lists are
+processed from left to right. If the domain that is being checked matches
+neither a.b.c nor *.b.c, then it is not accepted as a relay domain, because the
+last item in the list is a positive item. However, if the option were just
+
+  relay_domains = !a.b.c
+
+then all domains other than a.b.c would be relay domains, because the last item
+in the list is a negative item. In effect, a list that ends with a negative
+item has ": *" appended to it.
+
+3. Negation and bare file names are available as above in lists of local parts
+(e.g. in local_parts options) and complete addresses (address lists). For the
+special "@@" lookup form in address lists, negation also can be used in the
+list of local parts that is looked up for the domain. For example, with
+
+  sender_reject_recipients = @@dbm;/etc/reject-by-domain
+
+the file could contain lines like this:
+
+  baddomain.com:  !postmaster : !hostmaster : *
+
+If a local part that actually begins with ! is required, it has to be specified
+using a regular expression. Because local parts may legitimately contain #
+characters, a comment in the file is recognized only if # is followed by white
+space or the end of the line.
+
+4. Host lists may now contain network items, as in the former net list options,
+which have all been abolished. The only form of network masking is the /n
+variety. Negation and bare file names can appear in host lists, and there is a
+new type of item which allows masked network numbers to be used as keys in
+lookups, thus making it possible to used DBM files for faster checking when the
+list of networks is large.
+
+The complete list of types of item which can now appear in a host list is:
+
+. An item may be a bare file name; each line of the file may take the form of
+  any of the items below, but it may not itself be another bare file name. If
+  the file name is preceded by ! then all items in the file are negated, unless
+  they are preceded by another exclamation mark. Comments in the file are
+  introduced by # and blank lines are ignored.
+
+. If the entire item is "*" it matches any host.
+
+. If the item is in the form of an IP address, it is matched against the IP
+  address of the incoming call.
+
+. If the item is in the form of an IP address followed by a slash and a mask
+  length (e.g. 131.111.0.0/16) then it is matched against the IP address of the
+  incoming call, subject to the mask.
+
+. If the item is of the form "net<number>-<search-type>;<search-data>", for
+  example:
+
+    net24-dbm;/networks.db
+
+  then the IP address of the incoming call is masked using <number> as the mask
+  length; a textual string is then constructed from the masked value, followed
+  by the mask, and this is then used as the key for the lookup. For example, if
+  the incoming IP address is 192.152.34.6 then the key that is looked up for
+  the above example is "192.152.34.0/24".
+
+. If the entire item is "@" the primary host name is used as the the match
+  item, and the following applies:
+
+. If the item is a plain domain name, then a forward DNS lookup is done on that
+  name to find its IP address(es), and the result is compared with the IP
+  address of the incoming call.
+
+The remaining items require the host name to be obtained by a reverse DNS
+lookup. If the lookup fails, Exim takes a hard line by default and access is
+not permitted. If the list is an "accept" list, Exim behaves as if the current
+host is not in the set defined by the list, whereas if it is a "reject" list,
+it behaves as if it is.
+
+To change this behaviour, the special item "+allow_unknown" may appear in the
+list (at top level - it is not recognized in an indirected file); if any
+subsequent items require a host name, and the reverse DNS lookup fails, Exim
+permits the access, that is, its behaviour is the opposite to the default.
+
+. If the item starts with "*" then the remainder of the item must match the end
+  of the host name. For example, *.b.c matches all hosts whose names end in
+  .b.c. This special simple form is provided because this is a very common
+  requirement. Other kinds of wildcarding require the use of a regular
+  expression.
+
+. If the item starts with "^" then it is taken to be a regular expression which
+  is matched against the host name. For example, ^(a|b)\.c\.d$ matches either
+  of the two hosts a.c.d or b.c.d. If the option string in which this occurs is
+  given in quotes, then the backslash characters must be doubled, because they
+  are significant in quoted strings. The following two settings are exactly
+  equivalent:
+
+    host_accept = ^(a|b)\.c\.d$
+    host_accept = "^(a|b)\\.c\\.d$"
+
+. If the item is of the form <search-type>;<filename or query>, for example
+
+    dbm;/host/accept/list
+
+  then the host name is looked up using the search type and file name or query
+  (as appropriate). The actual data that is looked up is not used.
+
+5. Early versions of Exim required commas and semicolons to terminate option
+settings in drivers. This hasn't been the case for quite some time. The code to
+handle them has now been removed.
+
+
+Details of option changes at 3.00
+=================================
+
+Main options
+------------
+
+  * address_directory_transport, address_directory2_transport,
+    address_file_transport, address_pipe_transport, and address_reply_transport
+    have been abolished as obsolete. The aliasfile and forwardfile directors
+    have been able for some time to set the transports they want to use for
+    these special kinds of delivery; there seems little need for global
+    defaults. The default configuration has been altered to add settings for
+    file_transport and pipe_transport to the aliasfile and forwardfile
+    directors, and to add reply_transport to forwardfile.
+
+  * check_dns_names, a deprecated synonym for dns_check_names, has been
+    abolished.
+
+  * helo_accept_junk_nets is abolished; nets can now appear in
+    helo_accept_junk_hosts.
+
+  * helo_verify_except_hosts and helo_verify_except_nets have been abolished,
+    and helo_verify has been changed from a boolean to a host list, listing
+    those hosts for which HELO verification is required.
+
+  * the obsolete option helo_verify_nets (a synonym for host_lookup_nets) has
+    been abolished. Note that host_lookup_nets itself has been replaced by
+    host_lookup.
+
+  * hold_domains_except has been abolished. Use negated items in hold_domains.
+
+  * host_lookup_nets has been replaced by host_lookup, which can contain hosts
+    and nets.
+
+  * ignore_fromline_nets has been replaced by ignore_fromline_hosts.
+
+  * If message_filter is set and the filter generates any deliveries to files,
+    pipes, or any autoreplies, then the appropriate message_filter_*_transport
+    options must be set to define the transports, following the abolition of
+    the global defaults (see above).
+
+  * queue_remote and queue_remote_except have been abolished and replaced by
+    queue_remote_domains, which lists those domains that should be queued. The
+    effect of queue_remote=true is now obtained by queue_remote_domains=*.
+
+  * queue_smtp and queue_smtp_except have been abolished and replaced by
+    queue_smtp_domains, which lists those domains that should be queued after
+    routing. The effect of queue_smtp=true is now obtained by
+    queue_smtp_domains=*.
+
+  * rbl_except_nets has been abolished and replaced by rbl_hosts, which can
+    contain hosts and nets. This defaults to "*" and defines the set of hosts
+    for which RBL checking is done.
+
+  * receiver_unqualified_nets is abolished; nets can now appear in
+    receiver_unqualified_hosts.
+
+  * receiver_verify_except_hosts and receiver_verify_except_nets have been
+    abolished and replaced by receiver_verify_hosts, which defaults to "*".
+    This is used, however, only when receiver_verify is set - together with the
+    other conditions (receiver_verify_addresses, receiver_verify_senders).
+
+  * receiver_verify_senders_except has been abolished; the functionality is now
+    available by using negation in receiver_verify_senders.
+
+  * rfc1413_except_hosts and rfc1413_except_nets have been abolished, and
+    replaced by rfc1413_hosts, which defaults to "*".
+
+  * sender_accept, sender_accept_recipients and sender_reject_except have
+    been abolished; the functionality is now available via sender_reject and
+    sender_reject_recipients.
+
+  * sender_host_accept, sender_net_accept, sender_host_reject,
+    sender_net_reject, sender_host_reject_except, sender_net_reject_except,
+    sender_host_reject_recipients and sender_net_reject_recipients
+    have all been abolished, and replaced by the options host_reject and
+    host_reject_recipients.
+
+  * sender_host_accept_relay, sender_net_accept_relay,
+    sender_host_reject_relay, sender_host_reject_relay_except,
+    sender_net_reject_relay, and sender_net_reject_relay_except are abolished,
+    and replaced by host_accept_relay. This defaults unset, and this means that
+    all relaying is now by default locked out in the Exim binary. Previously,
+    if no relaying options were set, relaying was permitted.
+
+  * sender_unqualified_nets has been abolished; nets can now appear in
+    sender_unqualified_hosts.
+
+  * sender_verify_except_hosts and sender_verify_except_nets have been
+    abolished and replaced by sender_verify_hosts, which defaults to "*". This
+    is used, however, only when sender_verify is set (to make it similar to
+    receiver_verify, even though there aren't at present any other conditions.)
+
+  * sender_verify_log_details has been abolished. This was a little-used
+    debugging option.
+
+  * smtp_etrn_nets has been abolished; nets can now appear in smtp_etrn_hosts.
+
+  * smtp_expn_nets has been abolished; nets can now appear in smtp_expn_hosts.
+
+  * smtp_log_connections, a deprecated synonym for log_smtp_connections, has
+    been abolished.
+
+  * smtp_reserve_nets is abolished; nets can now appear in smtp_reserve_hosts.
+
+Generic director and router options
+-----------------------------------
+
+  * except_domains, except_local_parts, and except_senders have been abolished.
+    Use negated items in domains, local_parts, and senders instead, for
+    example, replace
+
+      except_domains = a.b.c
+
+    with
+
+      domains = !a.b.c
+
+    If you already have a domains setting, add any negative items to the front
+    of it.
+
+The aliasfile director
+----------------------
+
+  * The option "directory", an obsolete synonym for home_directory, has been
+    abolished.
+
+The forwardfile director
+------------------------
+
+  * The option "directory", an obsolete synonym for file_directory, has been
+    abolished.
+
+  * The option forbid_filter_log, an obsolete synonym for
+    forbid_filter_logwrite, has been abolished.
+
+The localuser director
+----------------------
+
+  * The option "directory", an obsolete synonym for match_directory, has been
+    abolished.
+
+The lookuphost router
+---------------------
+
+  * mx_domains_except and its obsolete old name non_mx_domains have been
+    abolished. Use negated items in mx_domains.
+
+The pipe transport
+------------------
+
+  * The option "directory", an obsolete synonym for home_directory, has been
+    abolished.
+
+The smtp transport
+------------------
+
+  * mx_domains_except and its obsolete old name non_mx_domains have been
+    abolished. Use negated items in mx_domains.
+
+  * serialize_nets has been abolished; nets may now appear in serialize_hosts.
+
+
+Other items relevant to upgrading from Exim 2.12
+================================================
+
+1. RFC 2505 (Anti-Spam Recommendations for SMTP MTAs) recommends that the
+checking of addresses for spam blocks should be done entirely caselessly.
+Previously, although Exim retained the case of the local part, in accordance
+with the RFC 821 rule that local parts are case sensitive, some of the string
+comparisons were nevertheless done caselessly, but file lookups used the
+unmodified address.
+
+The way addresses are compared with options whose values are address lists has
+been changed. At the start of the comparison, both the local part and the
+domain are now forced to lower case, and any comparisons that are done with
+in-line strings are done caselessly. For example,
+
+  sender_reject = A@b.c
+
+rejects both A@b.c and a@b.c. Any lookups that occur use lowercased strings as
+their keys. If the @@ lookup facility is used, the lookup is done on the lower
+cased domain name, but any subsequent string comparisons on local parts are
+done caselessly.
+
+To retain possibility of caseful matching, the pseudo-item "+caseful" can
+appear in an address list. It causes any subsequent items to do caseful matches
+on local parts. The domain, however, remains lower cased.
+
+2. The handling of incoming batched SMTP has been re-worked so as to behave in
+a more useful way in cases of error:
+
+  (i)   The option sender_verify_batch now defaults false.
+  (ii)  EOF is no longer interpreted as end-of-message; the "." line must be
+        present.
+  (iii) Exim stops immediately in cases of error, writing information to stdout
+        and stderr, and setting the return code to 1 if some messages have been
+        accepted, and 2 otherwise.
+
+3. The first message delivered by -R, and all messages delivered by -Rf and -qf
+are "forced" in the sense that retry information is over-ridden. Previously,
+Exim also forcibly thawed any of these messages that was frozen. This no longer
+happens. Additional options -Rff and -qff have been implemented to force
+thawing as well as delivery.
+
+4. When recipients are being rejected because the sending host is in an RBL
+list, Exim used just to show the RBL text, if any, as part of the rejection
+response. Now, if prohibition_message is set, it expands that string instead,
+with the RBL message available in $rbl_text, and $prohibition_reason set to
+"rbl_reject".
+
+5. When a trusted caller passed a message to Exim, it used to check the From:
+header against the caller's login (even though the caller was trusted) unless
+the -f option had been used to supply a different sender. This has been changed
+so that From: is never checked if the caller is trusted.
+
+Philip Hazel
+May 1999
+

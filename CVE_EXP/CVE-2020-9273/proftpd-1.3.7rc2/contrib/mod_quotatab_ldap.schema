@@ -1,0 +1,9 @@
+attributetype ( 1.3.6.1.4.1.17852.2.1.2.1.1 NAME 'ftpQuota'
+    DESC 'Quota definition for proftpd mod_quotatab_ldap'
+    EQUALITY caseExactMatch
+    SUBSTR caseExactSubstringsMatch
+    SYNTAX 1.3.6.1.4.1.1466.115.121.1.15{255} )
+
+objectclass ( 1.3.6.1.4.1.17852.2.1.2.2.1 NAME 'proFTPDQuota' SUP top AUXILIARY
+    DESC 'Quota object for proftpd mod_quotatab_ldap'
+    MAY ( ftpQuota ) )

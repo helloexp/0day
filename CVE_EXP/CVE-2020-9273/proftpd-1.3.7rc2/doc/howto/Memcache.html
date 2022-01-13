@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Memcache</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Memcache</b></h2></center>
+<hr>
+
+<p>
+<b>What is Memcache?</b><br>
+<a href="http://memcached.org/">Memcache</a> (or "memcached") is an open-source,
+high performance memory object caching system.  A simple (and effective)
+key/value store accessible, efficiently, over the network.
+
+<p>
+<b>How Can Memcache Be Useful for ProFTPD?</b><br>
+Like any high-performance object store, <code>memcached</code> offers several
+possibilities to a server like <code>proftpd</code>.  Many sites use
+<code>memcached</code> for caching; it can <i>also</i> be used as an efficient
+shared storage mechanism, for sharing data among many different servers.  And
+for ProFTPD specifically, the shared storage aspect is what is most useful.
+Things like SSL/TLS sessions can be cached and shared across a pool of
+<code>proftpd</code> servers, as can ban lists for badly-behaved clients.
+
+<p>
+<b>Enabling Memcache Support for ProFTPD</b><br>
+OK, so you are interested enough in the possibilities that
+<code>memcached</code> offers that you want to try it out.  Excellent!  To
+do this, you will first need to make sure to build your <code>proftpd</code>
+executable using the <code>--enable-memcache</code> configure option.  The
+<code>--enable-memcache</code> configure option automatically adds the
+<code><a href="../modules/mod_memcache.html">mod_memcache</a></code> module to
+your <code>proftpd</code> build.
+
+<p>
+The <code>mod_memcache</code> module uses the <code><a href="http://libmemcached.org/libMemcached.html">libmemcached</a></code> library for talking to
+<code>memcached</code> servers.  If your <code>libmemcached</code> library is
+installed in a non-standard location, you may need to tell the ProFTPD build
+system where to find the <code>libmemcached</code> header files and libraries
+using the <code>--with-includes</code> and <code>--with-libraries</code>
+configure options.
+
+<p>
+There are other modules which make use of memcached support when available,
+such as
+<code><a href="../contrib/mod_tls_memcache.html">mod_tls_memcache</a></code>.
+Thus to take advantage of modules like this, putting everything together, your
+configure command might look like this:
+<pre>
+  $ ./configure --enable-memcache \
+    --with-modules=...:mod_tls_memcache:... \
+    --with-includes=/path/to/libmemcached/include \
+    --with-libraries=/path/to/libmemcached/lib
+</pre>
+
+<p>
+<b>Configuring <code>mod_memcache</code></b><br>
+Now that you have compiled <code>proftpd</code> with the
+<code>mod_memcache</code> module, you need to add the necessary
+<code>mod_memcache</code> directives to your <code>proftpd.conf</code>.
+The following example demonstrates this:
+<pre>
+  &lt;IfModule mod_memcache.c&gt;
+    # Enable mod_memcache
+    MemcacheEngine on
+
+    # Tell mod_memcache where to log its messages
+    MemcacheLog /path/to/proftpd/memcache.log
+
+    # Tell mod_memcache where to find the memcached servers
+    MemcacheServers 192.168.0.10:11211 192.168.0.11:11211
+  &lt;/IfModule&gt;
+</pre>
+If you wish to see more detailed logging, at least while you are setting
+up your memcached servers for ProFTPD, you can enable trace logging for the
+<code>memcache</code> trace channel using <i>e.g.</i>:
+<pre>
+  TraceLog /path/to/proftpd/trace.log
+  Trace DEFAULT:10 memcache:20
+</pre>
+
+<p>
+<b>Using Memcache for Shared Storage</b><br>
+You have now compiled support for memcached into ProFTPD, and you have told the
+<code>mod_memcache</code> module where to find your <code>memcached</code>
+servers.  Is that all you need to do?  No.  Now you need to tell
+<code>proftpd</code> modules which bits of data to store in your
+<code>memcached</code> servers.
+
+<p>
+Currently, only two modules can take advantage of <code>memcached</code>
+support: <code><a href="../contrib/mod_ban.html">mod_ban</a></code> and
+<code><a href="../contrib/mod_tls_memcache.html">mod_tls_memcache</a></code>.
+
+<p>
+First, let us examine <code>mod_ban</code> and how it would use
+<code>memcached</code>.  The <code>mod_ban</code> module manages ban lists,
+lists of clients/users which have been banned for various reasons.  These
+lists are stored in shared memory by default; this works for a single
+<code>proftpd</code> server, but if a badly behaved client is banned by one
+<code>proftpd</code> server in pool of servers, that client can then connect to
+a different server which might not have a ban for that client -- and the client
+then gets another chance to be naughty.  To configure <code>mod_ban</code> so
+that it stores its ban lists in <code>memcached</code>, simply use the following
+in your <code>proftpd.conf</code>:
+<pre>
+  &lt;IfModule mod_ban.c&gt;
+    BanEngine on
+
+    # ...other mod_ban directives...
+
+    # Tell mod_ban to store its ban lists using memcache
+    BanCache memcache
+  &lt;/IfModule&gt;
+</pre>
+With this, <code>mod_ban</code> will use <code>memcached</code> (as well as
+shared memory) for reading/writing its ban lists.  And this, in turn, means
+that other <code>proftpd</code> servers' <code>mod_ban</code> modules can see
+those bans, and reject the badly behaved clients across the pool/cluster.
+
+<p>
+The <code>mod_tls_memcache</code> module uses <code>memcached</code> servers
+for storing SSL/TLS sessions; SSL/TLS session caching can greatly improve
+SSL/TLS session handshake times, particularly for data transfers using
+SSL/TLS.  If you have a pool of <code>proftpd</code> servers, and you have
+FTPS clients which may connect to a different node every time, caching the
+SSL/TLS session data in a shared storage mechanism like <code>memcached</code>
+can be quite beneficial.
+
+<p>
+To use <code>memcached</code> for SSL/TLS session caching, then, you use the
+<a href="../contrib/mod_tls.html#TLSSessionCache"><code>TLSSessionCache</code></a> directive of the <code>mod_tls</code> module, using something like this
+in your <code>proftpd.conf</code>:
+<pre>
+  &lt;IfModule mod_tls.c&gt;
+    TLSEngine on
+
+    # ...other mod_tls directives...
+
+    &lt;IfModule mod_tls_memcache.c&gt;
+      # Tell mod_tls to cache sessions using memcached
+      TLSSessionCache memcache:
+    &lt;/IfModule&gt;
+  &lt;/IfModule&gt;
+</pre>
+That's it.  The <code>mod_tls</code> module now knows to give the SSL/TLS
+session data to <code>mod_tls_memcache</code>, and <code>mod_tls_memcache</code>
+knows how to talk to the <code>memcached</code> servers using
+<code>mod_memcache</code>.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+<font color=red>Question</font>: If I don't use memcache, are there other
+ways for sharing data (such as ban lists) among different <code>proftpd</code>
+instances?<br>
+<font color=blue>Answer</font>: It might be possible using <code>mod_sql</code>
+and some <code>SQLLogInfo</code> directives, but that would only work for very
+specific information.  For sharing things like ban lists and SSL/TLS sessions
+across a cluster of <code>proftpd</code> servers, Memcache (or
+<a href="Redis.html">Redis</a>) support is <em>recommended</em>.
+
+<p>
+<font color=red>Question</font>: Can I use <code>mod_memcache</code> to cache frequently accessed files, similar to <code><a href="http://wiki.nginx.org/HttpMemcachedModule">nginx+memcache</a></code>?<br>
+<font color=blue>Answer</font>: No.  And in reality, caching of files like that
+will probably not give you the same performance gain for FTP transfers as it
+can for HTTP transfers.
+
+<p>
+Why not?  Many HTTP transfers are for dynamically generated pages; the cost of
+generating each page is expensive, and the generated content may not change
+that frequently (relative to the rate of requests).  FTP transfers, by contrast,
+are for <b>static</b> files; FTP servers do not (usually) dynamically generate
+the bytes of the files being downloaded.  The cost of reading files from disk
+is probably <i>less</i> than reading files from <code>memcached</code> over
+the network, even a LAN.
+
+<p>
+Now the above may not be true in <b>all</b> cases -- there may be FTP servers
+serving files from network-mounted filesystems (<i>e.g.</i> NFS, CIFS
+<i>et al</i>).  And for these very specific cases, having a cache of frequently
+access files on closer storage such as local disk (or <code>memcached</code>)
+could make a big difference; please contact the ProFTPD Project if you find
+yourself in this situation, and we will see what can be done to help.
+
+<p>
+<font color=red>Question</font>: Why do I see the following error when
+<code>proftpd</code> starts up?<br>
+<pre>
+  mod_tls_memcache/0.1: notice: unable to register 'memcache' SSL session cache: Memcache support not enabled
+</pre>
+<font color=blue>Answer</font>: This message means that your
+<code>proftpd</code> server has <code>mod_tls_memcache</code> built and
+loaded, <b>but</b> your <code>proftpd</code> server was <b>not</b> built
+with memcache support (<i>i.e.</i> the <code>--enable-memcache</code> configure
+option was not used when compiling <code>proftpd</code>).
+
+<p>
+The above is not a fatal or worrisome error; it is merely pointing out that
+some of your modules want to use a feature that was not enabled.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

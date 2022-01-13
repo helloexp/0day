@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_delay</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_delay</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_delay</code> module is designed to make a certain type of
+information leak, known as a &quot;timing attack&quot;, harder.
+
+<p>
+When <code>proftpd</code> processes the <code>USER</code> and <code>PASS</code>
+FTP commands from a client, it has to perform checks against configured
+ACLs, look up user and group information, etc.  These checks are not done
+if the given username is known to not exist for the server, in order to
+not tie up system resources needlessly.  However, this does mean that more
+work is done when handling &quot;good&quot; users than when handling
+&quot;bad&quot; users.  This difference can be detected in the time it takes
+for <code>proftpd</code> to send a response to the <code>USER</code> and
+<code>PASS</code> commands.  This means it is possible for an attacker
+to look for these statistical timing differences, and determine which
+users are &quot;good&quot; and which are &quot;bad&quot;.  From there,
+a determined attacker can focus their attention on the known good usernames.
+Note that the timings will vary depending on server load, number of
+users in the user base, type of storage of user data (<i>e.g.</i>
+LDAP directories, SQL tables, RADIUS servers, flat files, <i>etc</i>).
+
+<p>
+The <code>mod_delay</code> module attempts to prevent such timing differences
+by keeping track of the time taken to process the <code>USER</code> and
+<code>PASS</code> commands.  It does this for the most recent
+<code>USER</code> and <code>PASS</code> commands.  The timing data are
+stored in the module's <code>DelayTable</code>.  If the module detects
+that <code>proftpd</code> has not taken enough time to handle one of these
+commands, compared to its past response times, a small delay will be added
+to the response cycle.  The amount of delay is determined by the difference
+between the current time spent handling the command and the median time
+spent handling the same command in the past.
+
+<p>
+The most current version of <code>mod_delay</code> can be found in the
+ProFTPD source distribution:
+<pre>
+  <a href="http://www.proftpd.org/">http://www.proftpd.org/</a>
+</pre>
+
+<h2>Thanks</h2>
+<p>
+<i>2004-10-18</i>: Thanks to Michael Renner for testing out various versions
+of the module as it was developed.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#DelayControlsACLs">DelayControlsACLs</a>
+  <li><a href="#DelayEngine">DelayEngine</a>
+  <li><a href="#DelayOnEvent">DelayOnEvent</a>
+  <li><a href="#DelayTable">DelayTable</a>
+</ul>
+
+<h2>Control Actions</h2>
+<ul>
+  <li><a href="#delay_info"><code>delay info</code></a>
+  <li><a href="#delay_reset"><code>delay reset</code></a>
+</ul>
+
+<hr>
+<h3><a name="DelayControlsACLs">DelayControlsACLs</a></h3>
+<strong>Syntax:</strong> DelayControlsACLs <em>actions|&quot;all&quot; &quot;allow&quot;|&quot;deny&quot; &quot;user&quot;|&quot;group&quot; list</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_delay<br>
+<strong>Compatibility:</strong> 1.3.1rc1 and later
+
+<p>
+The <code>DelayControlsACLs</code> directive configures access lists of
+<em>users</em> or <em>groups</em> who are allowed (or denied) the ability to
+use the <em>actions</em> implemented by <code>mod_delay</code>. The default
+behavior is to deny everyone unless an ACL allowing access has been explicitly
+configured.
+
+<p>
+If &quot;allow&quot; is used, then <em>list</em>, a comma-delimited list
+of <em>users</em> or <em>groups</em>, can use the given <em>actions</em>; all
+others are denied.  If &quot;deny&quot; is used, then the <em>list</em> of
+<em>users</em> or <em>groups</em> cannot use <em>actions</em> all others are
+allowed.  Multiple <code>DelayControlsACLs</code> directives may be used to
+configure ACLs for different control actions, and for both users and groups.
+
+<p>
+<hr>
+<h3><a name="DelayEngine">DelayEngine</a></h3>
+<strong>Syntax:</strong> DelayEngine <em>on|off</em><br>
+<strong>Default:</strong> DelayEngine on<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_delay<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>DelayEngine</code> directive enables or disables the module's
+runtime delaying calculations.  If it is set to <em>off</em> this module
+does no delaying.  Use this directive to disable the module.
+
+<p>
+Example:
+<pre>
+  &lt;IfModule mod_delay.c&gt;
+    DelayEngine off
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<hr>
+<h3><a name="DelayOnEvent">DelayOnEvent</a></h3>
+<strong>Syntax:</strong> DelayOnEvent <em>event</em> <em>delay-ms</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_delay<br>
+<strong>Compatibility:</strong> 1.3.6rc1 and later
+
+<p>
+The <code>DelayOnEvent</code> directive configures an explicit
+<em>delay-ms</em>, in milliseconds, for the given <em>event</em>.  The
+supported values for the <em>event</em> parameter are:
+<ul>
+  <li>USER
+  <li>PASS
+  <li>FailedLogin
+</ul>
+The <em>delay-ms</em> parameter can be a number (in which case the units are
+assumed to be milliseconds), or using a suffix.
+
+<p>
+To help illustrate the usage of <code>DelayOnEvent</code>, here are some
+examples:
+<pre>
+  DelayOnEvent PASS 2000ms
+</pre>
+This configures <code>mod_delay</code> to always add a delay of 2000
+milliseconds for every PASS command.  Alternatively, to add a delay <i>only
+on failed logins</i>, you might use:
+<pre>
+  DelayOnEvent FailedLogin 5s
+</pre>
+which adds a delay of 5 seconds after the login has failed.
+
+<p>
+<hr>
+<h3><a name="DelayTable">DelayTable</a></h3>
+<strong>Syntax:</strong> DelayTable <em>path</em>|<em>"none"</em><br>
+<strong>Default:</strong> DelayTable /var/proftpd/proftpd.delay<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_delay<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>DelayTable</code> directive configures a <em>path</em> to a file
+that <code>mod_delay</code> uses for storing its timing data.  The given
+<em>path</em> must be an absolute path.  It is recommended that this file
+<b>not</b> be on an NFS mounted partition.
+
+<p>
+Note that timing data is kept across daemon stop/starts.  When new
+<code>&lt;VirtualHost&gt;</code>s are added to the configuration, though,
+<code>mod_delay</code> will detect that it does not have a suitable
+<code>DelayTable</code> for the new configuration, and will clear all
+stored data.
+
+<p>
+If the <code>DelayTable</code> parameter is <em>"none"</em>, then the
+<code>mod_delay</code> module will <b>not</b> store timing data.  This
+configuration is used, in conjunction with
+<a href="#DelayOnEvent"><code>DelayOnEvent</code></a>, for setting explicit
+delays, rather than learning/adapting the delays dynamically.
+
+<p>
+<hr>
+<h2>Control Actions</h2>
+
+<p>
+<hr>
+<h3><a name="delay_info"><code>delay info</code></a></h3>
+<strong>Syntax:</strong> ftpdctl delay info<br>
+<strong>Purpose:</strong> Display data from the DelayTable<br>
+
+<p>
+The <code>delay info</code> control action can be used to view the timing
+data currently stored in the <code>DelayTable</code> file.  This can help
+to determine why the <code>mod_delay</code> module might be adding
+longer-than-expected delays to the login sequence for FTP sessions.
+
+<p>
+<hr>
+<h3><a name="delay_reset"><code>delay reset</code></a></h3>
+<strong>Syntax:</strong> ftpdctl delay reset<br>
+<strong>Purpose:</strong> Reset the DelayTable, clearing all data<br>
+
+<p>
+The <code>delay reset</code> control action can be used to clear the
+<code>DelayTable</code> of all timing information, resetting the table.
+This can be used if the table starts to collect delays that are too long
+to be useful.
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+The <code>mod_delay</code> module provides protection against a very specific
+problem.  However, the module may not be appropriate for all situations.
+
+<p>
+For some sites, the delay added by <code>mod_delay</code> is not
+helpful, and in fact can annoy users.  To disable <code>mod_delay</code>,
+simply add the following to your <code>proftpd.conf</code> file:
+<pre>
+  &lt;IfModule mod_delay.c&gt;
+    DelayEngine off
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+For other sites, malicious users may notice that they can add arbitrarily
+long delays to <i>all</i> users' sessions by "poisoning"
+<code>mod_delay</code>'s cache of timing information.  For example, a
+malicious client might connect, send a <code>USER</code> command, and then
+not disconnect for long time.  After a few such clients have connected,
+<code>mod_delay</code> will add a delay for <i>all</i> clients, such that
+some legitimate clients may time out.  In effect, this may look like a sort
+of denial of service (DoS).
+
+<p>
+To guard against the above situation, there are two possible solutions.
+First, you can disable the <code>mod_delay</code> module entirely (see above);
+if the timing information leak is not of concern for your FTP site, this is
+the recommended approach.  Second, you can use the
+<a href="../contrib/mod_ifsession.html"><code>mod_ifsession</code></a> module
+and its <code>&lt;IfClass&gt;</code> sections so that the
+<code>mod_delay</code> module applies only to certain DNS names and
+IP address ranges.  For example:
+<pre>
+  # Define a class which identifies trusted clients
+  &lt;Class trusted&gt;
+    From a.b.c.d
+    From e.f.g.h
+  &lt;/Class&gt;
+
+  &lt;IfModule mod_delay.c&gt;
+    &lt;IfClass trusted&gt;
+      DelayEngine off
+    &lt;/IfClass&gt;
+
+    &lt;IfClass !trusted&gt;
+      DelayEngine on
+    &lt;/IfClass&gt;
+  &lt;/IfModule&gt;
+</pre>
+More information on defining classes can be found <a href="../howto/Classes.html">here</a>.
+
+<p>
+<b>Logging</b><br>
+The <code>mod_delay</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>delay
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace delay:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p>
+<font color=red>Question</font>: My client times out, after a couple of minutes,
+after sending the <code>USER</code> command.  After disabling <code>mod_delay</code>, the login succeeds quickly.  Isn't this a bug in <code>mod_delay</code>?<br>
+<font color=blue>Answer</font>: No.
+
+<p>
+The <code>DelayTable</code> file can, over time, build up a store of long
+delay values.  A series of logins which take a while (<i>e.g.</i> SSL/TLS
+handshakes over slow network connections) can cause this sort of behavior.
+You can delete the <code>DelayTable</code> file or use the <a href="#delay_reset"><code>delay reset</code></a> ftpdctl action to clear the stored data.
+
+<p>
+<font color=red>Question</font>: Shouldn't <code>mod_delay</code> have some
+sort of maximum delay value, so that it doesn't cause timeouts?<br>
+<font color=blue>Answer</font>:  No.  There is no single value, hardcoded
+or configurable, that will work well for all sites <i>and</i> achieve
+<code>mod_delay</code>'s purpose at the same time.  What seems like a normal
+delay time for one site will be unacceptably long for another site.
+
+<p>
+<font color=red>Question</font>: Is it OK to configure my
+<code>DelayTable</code> on some ephemeral storage like <code>tmpfs</code>?<br>
+<font color=blue>Answer</font>: Yes, this is fine.
+
+<p>
+The <code>mod_delay</code> module is designed to create and populate a new
+<code>DelayTable</code> when one is not present.  So if your
+<code>DelayTable</code> is stored on something like <code>tmpfs</code> such
+that it goes away when your host is restarted, <code>mod_delay</code> will
+create a new one.  This <i>does</i> mean that the previously stored timing
+data will be lost, and that <code>mod_delay</code> will start calculating and
+storing new timing data; the functional impact should be negligible.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_delay</code> module is compiled by default.
+
+<p>
+<br><hr>
+
+<font size=2><b><i>
+&copy; Copyright 2004-2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+
+<hr><br>
+
+</body>
+</html>

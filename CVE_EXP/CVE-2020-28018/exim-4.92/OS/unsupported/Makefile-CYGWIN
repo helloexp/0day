@@ -1,0 +1,113 @@
+# OS-specific file for Cygwin.
+
+# This file provided by Pierre A. Humblet <Pierre.Humblet@ieee.org>
+
+HAVE_IPV6 = yes
+HAVE_ICONV = yes
+# Use c99 to have %z 
+CFLAGS= -g -Wall -std=c99 -U __STRICT_ANSI__
+LIBS= -lcrypt -lresolv
+LIBS_EXIM= -liconv
+EXIWHAT_PS_ARG=-as
+EXIWHAT_KILL_SIGNAL=-USR1
+EXIWHAT_EGREP_ARG='/(EXIM|exim)[0-9. -]*$$'
+
+DBMLIB=-lgdbm
+USE_GDBM=YES
+
+# Some OS add a suffix to executables
+EXE = .exe
+
+# To add a resource file with an icon
+LIBS_EXIM +=../Local/exim_res.o
+
+# To produce a linker map
+#LIBS_EXIM+=-Wl,-Map,Exim.Map
+
+
+##################################################
+# The following is normally set in local/Makefile.
+# Makefile.cygwin provides defaults with which the
+# precompiled version is built
+##################################################
+
+BIN_DIRECTORY=/usr/bin
+CONFIGURE_FILE=/etc/exim.conf
+EXIM_USER=18   # This changes if user exim exists
+EXIM_GROUP=544 # Administrators
+SPOOL_DIRECTORY=/var/spool/exim
+LOG_FILE_PATH=/var/log/exim/exim_%s.log
+TIMEZONE_DEFAULT = ""
+
+AUTH_CRAM_MD5=yes
+AUTH_PLAINTEXT=yes
+AUTH_SPA=yes
+
+SUPPORT_TLS=yes
+TLS_LIBS=-lssl -lcrypto
+
+ROUTER_ACCEPT=yes
+ROUTER_DNSLOOKUP=yes
+ROUTER_IPLITERAL=yes
+ROUTER_MANUALROUTE=yes
+ROUTER_QUERYPROGRAM=yes
+ROUTER_REDIRECT=yes
+
+TRANSPORT_APPENDFILE=yes
+TRANSPORT_AUTOREPLY=yes
+TRANSPORT_PIPE=yes
+TRANSPORT_SMTP=yes
+
+SUPPORT_MAILDIR=yes
+SUPPORT_MAILSTORE=yes
+SUPPORT_MBX=yes
+
+LOOKUP_DBM=yes
+LOOKUP_LSEARCH=yes
+
+# LOOKUP_CDB=yes
+LOOKUP_DNSDB=yes
+LOOKUP_DSEARCH=yes
+LOOKUP_LDAP=yes
+# LOOKUP_MYSQL=yes
+# LOOKUP_NIS=yes
+# LOOKUP_NISPLUS=yes
+# LOOKUP_ORACLE=yes
+LOOKUP_PASSWD=yes
+# LOOKUP_PGSQL=yes
+# LOOKUP_WHOSON=yes
+
+LDAP_LIB_TYPE=OPENLDAP2
+LOOKUP_LIBS=-lldap -llber
+
+WITH_CONTENT_SCAN=yes
+
+# It is important to define these variables but the values are always overridden
+CONFIGURE_OWNER=18
+CONFIGURE_GROUP=544
+
+EXICYCLOG_MAX=10
+
+COMPRESS_COMMAND=/usr/bin/gzip
+COMPRESS_SUFFIX=gz
+ZCAT_COMMAND=/usr/bin/zcat
+
+# EXIM_PERL=perl.o
+
+# Comment the two lines below if you do not have PAM, e.g. from
+# ftp://ftp.uni-erlangen.de/pub/pc/gnuwin32/cygwin/porters/Humblet_Pierre_A
+SUPPORT_PAM=yes
+CFLAGS += -DINCLUDE_PAM -I ../pam -I ../../pam
+
+# All modes are in octal and must start with 0
+EXIMDB_DIRECTORY_MODE    = 01777
+EXIMDB_MODE              = 0666
+EXIMDB_LOCKFILE_MODE     = 0666
+INPUT_DIRECTORY_MODE  = 01777
+LOG_DIRECTORY_MODE    = 01777
+LOG_MODE              = 0666
+MSGLOG_DIRECTORY_MODE = 01777
+SPOOL_DIRECTORY_MODE  = 01777
+SPOOL_MODE            = 0600
+
+# End

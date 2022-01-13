@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD Contrib Module Documentation</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD Contrib Module Documentation</b></h2></center>
+<hr>
+
+<p>
+The following is a collection of HTML documentation for modules and
+tools in the <code>contrib/</code> directory of the ProFTPD source
+distribution.
+
+<p>
+<ul>
+  <dt>The <a href="ftpasswd.html"><code>ftpasswd</code></a> script
+  <dd>Used to easily create and manage <code>AuthUserFile</code>s and
+      <code>AuthGroupFile</code>s
+
+  <p> 
+  <dt>The <a href="ftpquota.html"><code>ftpquota</code></a> script
+  <dd>Used for creating and managing file-based tables for the
+      <code>mod_quotatab</code> module
+  </dd>
+
+  <p>
+  <dt>The <a href="ftpmail.html"><code>ftpmail</code></a> script
+  <dd>Used for automatically sending emails whenever a file is uploaded
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_auth_otp.html"><code>mod_auth_otp</code></a> module
+  <dd>For supporting HOTP/TOTP One-Time Passwords (OTP) for multi-factor
+      authentication, <i>e.g.</i> using Google Authenticator
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_ban.html"><code>mod_ban</code></a> module
+  <dd>For supporting automatic bans based on configurable thresholds
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_ctrls_admin.html"><code>mod_ctrls_admin</code></a> module
+  <dd>Adds administrative controls actions for the <code>ftpdctl</code>
+      program.  Controls are covered in more detail in the
+      <a href="../howto/Controls.html">Controls</a> mini-HOWTO
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_deflate.html"><code>mod_deflate</code></a> module
+  <dd>For supporting <code>MODE Z</code> compression of data transfers
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_digest.html"><code>mod_digest</code></a> module
+  <dd>For supporting FTP <code>HASH</code> commands for files
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_dnsbl.html"><code>mod_dnsbl</code></a> module
+  <dd>For using DNS blacklists for access control
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_dynmasq.html"><code>mod_dynmasq</code></a> module
+  <dd>For automatically refreshing IP addresses of dynamic DNS names
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_exec.html"><code>mod_exec</code></a> module
+  <dd>For executing external commands based on configurable criteria
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_geoip.html"><code>mod_geoip</code></a> module
+  <dd>For looking up geographic information based on client IP address
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_ifsession.html"><code>mod_ifsession</code></a> module
+  <dd>For adding per-user/group/Class sections to your
+      <code>proftpd.conf</code> file
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_ifversion.html"><code>mod_ifversion</code></a> module
+  <dd>For adding version-specific sections to your
+      <code>proftpd.conf</code> file
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_load.html"><code>mod_load</code></a> module
+  <dd>For configuring server availability based on system load
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_log_forensic.html"><code>mod_log_forensic</code></a> module
+  <dd>For writing log messages only when configurable criteria are met
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_qos.html"><code>mod_qos</code></a> module
+  <dd>For configuring site-specific Quality of Service (QOS) packet values
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_quotatab.html"><code>mod_quotatab</code></a> module
+  <dd>Adds quota support for <code>proftpd</code>
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_quotatab_file.html"><code>mod_quotatab_file</code></a>
+      module
+  <dd>This is one of the supporting modules for <code>mod_quotatab</code>
+      which handles quota tables that are stored in specially formatted files
+      on disk
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_quotatab_ldap.html"><code>mod_quotatab_ldap</code></a>
+      module
+  <dd>This one of the supporting modules for <code>mod_quotatab</code>
+      which handles reading quota limits from LDAP directories
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_quotatab_sql.html"><code>mod_quotatab_sql</code></a>
+      module
+  <dd>This is one of the supporting modules for <code>mod_quotatab</code>
+      which handles quota tables that are stored in SQL databases
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_radius.html"><code>mod_radius</code></a> module
+  <dd>Provides support for authenticating users using the RADIUS protocol
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_readme.html"><code>mod_readme</code></a> module
+  <dd>Displays messages reminding users to read README files
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_rewrite.html"><code>mod_rewrite</code></a> module
+  <dd>Adds the ability to rewrite FTP commands sent by clients on-the-fly,
+      using regular expression matching and substitution
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_sftp.html"><code>mod_sftp</code></a> module
+  <dd>Supports SSH2 authentication, SFTP and SCP transfers
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_sftp_pam.html"><code>mod_sftp_pam</code></a> module
+  <dd>Supports SSH2 authentication via PAM
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_sftp_sql.html"><code>mod_sftp_sql</code></a> module
+  <dd>Supports storage/retrieval of authorized SSH keys using SQL databases
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_shaper.html"><code>mod_shaper</code></a> module
+  <dd>Adds dynamic traffic shaping based on number of concurrent sessions
+      and transfers
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_site_misc.html"><code>mod_site_misc</code></a> module
+  <dd>Adds support for miscellaneous <code>SITE</code> commands such as
+      <code>SITE MKDIR</code>, <code>SITE SYMLINK</code>, and
+      <code>SITE UTIME</code>
+  </dd>
+
+  <p>
+  <p>The <a href="mod_snmp.html"><code>mod_snmp</code></a> module
+  <dd>Provides SNMPv2 monitoring capabilities.
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_sql.html"><code>mod_sql</code></a> module
+  <dd>Provides support for authenticating users using user information
+      stored in SQL databases.  Logging of various data into SQL tables
+      is also supported.
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_sql_passwd.html"><code>mod_sql_passwd</code></a> module
+  <dd>Supports MD5, SHA1, SHA256, SHA512 encoded passwords in SQL databases
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_statcache.html"><code>mod_statcache</code></a> module
+  <dd>Supports caching <code>stat(2)</code>/<code>lstat(2)</code> data in a
+      shared location, for reuse across sessions/processes.
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_tls.html"><code>mod_tls</code></a> module
+  <dd>Adds the ability to encrypt the control and data connections using
+      SSL/TLS
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_tls_memcache.html"><code>mod_tls_memcache</code></a> module
+  <dd>Provides SSL session caching, for faster SSL session negotiation, using
+      a memcached servers for the shared cache
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_tls_redis.html"><code>mod_tls_redis</code></a> module
+  <dd>Provides SSL session caching, for faster SSL session negotiation, using
+      Redis
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_tls_shmcache.html"><code>mod_tls_shmcache</code></a> module
+  <dd>Provides SSL session caching, for faster SSL session negotiation, using
+      a shared memory cache
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_unique_id.html"><code>mod_unique_id</code></a> module
+  <dd>For generating a unique ID for every FTP session
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_wrap.html"><code>mod_wrap</code></a> module
+  <dd>Supports using the <code>/etc/hosts.allow</code> and
+      <code>/etc/hosts.deny</code> files, or other allow/deny files,
+      for IP-based access control.
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_wrap2.html"><code>mod_wrap2</code></a> module
+  <dd>Supports using the <code>/etc/hosts.allow</code> and
+      <code>/etc/hosts.deny</code> files, or other allow/deny files,
+      as well as SQL-based access rules, for IP-based access control.
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_wrap2_file.html"><code>mod_wrap2_file</code></a>
+      module
+  <dd>This is one of the supporting modules for <code>mod_wrap2</code>
+      which handles access rules that are stored in specially formatted files
+      on disk
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_wrap2_redis.html"><code>mod_wrap2_redis</code></a>
+      module
+  <dd>This is one of the supporting modules for <code>mod_wrap2</code>
+      which handles access rules that are stored in Redis lists/sets
+  </dd>
+
+  <p>
+  <dt>The <a href="mod_wrap2_sql.html"><code>mod_wrap2_sql</code></a>
+      module
+  <dd>This is one of the supporting modules for <code>mod_wrap2</code>
+      which handles access rules that are stored in SQL database tables
+  </dd>
+</ul>
+
+If your question or issue is not covered by any of these pages, please
+send a request to the ProFTPD documentation list.  Directions for subscribing
+to the docs list, as well as the other ProFTPD mailing lists, are at:
+<pre>
+  <a href="http://www.proftpd.org/lists.html">http://www.proftpd.org/lists.html</a>
+</pre>
+If you are looking to see if ProFTPD supports a particular feature, the
+first place to look as the complete list of configuration directives:
+<pre>
+  <a href="http://www.proftpd.org/docs/directives/linked/by-name.html">http://www.proftpd.org/docs/directives/linked/by-name.html</a>
+</pre>
+The list may be intimidatingly long, but it is well worth scanning through
+all of the directives to see everything that ProFTPD is capable of supporting.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

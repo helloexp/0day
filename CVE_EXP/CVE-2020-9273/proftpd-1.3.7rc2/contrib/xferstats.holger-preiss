@@ -1,0 +1,401 @@
+#!/usr/bin/env perl
+# ---------------------------------------------------------------------------
+#
+# USAGE: xferstats <options>
+#
+# OPTIONS:
+#       -f <filename>   Use <filename> for the log file
+#       -r              include real users 
+#       -a              include anonymous users 
+#       -h		include report on hourly traffic
+#       -d		include report on domain traffic
+#       -t		report on total traffic by section
+#	-i 		report incoming traffic only (uploads)
+#	-o		report outgoing traffic only (download)
+#	-e		report deleted files only (just for complete)
+#       -D <domain>     report only on traffic from <domain>
+#				this option leads to problems with the local
+#				domain: e.g. test.com is counted under test
+#				and not recognized under com, -D com will give
+#				you only statistics about com excluding
+#				test.com! use -A com for correct results.
+#       -A <address>    report only on traffic from addresses ends matching
+#				<address> e.g. -A test.domain.com will report
+#				only on addresses ending with test.domain.com
+#       -l <depth>      Depth of path detail for sections
+#       -s <section>    Section to report on, For example: -s /pub will report
+#				only on paths under /pub
+#       -u <user>       Report traffic for specified user.
+#
+# ---------------------------------------------------------------------------
+# 04.09.2013: minor change by Andretta Paolo and TJ Saunders
+# - enabled -d (not working)
+# - corrected -i & -o (not working)
+# - added -e
+#
+# ---------------------------------------------------------------------------
+# 05.09.01: minor change by Jamie Fifield (fifield@chebucto.ns.ca):
+# - added option u which singles out the data for a single user
+#
+# ---------------------------------------------------------------------------
+# 30.09.98: changes by Jan Menzel (jan.menzel@gmx.net):
+#  -documented problems with option -D
+#  -fixed same problems with spaces in the filenames (lines which are not
+#     exactly 16 elements long are skipped in earlier versions)
+#  -added option A which compares the addresses end with a given pattern
+#  -added option i and o which reports either incoming or outgoing traffic only
+
+@mydom = split(/\./, `dnsdomainname`);
+$mydom2 = pop(@mydom); chop($mydom2);
+$mydom1 = pop(@mydom);
+
+# If you want to specify $mydom1 and $mydom2 manually you should edit the
+# next two lines to customize for your domain. This will allow your domain
+# to be separated in the domain listing.
+# $mydom1 = "debian";
+# $mydom2 = "org";
+
+# edit the next line to customize for your default log file
+$usage_file = "/var/log/xferlog";
+
+# Edit the following lines for default report settings.
+# Entries defined here will be over-ridden by the command line.
+
+$opt_a = 0;
+$opt_h = 0; 
+$opt_d = 0;
+$opt_t = 1;
+$opt_l = 3;
+$opt_r = 0;
+
+use Getopt::Std;
+getopts('f:rahdD:l:s:A:iotu:e');
+
+if ($opt_r) { $real = 1;}
+if ($opt_a) { $anon = 1;}
+if ($real == 0 && $anon == 0) { $anon = 1; }
+if ($opt_f) {$usage_file = $opt_f;}
+if ($opt_i) {$opt_i = 1;}
+if ($opt_o) {$opt_o = 1;}
+if ($opt_e) {$opt_e = 1;}
+
+open (LOG,$usage_file) || die "Error opening usage log file: $usage_file\n";
+
+if ($opt_o) {
+   print "Transfer totals include outgoing traffic only.\n\n";
+}
+
+if ($opt_i) {
+   print "Transfer totals include incoming traffic only.\n\n";
+}
+
+if ($opt_e) {
+   print "Transfer totals include deleted files only.\n\n";
+}
+
+if ($opt_D) {
+   $opt_D =~ tr/A-Z/a-z/;
+   print "Transfer totals include the '$opt_D' domain only.\n";
+   print "All other domains are filtered out for this report.\n\n";
+}
+
+if ($opt_A) {
+   $opt_A =~ tr/A-Z/a-z/;
+   print "Transfer totals include the addresses ending in '$opt_A' only.\n";
+   print "All other addresses are filtered out for this report.\n\n";
+}
+
+if ($opt_s) {
+   print "Transfer totals include the '$opt_s' section only.\n";
+   print "All other sections are filtered out for this report.\n\n";
+}
+
+if ($opt_u) {
+   print "Transfer totals are for user '$opt_u' only.\n";
+   print "All other users are filtered out for this report.\n\n";
+}
+
+line: while (<LOG>) {
+
+   @line = split;
+   # is the first entry week day abbreviation?
+   next if (length("$line[0]") != 3);
+
+   # check whether there is a valid 'username'
+   if ($line[$#line-7] eq "a" or $line[$#line-7] eq "b") {
+      # yes, there i
+      # offset points to the first element just behind the filename
+      $offset = $#line - 7;
+   } elsif ($line[$#line-6] eq "a" or $line[$#line-6] eq "b") {
+      $offset = $#line - 6
+   } elsif ($line[$#line-5] =~ /^(a|g|r)$/) {
+      $offset = $#line - 5;
+   } else {
+      next;
+   }
+   next if (!$opt_u && !$anon && $line[$offset+3] eq "a");
+   next if (!$opt_u && !$real && $line[$offset+3] eq "r");
+   next if ($opt_i && $line[$offset-1] ne "i");
+   next if ($opt_o && $line[$offset-1] ne "o");
+   next if ($opt_e && $line[$offset-1] ne "d");
+   next if ($opt_u && $line[$offset+4] ne $opt_u);
+
+   $daytime = substr($_, 0, 10) . substr($_, 19, 5);
+   $time = substr($_,11,2); 
+
+   if ($line[8] eq "\.") { $line[8] = "/unreadable/filename";}
+   next if (substr($line[8],0,length("$opt_s")) ne "$opt_s");
+   $line[8] = substr($line[8],length("$opt_s"));
+   @path = split(/\//, $line[8]);
+
+#
+# Why was the original xferstats dropping leading 1 character path
+# segments???
+#
+#  while (length($path[1]) <= 1) {
+#     shift @path;
+#     next line if ($#path == -1);
+#  }
+
+# Things in the top-level directory are assumed to be informational files
+
+   if ($#path == 1)
+      { $pathkey = "Index/Informational Files"; }
+      else {
+	$pathkey = "";
+	for ($i=1; $i <= $#path-1 && $i <= $opt_l;$i++) {
+		$pathkey = $pathkey . "/" . $path[$i];
+		}
+	}
+
+   $line[6] =~ tr/A-Z/a-z/;
+
+   @address = split(/\./, $line[6]);
+
+   $domain = $address[$#address];
+   if ($domain eq "$mydom2" && $address[$#address-1] eq "$mydom1")
+      { $domain = $mydom1 . "." . $mydom2; }
+   if ( int($address[0]) > 0 || $#address < 2 )
+      { $domain = "unresolved"; }
+
+   $count = 1;
+   if ($opt_D and substr($domain,0,length("$opt_D")) ne "$opt_D" ) {
+      $count = 0;
+   }
+   if ($opt_A and substr($line[6],length("$line[6]")-length("$opt_A")) ne "$opt_A" ) {
+      $count = 0;
+   }
+
+
+   if ($count) {
+
+   $systemfiles{$line[6]}++;                    # Systems Accessing the Arc
+   $xferfiles++;                                # total files sent
+   $xfertfiles++;                               # total files sent
+   $xferfiles{$daytime}++;                      # files per day
+   $groupfiles{$pathkey}++;                     # per-group accesses
+   $domainfiles{$domain}++;
+
+   $xfersecs{$daytime}    += $line[5];          # xmit seconds per day
+   $domainsecs{$domain}   += $line[5];		# xmit seconds for domain
+   $xferbytes{$daytime}   += $line[7];          # bytes per day
+   $domainbytes{$domain}  += $line[7];		# xmit bytes to domain
+   $xferbytes             += $line[7];          # total bytes sent
+   $groupbytes{$pathkey}  += $line[7];          # per-group bytes sent
+
+   $xfertfiles{$time}++;                        # files per hour
+   $xfertsecs{$time}      += $line[5];          # xmit seconds per hour
+   $xfertbytes{$time}     += $line[7];          # bytes per hour
+   $xfertbytes            += $line[7];          # total bytes sent
+   }
+}
+close LOG;
+
+@syslist = keys(%systemfiles);
+@dates = sort datecompare keys(%xferbytes);
+
+if ($xferfiles == 0) {die "There was no data to process.\n";}
+
+print "TOTALS FOR SUMMARY PERIOD ", $dates[0], " TO ", $dates[$#dates], "\n\n";
+printf ("Files Transmitted During Summary Period  %12.0f\n", $xferfiles);
+printf ("Bytes Transmitted During Summary Period  %12.0f\n", $xferbytes); 
+printf ("Systems Using Archives                   %12.0f\n\n", $#syslist+1);
+printf ("Average Files Transmitted Daily          %12.0f\n", $xferfiles / ($#dates + 1));
+printf ("Average Bytes Transmitted Daily          %12.0f\n", $xferbytes / ($#dates + 1));
+
+format top1 =
+
+Daily Transmission Statistics
+
+                 Number Of    Number of    Average    Percent Of  Percent Of
+     Date        Files Sent  Bytes  Sent  Xmit  Rate  Files Sent  Bytes Sent
+---------------  ----------  -----------  ----------  ----------  ----------
+.
+
+format line1 =
+@<<<<<<<<<<<<<<  @>>>>>>>>>  @>>>>>>>>>>  @>>>>>>>>>  @>>>>>>>    @>>>>>>>  
+$date,           $nfiles,    $nbytes,     $avgrate,   $pctfiles,  $pctbytes
+.
+
+$^ = top1;
+$~ = line1;
+
+# sort daily traffic by bytes sent
+foreach $date (sort datecompare keys(%xferbytes)) {
+
+   $nfiles = $xferfiles{$date};
+   $nbytes = $xferbytes{$date};
+   if ($xfersecs{$date}) {
+      $avgrate = sprintf("%5.1f KB/s", $xferbytes{$date}/$xfersecs{$date}/1024);
+   } else {
+      $avgrate = sprintf("undefined");
+   }
+   $pctfiles = sprintf("%8.2f", 100*$xferfiles{$date}/$xferfiles);
+   $pctbytes = sprintf("%8.2f", 100*$xferbytes{$date}/$xferbytes);
+   write;
+}
+
+if ($opt_t) {
+format top2 =
+
+Total Transfers from each Archive Section (By bytes)
+
+                                                   ---- Percent  Of ----
+     Archive Section      Files Sent Bytes Sent    Files Sent Bytes Sent
+------------------------- ---------- ------------- ---------- ----------
+.
+
+format line2 =
+@<<<<<<<<<<<<<<<<<<<<<<<< @>>>>>>>>> @>>>>>>>>>>>> @>>>>>>>   @>>>>>>>
+$section,                 $files,    $bytes,       $pctfiles, $pctbytes
+.
+
+$| = 1;
+$- = 0;
+$^ = top2;
+$~ = line2;
+
+# sort total transfer for each archive by # files transferred
+foreach $section (sort bytecompare keys(%groupfiles)) {
+
+   $files = $groupfiles{$section};
+   $bytes = $groupbytes{$section};
+   $pctbytes = sprintf("%8.2f", 100 * $groupbytes{$section} / $xferbytes);
+   $pctfiles = sprintf("%8.2f", 100 * $groupfiles{$section} / $xferfiles);
+   write;
+
+}
+
+}
+
+if ($opt_d) {
+format top3 =
+
+Total Transfer Amount By Domain
+
+             Number Of    Number of     Average    Percent Of  Percent Of
+Domain Name  Files Sent   Bytes Sent   Xmit  Rate  Files Sent  Bytes Sent
+-----------  ----------  ------------  ----------  ----------  ----------
+.
+
+format line3 =
+@<<<<<<<<<<  @>>>>>>>>>  @>>>>>>>>>>>  @>>>>>>>>>  @>>>>>>>    @>>>>>>>  
+$domain,     $files,     $bytes,       $avgrate,   $pctfiles,  $pctbytes
+.
+
+$- = 0;
+$^ = top3;
+$~ = line3;
+
+# sort amount per domain by files
+foreach $domain (sort domnamcompare keys(%domainfiles)) {
+
+   $files = $domainfiles{$domain};
+   $bytes = $domainbytes{$domain};
+   if ($domainsecs{$domain}) {
+      $avgrate = sprintf("%5.1f KB/s", $domainbytes{$domain}/$domainsecs{$domain}/1024);
+   } else {
+      $avgrate = sprintf("undefined");
+   }
+   $pctfiles = sprintf("%8.2f", 100 * $domainfiles{$domain} / $xferfiles);
+   $pctbytes = sprintf("%8.2f", 100 * $domainbytes{$domain} / $xferbytes);
+   write;
+
+}
+
+print "\n";
+
+}
+
+if ($opt_h) {
+
+format top8 =
+
+Hourly Transmission Statistics
+
+                 Number Of    Number of    Average    Percent Of  Percent Of
+     Time        Files Sent  Bytes  Sent  Xmit  Rate  Files Sent  Bytes Sent
+---------------  ----------  -----------  ----------  ----------  ----------
+.
+
+format line8 =
+@<<<<<<<<<<<<<<  @>>>>>>>>>  @>>>>>>>>>>  @>>>>>>>>>  @>>>>>>>    @>>>>>>>  
+$time,           $nfiles,    $nbytes,     $avgrate,   $pctfiles,  $pctbytes
+.
+
+
+$| = 1;
+$- = 0;
+$^ = top8;
+$~ = line8;
+
+# sort hourly transmission by sent bytes
+foreach $time (sort keys(%xfertbytes)) {
+
+   $nfiles   = $xfertfiles{$time};
+   $nbytes   = $xfertbytes{$time};
+   if ($xfertsecs{$time}) {
+      $avgrate  = sprintf("%5.1f KB/s", $xfertbytes{$time}/$xfertsecs{$time}/1024);
+   } else {
+      $avgrate  = sprintf("undefined");
+   }
+   $pctfiles = sprintf("%8.2f", 100*$xfertfiles{$time} / $xferfiles);
+   $pctbytes = sprintf("%8.2f", 100*$xfertbytes{$time} / $xferbytes);
+   write;
+}
+}
+exit(0);
+
+sub datecompare {
+
+   $date1  = substr($a, 11, 4) * 4800;
+   $date2  = substr($b, 11, 4) * 4800;
+   $date1 += index("JanFebMarAprMayJunJulAugSepOctNovDec",substr($a, 4, 3)) / 3 * 400;
+   $date2 += index("JanFebMarAprMayJunJulAugSepOctNovDec",substr($b, 4, 3)) / 3 * 400;
+   $date1 += substr($a, 8, 2);
+   $date2 += substr($b, 8, 2);
+   $date1 - $date2;
+
+}
+
+sub domnamcompare {
+
+   $sdiff = length($a) - length($b);
+   ($sdiff < 0) ? -1 : ($sdiff > 0) ? 1 : ($a lt $b) ? -1 : ($a gt $b) ? 1 : 0;
+
+}
+
+sub bytecompare {
+
+   $bdiff = $groupbytes{$b} - $groupbytes{$a};
+   ($bdiff < 0) ? -1 : ($bdiff > 0) ? 1 : ($a lt $b) ? -1 : ($a gt $b) ? 1 : 0;
+
+}
+
+sub faccompare {
+
+   $fdiff = $fac{$b} - $fac{$a};
+   ($fdiff < 0) ? -1 : ($fdiff > 0) ? 1 : ($a lt $b) ? -1 : ($a gt $b) ? 1 : 0;
+
+}
+

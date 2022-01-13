@@ -1,0 +1,18 @@
+# Exim: OS-specific make file for Ultrix
+
+MAKE_SHELL=/usr/bin/sh5
+
+CFLAGS=-O
+
+# This can either be /usr/include/X11 or /usr/include/mit depending on
+# the particular version of ULTRIX.
+
+XINCLUDE=-I/usr/include/X11 -I/usr/include/mit
+
+DBMLIB=-lgdbm
+
+EXIWHAT_PS_ARG=-ax
+EXIWHAT_EGREP_ARG='/exim( |$$)'
+EXIWHAT_KILL_SIGNAL=-USR1
+
+# End

@@ -1,0 +1,62 @@
+Below are people who have made a significant contribution to ProFTPD's
+development, and their contact information.  It's modeled after the Linux
+CREDITS file.  If you've contributed, and we've forgotten any of you, please
+accept our apologies.  You can contact the development mailing list at
+proftpd-devel@proftpd.org with any updates.
+
+In addition to the personae dramatis below, a hearty thanks is also deserved
+by numerous users on the mailing lists and IRC channels who take time to
+indefatiguably test bug fixes, patches, endless CVS snapshots, and who provide
+excellent feedback in terms of suggestions and constructive, detailed bug
+reports.  These users, too, deserve credit for helping to make proftpd
+what it is.
+
+This list is sorted by name and formatted to allow easy grepping and
+beautification by scripts.  The fields are: name (N), email (E), web-address
+(W), PGP key ID and fingerprint (P), description (D), and snail-mail
+address (S).
+
+--
+N: TJ Saunders
+E: tj@castaglia.org
+W: http://www.castaglia.org/
+P: 1024/A511976A 69 7E 68 4D 16 68 D6 96  84 28 40 5C B7 8E 89 3F  A5 11 97 6A
+D: ProFTPD developer, current maintainer
+
+N: Jesse Sipprell
+E: jss@inflicted.net
+P: 1024/A2C5F611 75 AA 73 4F BE 30 7E 33  48 F4 25 C3 C6 D5 6E D0
+D: Original proftpd author and former project co-maintainer
+
+N: Habeeb J. Dihu
+E: macgyver@tos.net
+W: http://www.macgyver.org
+P: 1024/D6C5774D 8E F5 3F 54 A0 69 CD 18  03 03 12 F4 B9 A4 A1 DA
+D: Original mod_pam author and former project co-maintainer
+
+N: Mark Lowes
+E: hamster@vom.org.uk
+W: http://www.korenwolf.net/
+P: 1024D/31A56701 0CA5 442E CED1 B6D3 2211  64FA BCB0 2153 31A5 6701
+D: Former project documentation hacker and webmaster
+
+N: John Morrissey
+E: jwm@horde.net
+W: http://horde.net/~jwm/
+P: 1024D/DB06E596 8D29 BFAE 4CD4 C73B E6FB  91D9 13F7 7892 DB06 E596
+D: Original mod_ldap author and former project developer
+
+N: Charles Seeger
+E: seeger@cise.ufl.edu
+W: http://www.cise.ufl.edu/~seeger/
+P: 1024/70D9EFA9 CD 9C F4 28 FD A4 C8 FF  2A 8A 0D DB E6 0B 17 CC
+D: Former project developer
+
+N: Daniel Roesen
+E: droesen@entire-systems.com
+P: 1024D/7825825C 02C5 22D7 0FB1 A7FF E0AA  1B30 F76C FB64 7825 825C
+D: RPM packaging maintainer
+
+N: Andrew Houghton
+E: aah@acm.org
+D: Former mod_sql maintainer

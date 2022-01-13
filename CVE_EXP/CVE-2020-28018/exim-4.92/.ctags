@@ -1,0 +1,2 @@
+--recurse
+--exclude=build-*

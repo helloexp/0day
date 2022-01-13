@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# Startup script for ProFTPD
+# description: ProFTPD is an enhanced FTP server with \
+#              a focus toward simplicity, security, and ease of configuration. \
+#              It features a very Apache-like configuration syntax, \
+#              and a highly customizable server infrastructure, \
+#              including support for multiple 'virtual' FTP servers, \
+#              anonymous FTP, and permission-based directory visibility.
+# processname: proftpd
+# config: /etc/proftpd.conf
+#
+# By: Daniel Weuthen <dw@megabit.net>
+
+. /etc/rc.status
+
+PATH="$PATH:/usr/local/sbin"
+BIN="/usr/sbin/proftpd"
+
+# See how we were called.
+case "$1" in
+	start)
+		echo -n "Starting proftpd: "
+		startproc $BIN $OPTIONS
+		touch /var/lock/subsys/proftpd
+		rc_status -v
+		;;
+	stop)
+		echo -n "Shutting down proftpd: "
+		killproc proftpd
+		rm -f /var/lock/subsys/proftpd
+		rc_status -v
+		;;
+	status)
+		echo -n "Checking status of proftpd: "
+		checkproc  proftpd
+		rc_status -v
+		;;
+	restart)
+		$0 stop
+		$0 start
+		;;
+	reread)
+		echo -n "Re-reading proftpd config: "
+		killproc proftpd -HUP
+		rc_status -v
+		;;
+	suspend)
+		hash ftpshut >/dev/null 2>&1
+		if [ $? = 0 ]; then
+			if [ $# -gt 1 ]; then
+				shift
+				echo -n "Suspending with '$*' "
+				ftpshut $*
+			else
+				echo -n "Suspending NOW "
+				ftpshut now "Maintanance in progress"
+			fi
+		else
+			echo -n "No way to suspend "
+		fi
+		rc_status -v
+		;;
+	resume)
+		if [ -f /etc/shutmsg ]; then
+			echo -n "Allowing sessions again "
+			rm -f /etc/shutmsg
+		else
+			echo -n "Was not suspended "
+		fi
+		rc_status -v
+		;;
+	*)
+		echo -n "Usage: $0 {start|stop|restart|status|reread|resume"
+		hash ftpshut
+		if [ $? = 1 ]; then
+			echo '}'
+		else
+			echo '|suspend}'
+			echo 'suspend accepts additional arguments which are passed to ftpshut(8)'
+		fi
+		exit 1
+esac
+
+if [ $# -gt 1 ]; then
+	shift
+	$0 $*
+fi
+
+exit 0

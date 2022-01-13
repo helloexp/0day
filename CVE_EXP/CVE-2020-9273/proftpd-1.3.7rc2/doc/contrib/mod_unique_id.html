@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_unique_id</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_unique_id</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_unique_id</code> module attempts to generate a unique ID for
+every FTP session.  To make the ID unique across multiple servers, the
+following bits of information are used:
+<ul>
+  <li>host IP address
+  <li>client IP address
+  <li>process ID
+  <li>time of day (including microseconds)
+</ul>
+The generated ID is stored in the <code>UNIQUE_ID</code> environment variable
+in a printable form; other modules can retrieve the unique session ID from the
+environment.  (Note that you will want <code>mod_unique_id</code> listed toward
+the <i>end</i> of your <code>--with-modules</code> configure list, so that the
+ID generation runs early in the session establishment process.)  The contents
+of the <code>UNIQUE_ID</code> should be considered opaque, and are subject
+to change in the future.
+
+<p>
+This module is contained in the <code>mod_unique_id</code> file for
+ProFTPD 1.3.<i>x</i>, and is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_unique_id</code> is distributed with
+the <code>proftpd</code> source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#UniqueIDEngine">UniqueIDEngine</a>
+</ul>
+
+<hr>
+<h3><a name="UniqueIDEngine">UniqueIDEngine</a></h3>
+<strong>Syntax:</strong> UniqueIDEngine <em>on|off</em><br>
+<strong>Default:</strong> <em>on</em><br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_unique_id<br>
+<strong>Compatibility:</strong> 1.3.1rc1 and later
+
+<p>
+The <code>UniqueIDEngine</code> directive enables or disables the module's
+generation of a unique ID for each FTP session.
+
+<p>
+By default, <code>UniqueIDEngine</code> is <em>on</em>.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_unique_id</code> module is distributed with ProFTPD.  For
+including <code>mod_unique_id</code> as a statically linked module, use:
+<pre>
+  $ ./configure --with-modules=mod_unique_id
+</pre>
+Alternatively, <code>mod_unique_id</code> could be built as a DSO module:
+<pre>
+  $ ./configure --with-shared=mod_unique_id
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your <code>proftpd</code> was compiled with DSO support, you
+can use the <code>prxs</code> tool to build <code>mod_unique_id</code> as a
+shared module:
+<pre>
+  $ prxs -c -i -d mod_unique_id.c
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+<p>
+Since <code>mod_unique_id</code> generates a new unique ID for each session
+by default, there is no special configuration needed for enabling the
+module.  Taking advantage of <code>mod_unique_id</code>, however, requires
+some adjustments in other parts of your <code>proftpd.conf</code>.
+
+<p>
+Example configuration:
+<pre>
+  &lt;IfModule mod_unique_id.c&gt;
+
+    # Include the unique session ID in an ExtendedLog
+    LogFormat session "%{UNIQUE_ID}e %h %l %u %t \"%r\" %s %b"
+    ExtendedLog /path/to/extended.log ALL session
+
+    # Store the unique ID in a SQL table named 'ftpsessions'
+    SQLLog PASS login
+    SQLNamedQuery login INSERT "'%{env:UNIQUE_ID}', '%u', now()" ftpsessions
+
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2006-2016 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

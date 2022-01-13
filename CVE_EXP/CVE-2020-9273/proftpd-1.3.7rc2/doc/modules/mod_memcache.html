@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_memcache</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_memcache</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_memcache</code> module enables ProFTPD support for caching
+data in <a href="http://memcached.org">memcached</a> servers, using the
+<a href="http://libmemcached.org">libmemcached</a> client library.  Note
+that <code>libmemcached</code> version 0.41 or later is <b>required</b>.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#MemcacheEngine">MemcacheEngine</a>
+  <li><a href="#MemcacheLog">MemcacheLog</a>
+  <li><a href="#MemcacheOptions">MemcacheOptions</a>
+  <li><a href="#MemcacheReplicas">MemcacheReplicas</a>
+  <li><a href="#MemcacheServers">MemcacheServers</a>
+  <li><a href="#MemcacheTimeouts">MemcacheTimeouts</a>
+</ul>
+
+<hr>
+<h3><a name="MemcacheEngine">MemcacheEngine</a></h3>
+<strong>Syntax:</strong> MemcacheEngine <em>on|off</em><br>
+<strong>Default:</strong> MemcacheEngine off<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_memcache<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+The <code>MemcacheEngine</code> directive enables or disables the
+<code>mod_memcache</code> module, and thus the configuration of memcache
+support for the <code>proftpd</code> daemon.
+
+<p>
+<hr>
+<h3><a name="MemcacheLog">MemcacheLog</a></h3>
+<strong>Syntax:</strong> MemcacheLog <em>path|"none"</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_memcache<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+The <code>MemcacheLog</code> directive is used to specify a log file for
+<code>mod_memcache</code>'s reporting on a per-server basis.  The
+<em>file</em> parameter given must be the full path to the file to use for
+logging.
+
+<p>
+Note that this path must <b>not</b> be to a world-writable directory and,
+unless <code>AllowLogSymlinks</code> is explicitly set to <em>on</em>
+(generally a bad idea), the path must <b>not</b> be a symbolic link.
+
+<p>
+<hr>
+<h3><a name="MemcacheOptions">MemcacheOptions</a></h3>
+<strong>Syntax:</strong> MemcacheOptions <em>opt1 ... optN</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_memcache<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+The currently supported <code>MemcacheOptions</code> are:
+<ul>
+  <li><code>NoBinaryProtocol</code>
+</ul>
+
+<p>
+<hr>
+<h3><a name="MemcacheReplicas">MemcacheReplicas</a></h3>
+<strong>Syntax:</strong> MemcacheReplicas <em>count</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_memcache<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+<em>Experimental feature</em>
+
+<p>
+<hr>
+<h3><a name="MemcacheServers">MemcacheServers</a></h3>
+<strong>Syntax:</strong> MemcacheServers <em>servers</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_memcache<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+The <code>MemcacheServers</code> directive is used to configure the
+IP addresses/ports of the <code>memcached</code> servers that the
+<code>mod_memcache</code> module is to use.  The list of servers is expressed
+as a space-delimited list.  For example:
+<pre>
+  MemcacheServers 1.2.3.4:11211 1.2.3.5:22422
+</pre>
+
+<p>
+Alternatively, you can configure a Unix domain socket path using <i>e.g.</i>:
+<pre>
+  MemcacheServers /var/run/memcached.sock
+</pre>
+
+<p>
+<hr>
+<h3><a name="MemcacheTimeouts">MemcacheTimeouts</a></h3>
+<strong>Syntax:</strong> MemcacheTimeouts <em>connect read write</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_memcache<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+<em>Experimental feature</em>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_memcache</code> module is distributed with ProFTPD.  To enable
+support and use of the memcache protocol in your <code>proftpd</code> daemon,
+use the <code>--enable-memcache</code> configure option:
+<pre>
+  $ ./configure --enable-memcache ...
+  $ make
+  $ make install
+</pre>
+This option causes the <code>mod_memcache</code> module to be compiled into
+<code>proftpd</code>.
+
+<p>
+You may also need to tell <code>configure</code> how to find the
+<code>libmemcached</code> header and library files:
+<pre>
+  $ ./configure --enable-memcache \
+    --with-includes=<i>/path/to/libmemcached/include</i> \
+    --with-libraries=<i>/path/to/libmemcached/lib</i>
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2011-2013 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

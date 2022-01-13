@@ -1,0 +1,91 @@
+/* Exim: OS-specific C header file for Linux */
+/* Copyright (c) University of Cambridge 1995 - 2018 */
+/* See the file NOTICE for conditions of use and distribution. */
+
+
+/* Some old systems we've received bug-reports for have a <limits.h> which
+does not pull in <features.h>.  Best to just pull it in now and have done
+with the issue. */
+
+#include <features.h>
+#include <sys/types.h>
+
+
+#define CRYPT_H
+#define GLIBC_IP_OPTIONS
+#define HAVE_MMAP
+#define HAVE_BSD_GETLOADAVG
+#define HAVE_SYS_STATVFS_H
+#define NO_IP_VAR_H
+#define SIG_IGN_WORKS
+
+/* When using DKIM, setting OS_SENDFILE can increase
+performance on outgoing mail a bit. Note: With older glibc versions
+this setting will conflict with the _FILE_OFFSET_BITS=64 setting
+defined as part of the Linux CFLAGS.  As of 2017 those are declared
+to be too old to build by default. */
+
+#define OS_SENDFILE
+extern ssize_t os_sendfile(int, int, off_t *, size_t);
+
+#define F_FREESP     O_TRUNC
+typedef struct flock flock_t;
+
+#define os_strsignal strsignal
+#define OS_STRSIGNAL
+
+#if defined(__linux__) || defined(__FreeBSD_kernel__) || defined(__NetBSD_kernel__)
+# define SIOCGIFCONF_GIVES_ADDR
+# define HAVE_SYS_MOUNT_H
+#endif
+
+#if defined(__linux__)
+
+/* Some versions of Linux need explicit sync-ing of directories as well as
+files. This setting requests that. If the directory is on NFS, it may not
+be possible to sync it - in that case, Exim now should ignore the error. But
+if you have problems in that area, try undefining this. But be aware that you
+may be in a situation where files are not being properly "committed to stable
+storage" as quickly as Exim thinks they are. */
+
+#define NEED_SYNC_DIRECTORY
+
+#define os_find_running_interfaces os_find_running_interfaces_linux
+
+/* Need a prototype for the Linux-specific function. The structure hasn't
+been defined yet, so we need to pre-declare it. */
+
+struct ip_address_item;
+extern struct ip_address_item *os_find_running_interfaces_linux(void);
+
+#endif /* __linux__ */
+
+/* Some folks running "unusual" setups with very old libc environments have
+found that _GNU_SOURCE=1 before <features.h> is not sufficient to define some
+constants needed for 64-bit arithmetic.  If you encounter build errors based
+on LLONG_MIN being undefined and various other escape hatches have not helped,
+then change the 0 to 1 in the next block. */
+
+#if 0
+# define LLONG_MIN LONG_LONG_MIN
+# define LLONG_MAX LONG_LONG_MAX
+#endif
+
+#if _POSIX_C_SOURCE >= 200809L || _ATFILE_SOUCE
+# define EXIM_HAVE_OPENAT
+#endif
+
+/* TCP Fast Open support */
+
+#include <netinet/tcp.h>	/* for TCP_FASTOPEN */
+#include <sys/socket.h>		/* for MSG_FASTOPEN */
+#if defined(TCP_FASTOPEN) && !defined(MSG_FASTOPEN)
+# define MSG_FASTOPEN 0x20000000
+#endif
+#define EXIM_HAVE_TCPI_UNACKED
+#ifndef TCPI_OPT_SYN_DATA
+# define TCPI_OPT_SYN_DATA 32
+#endif
+
+
+/* End */

@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_digest</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_digest</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_digest</code> module offers functionality for calculating the hash
+(or <em>digest</em>) value of files.  This is particularly useful when verifying
+the integrity of files.  This functionality is used by the following custom
+FTP commands:
+<ul>
+  <li><code>XCRC</code> (requests CRC32 digest/checksum)
+  <li><code>MD5/XMD5</code> (requests MD5 digest/checksum)
+  <li><code>XSHA</code>/<code>XSHA1</code> (requests SHA1 digest/checksum)
+  <li><code>XSHA256</code> (requests SHA256 digest/checksum)
+  <li><code>XSHA512</code> (requests SHA512 digest/checksum)
+</ul>
+In addition, <code>mod_digest</code> supports the more modern <a href="https://tools.ietf.org/html/draft-bryan-ftpext-hash-02"><code>HASH</code></a> command.
+
+<p>
+Depending on the file size and the hash function, it takes a fair amount of
+CPU and IO resources to calculate the result.  Therefore decide wisely where
+to enable the features and set the <a href="#DigestMaxSize">DigestMaxSize</a>
+configuration directive appropriately.
+
+<p>
+This module was compiled and tested against ProFTPD 1.3.3 Installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_digest</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Thanks</h2>
+<p>
+<i>2016-01-09</i>: Thanks to Mathias Berchtold &lt;mb <i>at</i>
+smartftp.com&gt; for his original <code>mod_digest</code>, upon which this
+version is based.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#DigestAlgorithms">DigestAlgorithms</a>
+  <li><a href="#DigestCache">DigestCache</a>
+  <li><a href="#DigestDefaultAlgorithm">DigestDefaultAlgorithm</a>
+  <li><a href="#DigestEnable">DigestEnable</a>
+  <li><a href="#DigestEngine">DigestEngine</a>
+  <li><a href="#DigestMaxSize">DigestMaxSize</a>
+  <li><a href="#DigestOptions">DigestOptions</a>
+</ul>
+
+<hr>
+<h3><a name="DigestAlgorithms">DigestAlgorithms</a></h3>
+<strong>Syntax:</strong> DigestAlgorithms <em>["crc32"|"md5"|"sha1"|"sha256"|"sha512"|"all"]</em><br>
+<strong>Default:</strong> DigestAlgorithms all<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_digest<br>
+<strong>Compatibility:</strong> 1.3.6rc2 or later
+
+<p>
+The <code>DigestAlgorithms</code> directive configures the enabled digest
+algorithms.  If no <code>DigestAlgorithms</code> directive is configured, then
+<b>all</b> supported digest algorithms are enabled.
+
+<p>
+Enabled digest algorithms are announced/discovered via the <code>FEAT</code>
+response.
+
+The following algorithms are currently supported by <code>mod_digest</code>:
+<ul>
+  <li><code>crc32</code> (<i>e.g.</i> for the <code>XCRC</code> command)
+  <li><code>md5</code> (<i>e.g.</i> for the <code>XMD5</code> command)
+  <li><code>sha1</code> (<i>e.g.</i> for the <code>XSHA</code>/<code>XSHA1</code> commands)
+  <li><code>sha256</code> (<i>e.g.</i> for the <code>XSHA256</code> command)
+  <li><code>sha512</code> (<i>e.g.</i> for the <code>XSHA512</code> command)
+</ul>
+
+<p>
+<hr>
+<h3><a name="DigestCache">DigestCache</a></h3>
+<strong>Syntax:</strong> DigestCache <em>on|off|"size" count ["maxAge" secs]</em><br>
+<strong>Default:</strong> DigestCache size 10000 maxAge 30s<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_digest<br>
+<strong>Compatibility:</strong> 1.3.6rc2 or later
+
+<p>
+The <code>mod_digest</code> module will cache the results of any checksum
+command, on a per-file basis.  This improves performance, and reduces
+computational overhead.  To disable this caching for any reason, use this
+directive:
+<pre>
+  # Disable checksum caching
+  DigestCache off
+</pre>
+<b>This is not recommended.</b>
+
+<p>
+The <code>DigestCache</code> directive can also be used to configure/tune the
+<em>max-size</em> of the in-memory cache.  Note that once the maximum cache
+size is reached, any checksum FTP commands will be temporarily refused:
+<pre>
+  # Use a smaller cache size
+  DigestCache size 100
+</pre>
+Cached digests will be expired/ignored after 30 seconds, by default.  To change
+the expiration, you would use:
+<pre>
+  # Retain cached entries longer
+  DigestCache maxAge 60s
+</pre>
+
+<p>
+If <em>on</em> is used, <code>mod_digest</code> will use the default
+<em>max-size</em> of 10000:
+<pre>
+  DigestCache on
+</pre>
+
+<p>
+<hr>
+<h3><a name="DigestDefaultAlgorithm">DigestDefaultAlgorithm</a></h3>
+<strong>Syntax:</strong> DigestDefaultAlgorithm <em>algo</em><br>
+<strong>Default:</strong> DigestDefaultAlgorithm sha1<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;<br>
+<strong>Module:</strong> mod_digest<br>
+<strong>Compatibility:</strong> 1.3.6rc3 or later
+
+<p>
+The default digest algorithm that the <code>mod_digest</code> module uses,
+for <i>e.g.</i> opportunistic digesting of file transfers, is SHA1.  For
+selecting a different default algorithm, use the
+<code>DigestDefaultAlgorithm</code> directive:
+<pre>
+  # Use MD5 rather than SHA1 as the default algorithm
+  DigestDefaultAlgorithm md5
+</pre>
+
+<p>
+<b>Note</b> that the <code>DigestAlgorithms</code> directive takes precedence;
+if the <code>DigestDefaultAlgorithm</code> is not included in the
+<code>DigestAlgorithms</code>, the default algorithm setting will be ignored.
+
+<p>
+<hr>
+<h3><a name="DigestEnable">DigestEnable</a></h3>
+<strong>Syntax:</strong> DigestEnable <em>on|off</em><br>
+<strong>Default:</strong> Non<br>
+<strong>Context:</strong> <code>&lt;Directory&gt;</code>, <code>.ftpaccess</code><br>
+<strong>Module:</strong> mod_digest<br>
+<strong>Compatibility:</strong> 1.3.6rc2 or later
+
+<p>
+The <code>DigestEnable</code> directive can be used to block or prevent
+checksumming/digests on files in the configured <code>&lt;Directory&gt;</code>.
+This can be <b>very</b> useful for preventing checksumming of files located
+on network-mounted filesystems, for example.
+
+<p>
+<hr>
+<h3><a name="DigestEngine">DigestEngine</a></h3>
+<strong>Syntax:</strong> DigestEngine <em>on|off</em><br>
+<strong>Default:</strong> DigestEngine on<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_digest<br>
+<strong>Compatibility:</strong> 1.3.6rc2 or later
+
+<p>
+The <code>DigestEngine</code> directive enables or disables the handling of
+the checksum-related FTP commands by <code>mod_digest</code>, <i>i.e.</i>:
+<ul>
+  <li><code>XCRC</code>
+  <li><code>XMD5</code>
+  <li><code>XSHA</code>
+  <li><code>XSHA1</code>
+  <li><code>XSHA256</code>
+  <li><code>XSHA512</code>
+</ul>
+If the parameter is <em>off</em>, then these commands will be ignored.
+
+<p>
+<hr>
+<h3><a name="DigestMaxSize">DigestMaxSize</a></h3>
+<strong>Syntax:</strong> DigestMaxSize <em>number [units]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, &lt;VirtualHost&gt;, &lt;Global&gt;, &lt;Anonymous&gt;<br>
+<strong>Module:</strong> mod_digest<br>
+<strong>Compatibility:</strong> 1.3.6rc2 or later
+
+<p>
+The <code>DigestMaxSize</code> directive configures the maximum number of bytes
+a single hash command is allowed to read from a file.  If the number of bytes
+to be read from the file is greater than the configured <em>number</em> the
+server will refuse that command.
+
+<p>
+If no <code>DigestMaxSize</code> directive is configured, then there is no
+limit. It is highly <b>recommended</b> to set an upper limit.
+
+<p>
+Example:
+<pre>
+  # Limit hashing to 1GB of data
+  DigestMaxSize 1 GB
+</pre>
+
+<p>
+<hr>
+<h3><a name="DigestOptions">DigestOptions</a></h3>
+<strong>Syntax:</strong> DigestOptions <em>opt1 ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_digest<br>
+<strong>Compatibility:</strong> 1.3.6rc2 and later
+
+<p>
+The <code>DigestOptions</code> directive is used to configure various optional
+behavior of <code>mod_digest</code>.
+
+<p>
+The currently implemented options are:
+<ul>
+  <li><code>NoTransferCache</code><br>
+    <p>
+    The <code>mod_digest</code> module will automatically calculate <b>and</b>
+    cache the results of any transferred file, on a per-file basis.  This is
+    done assuming that many FTP clients will want to verify the integrity of
+    the file just uploaded/downloaded.	This improves performance, and
+    reduces computational overhead.  To disable this caching for any reason,
+    use this option.  <b>Not recommended.</b>
+
+    <p>
+    <b>Note</b>: The <code>NoTransferCache</code> option is
+    <em>automatically</em> enabled when using ProFTPD versions before
+    1.3.6rc2, due to bugs/missing support in the older versions.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_digest</code> module is distributed with ProFTPD.  Follow the
+normal steps for using third-party modules in ProFTPD:
+<pre>
+  $ ./configure --enable-openssl --with-modules=mod_digest
+</pre>
+To build <code>mod_digest</code> as a shared/DSO module:
+<pre>
+  $ ./configure --enable-dso --enable-openssl --with-shared=mod_digest
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+Alternatively, if your proftpd was compiled with DSO support, you can
+use the <code>prxs</code> tool to build <code>mod_digest</code> as a shared
+module:
+<pre>
+  $ prxs -c -i -d mod_digest.c
+</pre>
+
+<p>
+<hr>
+<h2>Usage</h2>
+Example Configuration
+<pre>
+  &lt;IfModule mod_digest.c&gt;
+    # Set a limit on file sizes that can be digested
+    DigestMaxSize 1 GB
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<b>Recording Uploaded/Downloaded File Checksums</b><br>
+One particular use case that comes up is whether the <code>mod_digest</code>
+can be used to record the digests ("checksums") of uploaded/downloaded files
+in <i>e.g.</i> a SQL database.  The answer is "yes", with some caveats.
+
+<p>
+First, here is a configuration excerpt showing show such functionality might
+be implemented, using <code>mod_digest</code> and <code>mod_sql</code>:
+<pre>
+  &lt;IfModule mod_digest.c&gt;
+  &lt;/IfModule&gt;
+
+  &lt;IfModule mod_sql.c&gt;
+    ...
+    SQLNamedQuery log-file-checksum FREEFORM "INSERT INTO file_checksums (user, file, algo, checksum) VALUES ('%u', '%f', '%{note:mod_digest.algo}', '%{note:mod_digest.digest}')"
+    SQLLog RETR,STOR log-file-checksum
+    ...
+  &lt;/IfModule&gt;
+</pre>
+As you can see, this makes use of the <code>%{note:...}</code> syntax of
+the <code>SQLLog</code> directive; the same syntax <em>also</em> works for
+<code>LogFormat</code> definitions as well.  The <code>mod_digest</code> module
+uses the following notes:
+<ul>
+  <li><em>mod_digest.algo</em>
+    <p>
+    Name of the digest algorithm used, <i>e.g.</i> "SHA1".
+  </li>
+
+  <p>
+  <li><em>mod_digest.digest</em>
+    <p>
+    Calculated digest of the file as a hex-encoded lowercase string.
+  </li>
+</ul>
+
+<p>
+Now, the caveats with this technique:
+<ul>
+  <li>Does <b>not</b> work if the <code>NoTransferCache</code> <a href="#DigestOption">DigestOption</a> is used.
+  <li>Only works for binary, not ASCII, FTP uploads/downloads currently.
+  <li>Only works for uploads (<code>STOR</code>) and downloads (<code>RETR</code>), but not for appends (<code>APPE</code>) <b>or</b> resumed uploads/downloads (<code>REST</code> + <code>RETR/STOR</code>).
+  <li>Does <b>not</b> work for FTP downloads if <code>UseSendfile</code> is in effect.
+</ul>
+In addition, the order in which the <code>mod_digest</code> and
+<code>mod_sql</code> appear in your build command is important;
+<code>mod_digest</code> <em>must come <b>after</b></em> <code>mod_sql</code>,
+otherwise the note values will <b>not</b> be populated properly in the
+<code>SQLLog</code> statement.  Thus, if you are building static modules,
+your <code>--with-modules</code> parameter would look something like:
+<pre>
+  $ ./configure --with-modules=mod_sql:mod_sql_mysql:mod_digest ...
+</pre>
+Or, if you are using shared modules, then your <code>LoadModule</code>
+directives must look like:
+<pre>
+  LoadModule mod_sql.c
+  LoadModule mod_sql_mysql.c
+  LoadModule mod_digest.c
+</pre>
+
+<!--
+Why?
+
+TCP-level checksums
+packet-level checksums
+_file_-level checksums (which is really what most people usually have in mind)
+
+transfers interrupted by timeouts
+
+SFTP has different ways of achieving this, via extensions (link to mod_sftp
+docs on extensions)
+
+validating uploads AND downloads (did I download everything?  Did the upload
+succeed?)
+
+<p>
+It's also recommended to disable all features within the &lt;Anonymous&gt; context.  How?
+
+  <Anonymous>
+    <IfModule mod_digest.c>
+      DigestEngine off
+    </IfModule>
+  </Anonymous>
+
+<p>
+<b>Supported FTP Commands</b><br>
+ cmd path
+ cmd path [end]
+ cmd path [off] [len]
+<pre>
+  XCRC "/path/to/file with spaces" 0 100
+</pre>
+-->
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2016 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

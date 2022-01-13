@@ -1,0 +1,277 @@
+@SET_MAKE@
+
+top_builddir=.
+top_srcdir=@top_srcdir@
+srcdir=@srcdir@
+VPATH=@srcdir@
+DESTDIR=
+
+include ./Make.rules
+
+DIRS=@ADDL_DIRS@
+EXEEXT=@EXEEXT@
+INSTALL_DEPS=@INSTALL_DEPS@
+LIBTOOL_DEPS=@LIBTOOL_DEPS@
+LIBLTDL=@LIBLTDL@
+
+MAIN_LDFLAGS=@MAIN_LDFLAGS@
+MAIN_LIBS=@MAIN_LIBS@
+
+BUILD_PROFTPD_OBJS=$(BUILD_OBJS) $(BUILD_STATIC_MODULE_OBJS)
+BUILD_PROFTPD_ARCHIVES=$(BUILD_STATIC_MODULE_ARCHIVES)
+BUILD_BIN=proftpd$(EXEEXT) ftpcount$(EXEEXT) ftpdctl$(EXEEXT) ftpscrub$(EXEEXT) ftpshut$(EXEEXT) ftptop$(EXEEXT) ftpwho$(EXEEXT)
+
+
+all: $(BUILD_BIN)
+
+include/buildstamp.h:
+	echo \#define BUILD_STAMP \"`date +"%a %b %e %Y %H:%M:%S %Z"`\" > include/buildstamp.h
+
+dummy:
+
+lib: include/buildstamp.h dummy
+	cd lib/ && $(MAKE) lib
+
+src: include/buildstamp.h dummy
+	cd src/ && $(MAKE) src
+
+modules: include/buildstamp.h dummy
+	cd modules/ && $(MAKE) static
+	test -z "$(SHARED_MODULE_OBJS)" -a -z "$(SHARED_MODULE_DIRS)" || (cd modules/ && $(MAKE) shared)
+
+utils: include/buildstamp.h dummy
+	cd utils/ && $(MAKE) utils
+
+locale: include/buildstamp.h dummy
+	test -z "$(ENABLE_NLS)" || (cd locale/ && $(MAKE) locale)
+
+dirs: include/buildstamp.h dummy
+	@dirs="$(DIRS)"; \
+	for dir in $$dirs; do \
+		if [ -d "$$dir" ]; then cd $$dir/ && $(MAKE); fi; \
+	done
+
+proftpd$(EXEEXT): lib src modules dirs locale
+	test -f $(MODULE_LIBS_FILE) || touch $(MODULE_LIBS_FILE)
+	$(LIBTOOL) --mode=link --tag=CC $(CC) $(LDFLAGS) $(MAIN_LDFLAGS) -o $@ $(BUILD_PROFTPD_OBJS) $(BUILD_PROFTPD_ARCHIVES) $(LIBS) $(MAIN_LIBS) `uniq $(MODULE_LIBS_FILE) | tr '\n' ' '`
+
+ftpcount$(EXEEXT): lib utils
+	$(CC) $(LDFLAGS) -o $@ $(BUILD_FTPCOUNT_OBJS) $(UTILS_LIBS)
+
+ftpdctl$(EXEEXT): lib src
+	$(CC) $(LDFLAGS) -o $@ $(BUILD_FTPDCTL_OBJS) $(LIBS)
+
+ftpscrub$(EXEEXT): lib utils
+	$(CC) $(LDFLAGS) -o $@ $(BUILD_FTPSCRUB_OBJS) $(UTILS_LIBS)
+
+ftpshut$(EXEEXT): lib utils
+	$(CC) $(LDFLAGS) -o $@ $(BUILD_FTPSHUT_OBJS) $(UTILS_LIBS)
+
+ftptop$(EXEEXT): lib utils
+	$(CC) $(LDFLAGS) -o $@ $(BUILD_FTPTOP_OBJS) $(CURSES_LIBS) $(UTILS_LIBS)
+
+ftpwho$(EXEEXT): lib utils
+	$(CC) $(LDFLAGS) -o $@ $(BUILD_FTPWHO_OBJS) $(UTILS_LIBS)
+
+# Run the API tests
+check-api: proftpd$(EXEEXT)
+	test -z "$(ENABLE_TESTS)" || (cd tests/ && $(MAKE) check-api)
+
+# Run the FTP command testsuite
+check-commands: proftpd$(EXEEXT)
+	test -z "$(ENABLE_TESTS)" || (cd tests/ && $(MAKE) check-commands)
+
+# Run the FTP configuration testsuite
+check-configs: proftpd$(EXEEXT)
+	test -z "$(ENABLE_TESTS)" || (cd tests/ && $(MAKE) check-configs)
+
+# Run the FTP logging testsuite
+check-logging: proftpd$(EXEEXT)
+	test -z "$(ENABLE_TESTS)" || (cd tests/ && $(MAKE) check-logging)
+
+# Run the FTP module testsuite
+check-modules: proftpd$(EXEEXT)
+	test -z "$(ENABLE_TESTS)" || (cd tests/ && $(MAKE) check-modules)
+
+# Run the FTP utils testsuite
+check-utils: proftpd$(EXEEXT)
+	test -z "$(ENABLE_TESTS)" || (cd tests/ && $(MAKE) check-utils)
+
+# Run the entire testsuite
+check: proftpd$(EXEEXT)
+	test -z "$(ENABLE_TESTS)" || (cd tests/ && $(MAKE) check)
+
+# BSD install -d doesn't work, so ...
+$(DESTDIR)$(localedir) $(DESTDIR)$(includedir) $(DESTDIR)$(includedir)/proftpd $(DESTDIR)$(libdir) $(DESTDIR)$(pkgconfigdir) $(DESTDIR)$(libdir)/proftpd $(DESTDIR)$(libexecdir) $(DESTDIR)$(localstatedir) $(DESTDIR)$(sysconfdir) $(DESTDIR)$(bindir) $(DESTDIR)$(sbindir) $(DESTDIR)$(mandir) $(DESTDIR)$(mandir)/man1 $(DESTDIR)$(mandir)/man5 $(DESTDIR)$(mandir)/man8:
+	@if [ ! -d $@ ]; then \
+		mkdir -p $@; \
+		chown $(INSTALL_USER):$(INSTALL_GROUP) $@; \
+		chmod 0755 $@; \
+	fi
+
+install-proftpd: proftpd$(EXEEXT) $(DESTDIR)$(includedir) $(DESTDIR)$(localstatedir) $(DESTDIR)$(sysconfdir) $(DESTDIR)$(sbindir)
+	$(INSTALL_SBIN) $(top_builddir)/proftpd $(DESTDIR)$(sbindir)/proftpd
+	if [ -f $(DESTDIR)$(sbindir)/in.proftpd ] ; then \
+		rm -f $(DESTDIR)$(sbindir)/in.proftpd ; \
+	fi
+	ln -s $(top_builddir)/proftpd $(DESTDIR)$(sbindir)/in.proftpd
+	-chown -h $(INSTALL_USER):$(INSTALL_GROUP) $(DESTDIR)$(sbindir)/in.proftpd
+
+install-libs: $(DESTDIR)$(libdir)/proftpd
+	cd lib/ && $(MAKE) install
+
+install-headers: $(DESTDIR)$(includedir)/proftpd
+	$(INSTALL_MAN) $(top_builddir)/config.h $(DESTDIR)$(includedir)/proftpd/config.h
+	cd include/ && $(MAKE) install
+
+install-pkgconfig: $(DESTDIR)$(pkgconfigdir)
+	@echo 'prefix=$(prefix)' > $(top_builddir)/proftpd.pc
+	@echo 'exec_prefix=$${prefix}' >> $(top_builddir)/proftpd.pc
+	@echo 'libdir=${libdir}/proftpd' >> $(top_builddir)/proftpd.pc
+	@echo 'includedir=${includedir}/proftpd' >> $(top_builddir)/proftpd.pc
+	@echo '' >> $(top_builddir)/proftpd.pc
+	@echo 'Name: ProFTPD' >> $(top_builddir)/proftpd.pc
+	@echo 'Description: Professional FTP Daemon' >> $(top_builddir)/proftpd.pc
+	@echo 'Version: $(BUILD_VERSION)' >> $(top_builddir)/proftpd.pc
+	@echo 'Requires: ' >> $(top_builddir)/proftpd.pc
+	@echo 'Libs: -L$${libdir}' >> $(top_builddir)/proftpd.pc
+	@echo 'Cflags: -I$${includedir}' >> $(top_builddir)/proftpd.pc
+	$(INSTALL_MAN) $(top_builddir)/proftpd.pc $(DESTDIR)$(pkgconfigdir)/proftpd.pc
+
+install-locales: $(DESTDIR)$(localedir)
+	test -z "$(ENABLE_NLS)" || (cd locale/ && $(MAKE) install)
+
+install-modules: $(DESTDIR)$(libexecdir) $(DESTDIR)$(sysconfdir)
+	test -z "$(SHARED_MODULE_OBJS)" -a -z "$(SHARED_MODULE_DIRS)" -a -z "$(STATIC_MODULE_DIRS)" || (cd modules/ && $(MAKE) install)
+
+install-utils: $(DESTDIR)$(sbindir) $(DESTDIR)$(bindir)
+	cd contrib/ && $(MAKE) install-utils
+	$(INSTALL_BIN)  $(top_builddir)/ftpcount $(DESTDIR)$(bindir)/ftpcount
+	$(INSTALL_BIN)  $(top_builddir)/ftpdctl  $(DESTDIR)$(bindir)/ftpdctl
+	$(INSTALL_SBIN) $(top_builddir)/ftpscrub $(DESTDIR)$(sbindir)/ftpscrub
+	$(INSTALL_SBIN) $(top_builddir)/ftpshut  $(DESTDIR)$(sbindir)/ftpshut
+	$(INSTALL_BIN)  $(top_builddir)/ftptop   $(DESTDIR)$(bindir)/ftptop
+	$(INSTALL_BIN)  $(top_builddir)/ftpwho   $(DESTDIR)$(bindir)/ftpwho
+	$(INSTALL) -o $(INSTALL_USER) -g $(INSTALL_GROUP) -m 0755 $(top_builddir)/src/prxs $(DESTDIR)$(bindir)/prxs
+
+install-conf: $(DESTDIR)$(sysconfdir)
+	if [ ! -f $(DESTDIR)$(sysconfdir)/proftpd.conf ] ; then \
+		$(INSTALL) -o $(INSTALL_USER) -g $(INSTALL_GROUP) -m 0644 \
+		           $(top_srcdir)/sample-configurations/basic.conf \
+	       	           $(DESTDIR)$(sysconfdir)/proftpd.conf ; \
+	fi
+
+install-libltdl:
+	cd lib/libltdl/ && $(MAKE) install
+
+install-man: $(DESTDIR)$(mandir) $(DESTDIR)$(mandir)/man1 $(DESTDIR)$(mandir)/man5 $(DESTDIR)$(mandir)/man8
+	$(INSTALL_MAN) $(top_builddir)/src/ftpdctl.8    $(DESTDIR)$(mandir)/man8
+	$(INSTALL_MAN) $(top_builddir)/src/proftpd.8    $(DESTDIR)$(mandir)/man8
+	$(INSTALL_MAN) $(top_srcdir)/utils/ftpasswd.1 $(DESTDIR)$(mandir)/man1
+	$(INSTALL_MAN) $(top_srcdir)/utils/ftpmail.1  $(DESTDIR)$(mandir)/man1
+	$(INSTALL_MAN) $(top_srcdir)/utils/ftpquota.1 $(DESTDIR)$(mandir)/man1
+	$(INSTALL_MAN) $(top_builddir)/utils/ftpscrub.8 $(DESTDIR)$(mandir)/man8
+	$(INSTALL_MAN) $(top_builddir)/utils/ftpshut.8  $(DESTDIR)$(mandir)/man8
+	$(INSTALL_MAN) $(top_builddir)/utils/ftpcount.1 $(DESTDIR)$(mandir)/man1
+	$(INSTALL_MAN) $(top_builddir)/utils/ftptop.1   $(DESTDIR)$(mandir)/man1
+	$(INSTALL_MAN) $(top_builddir)/utils/ftpwho.1   $(DESTDIR)$(mandir)/man1
+	$(INSTALL_MAN) $(top_builddir)/src/proftpd.conf.5 $(DESTDIR)$(mandir)/man5
+	$(INSTALL_MAN) $(top_builddir)/src/xferlog.5    $(DESTDIR)$(mandir)/man5
+
+install-all: install-proftpd install-modules install-utils install-conf install-man install-libs install-headers install-pkgconfig install-locales $(INSTALL_DEPS)
+
+install: $(BUILD_BIN) install-all
+
+depend:
+	cd src/     && $(MAKE) depend
+	cd modules/ && $(MAKE) depend
+	cd lib/     && $(MAKE) depend
+	cd utils/   && $(MAKE) depend
+
+clean:
+	cd lib/     && $(MAKE) clean
+	cd locale/  && $(MAKE) clean
+	cd modules/ && $(MAKE) clean
+	cd src/     && $(MAKE) clean
+	cd tests/   && $(MAKE) clean
+	cd utils/   && $(MAKE) clean
+	test -z "$(ENABLE_TESTS)" || (cd tests/ && $(MAKE) clean)
+
+	@dirs="$(DIRS)"; \
+	for dir in $$dirs; do \
+		if [ -d "$$dir" ]; then cd $$dir/ && $(MAKE) clean; fi; \
+	done
+
+	rm -f $(top_builddir)/proftpd.pc $(top_builddir)/include/buildstamp.h
+	rm -f $(BUILD_BIN) $(MODULE_LIBS_FILE)
+
+distclean: clean
+	cd lib/ && $(MAKE) distclean
+	cd modules/ && $(MAKE) distclean
+	cd src/ && $(MAKE) distclean
+	cd utils/ && $(MAKE) distclean
+	$(RM) $(top_builddir)/Makefile \
+	  $(top_builddir)/Make.modules \
+	  $(top_builddir)/Make.rules \
+	  $(top_builddir)/contrib/Makefile \
+	  $(top_builddir)/include/Makefile \
+	  $(top_builddir)/lib/Makefile \
+	  $(top_builddir)/locale/Makefile \
+	  $(top_builddir)/modules/Makefile \
+	  $(top_builddir)/src/Makefile \
+	  $(top_builddir)/tests/Makefile \
+	  $(top_builddir)/utils/Makefile
+	$(RM) $(top_builddir)/config.h \
+	  $(top_builddir)/config.status \
+	  $(top_builddir)/config.cache \
+	  $(top_builddir)/config.log \
+	  $(top_builddir)/libtool \
+	  $(top_builddir)/stamp-h
+	$(RM) $(top_builddir)/include/buildstamp.h
+	$(RM) -r $(top_builddir)/.libs/
+
+spec:
+	# RPM needs this in the top-level directory in order to support '-t'
+	mv -f $(top_srcdir)/contrib/dist/rpm/proftpd.spec .
+
+dist: depend distclean spec
+	rm -rf `find . -name CVS`
+	rm -rf `find . -name .cvsignore`
+	rm -rf `find . -name .git`
+	rm -rf `find . -name .gitignore`
+	rm -rf `find . -name .travis.yml`
+	rm -rf `find . -name core`
+	rm -rf `find . -name '*~'`
+	rm -fr `find . -name '*.bak'`
+	# Other users may need to execute these scripts
+	chmod a+x configure config.sub install-sh modules/glue.sh
+
+# autoheader might not change config.h.in, so touch a stamp file.
+${srcdir}/config.h.in: stamp-h.in
+${srcdir}/stamp-h.in: configure.in acconfig.h
+	cd ${srcdir} && autoheader
+	echo timestamp > ${srcdir}/stamp-h.in
+
+config.h: stamp-h
+stamp-h: config.h.in config.status
+	./config.status
+
+# This target tends to cause more problems than its worth; there are many
+# differences between autoconf versions, installed macros, etc between the
+# machine used to generate the shipping configure script and the machine on
+# which this target might trigger.  So try to keep the craziness down by
+# avoiding this altogether.
+#${srcdir}/configure: configure.in
+#	cd ${srcdir} && autoconf
+
+Make.rules: Make.rules.in config.status
+	./config.status
+
+Makefile: Makefile.in Make.rules.in config.status
+	./config.status
+
+config.status: configure
+	./config.status --recheck
+
+libtool: $(LIBTOOL_DEPS)
+	$(SHELL) ./config.status --recheck

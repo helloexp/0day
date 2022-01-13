@@ -1,0 +1,1356 @@
+# Spanish translations for proftpd package
+# Traducciones al español para el paquete proftpd.
+# Copyright (C) 2012 The ProFTPD Project
+# This file is distributed under the same license as the proftpd package.
+# vince <baron_de_moork@yahoo.fr>, 2012.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: proftpd 1.3.4b\n"
+"Report-Msgid-Bugs-To: core@proftpd.org\n"
+"POT-Creation-Date: 2019-09-12 01:41+0200\n"
+"PO-Revision-Date: 2019-09-12 01:41+0200\n"
+"Last-Translator: vince <baron_de_moork@yahoo.fr>\n"
+"Language-Team: Spanish\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+
+#: ../contrib/mod_auth_otp/mod_auth_otp.c:799
+#, c-format
+msgid "One-time password required for %s"
+msgstr "Se requiere contraseña de un solo uso para %s"
+
+#: ../contrib/mod_ban.c:2524 ../contrib/mod_tls.c:12419
+#: ../contrib/mod_tls.c:12454 ../modules/mod_auth.c:498
+#: ../modules/mod_auth.c:1673 ../modules/mod_auth.c:1682
+#: ../modules/mod_auth.c:1707 ../modules/mod_auth.c:1746
+#: ../modules/mod_auth.c:1756 ../modules/mod_auth.c:1792
+#: ../modules/mod_auth.c:1807 ../modules/mod_auth.c:1818
+#: ../modules/mod_auth.c:2330 ../modules/mod_auth.c:2518
+#: ../modules/mod_auth.c:2651 ../modules/mod_auth.c:2664
+msgid "Login incorrect."
+msgstr "Login incorrecto"
+
+#: ../contrib/mod_copy.c:572 ../contrib/mod_copy.c:675
+#: ../contrib/mod_copy.c:791 ../contrib/mod_quotatab.c:4088
+#: ../contrib/mod_site_misc.c:576 ../contrib/mod_site_misc.c:687
+#: ../contrib/mod_site_misc.c:787 ../contrib/mod_site_misc.c:1242
+#: ../modules/mod_auth.c:85 ../modules/mod_site.c:553
+msgid "Please login with USER and PASS"
+msgstr "Por favor inicia sesión con USER y PASS"
+
+#: ../contrib/mod_copy.c:589 ../contrib/mod_copy.c:606
+#: ../contrib/mod_copy.c:698 ../contrib/mod_copy.c:823
+#: ../contrib/mod_site_misc.c:595 ../contrib/mod_site_misc.c:706
+#: ../contrib/mod_site_misc.c:802 ../contrib/mod_site_misc.c:843
+#: ../contrib/mod_site_misc.c:957 ../contrib/mod_site_misc.c:1063
+#: ../modules/mod_core.c:5373 ../modules/mod_core.c:5486
+#: ../modules/mod_core.c:5576 ../modules/mod_core.c:5606
+#: ../modules/mod_core.c:5698 ../modules/mod_core.c:5754
+#: ../modules/mod_core.c:5935 ../modules/mod_core.c:6133
+#: ../modules/mod_facts.c:1029 ../modules/mod_facts.c:1260
+#: ../modules/mod_facts.c:1373 ../modules/mod_facts.c:1636
+#: ../modules/mod_ls.c:2643 ../modules/mod_ls.c:2748 ../modules/mod_ls.c:2926
+#: ../modules/mod_xfer.c:1301 ../modules/mod_xfer.c:2463
+#, c-format
+msgid "%s: Illegal character sequence in filename"
+msgstr "%s: Secuencia de caracteres ilegales en el nombre del archivo"
+
+#: ../contrib/mod_copy.c:644 ../contrib/mod_site_misc.c:652
+#: ../contrib/mod_site_misc.c:751 ../contrib/mod_site_misc.c:910
+#: ../contrib/mod_site_misc.c:1038 ../contrib/mod_site_misc.c:1220
+#: ../modules/mod_site.c:183 ../modules/mod_site.c:473
+#, c-format
+msgid "SITE %s command successful"
+msgstr "Orden SITE %s ejecutada correctamente"
+
+#: ../contrib/mod_copy.c:650
+msgid "CPFR <sp> pathname"
+msgstr "CPFR <sp> ruta"
+
+#: ../contrib/mod_copy.c:651
+msgid "CPTO <sp> pathname"
+msgstr "CPTO <sp> ruta"
+
+#: ../contrib/mod_copy.c:731 ../contrib/mod_copy.c:740
+#: ../modules/mod_core.c:5391 ../modules/mod_core.c:5400
+#: ../modules/mod_core.c:5504 ../modules/mod_core.c:5513
+#: ../modules/mod_core.c:5772 ../modules/mod_core.c:5781
+#: ../modules/mod_core.c:5953 ../modules/mod_core.c:5962
+#: ../modules/mod_core.c:6151 ../modules/mod_core.c:6160
+#: ../modules/mod_site.c:111 ../modules/mod_site.c:123
+#: ../modules/mod_site.c:234 ../modules/mod_site.c:246
+#: ../modules/mod_xfer.c:1333 ../modules/mod_xfer.c:1342
+#, c-format
+msgid "%s: Forbidden filename"
+msgstr "%s: El nombre de archivo está prohibido"
+
+#: ../contrib/mod_copy.c:769 ../modules/mod_core.c:6197
+msgid "File or directory exists, ready for destination name"
+msgstr "Archivo o directorio existente, esperando el nombre destino"
+
+#: ../contrib/mod_copy.c:802 ../contrib/mod_quotatab.c:4055
+#: ../contrib/mod_quotatab.c:4203 ../contrib/mod_quotatab.c:4242
+#: ../modules/mod_core.c:3587 ../modules/mod_core.c:4733
+#: ../modules/mod_core.c:4768 ../modules/mod_core.c:5921
+msgid "Bad sequence of commands"
+msgstr "Secuencia de órdenes errónea"
+
+#: ../contrib/mod_copy.c:887
+msgid "Copy successful"
+msgstr "Copia realizada correctamente"
+
+#: ../contrib/mod_deflate.c:857
+#, c-format
+msgid "%s OK"
+msgstr "%s OK"
+
+#: ../contrib/mod_deflate.c:864
+msgid "Bad number of parameters"
+msgstr "Número incorrecto de parámetros"
+
+#: ../contrib/mod_deflate.c:879
+#, c-format
+msgid "%s: unsupported MODE Z option: %s"
+msgstr "%s: incompatible la opción MODE Z: %s"
+
+#: ../contrib/mod_deflate.c:892
+#, c-format
+msgid "%s: bad MODE Z option value: %s %s"
+msgstr "%s: valor incorrecto en la opción MODE Z: %s %s"
+
+#: ../contrib/mod_deflate.c:903
+#, c-format
+msgid "%s: unknown MODE Z option: %s"
+msgstr "%s: opción desconocida en MODE Z: %s"
+
+#: ../contrib/mod_deflate.c:913
+msgid "OPTS MODE Z OK"
+msgstr "OPTS MODE Z OK"
+
+#: ../contrib/mod_deflate.c:946
+msgid "Unable to handle MODE Z at this time"
+msgstr "No se puede gestionar MODE Z en este momento"
+
+#: ../contrib/mod_deflate.c:955 ../contrib/mod_deflate.c:1006
+#: ../modules/mod_core.c:5122
+msgid "OK"
+msgstr "OK"
+
+#: ../contrib/mod_digest.c:566 ../contrib/mod_digest.c:571
+#: ../contrib/mod_digest.c:575 ../contrib/mod_digest.c:576
+#: ../contrib/mod_digest.c:580 ../contrib/mod_digest.c:584
+msgid "<sp> pathname [<sp> start <sp> end]"
+msgstr "<sp> ruta [<sp> comienzo <sp> final]"
+
+#: ../contrib/mod_digest.c:570 ../contrib/mod_digest.c:2933
+#: ../modules/mod_core.c:6562 ../modules/mod_core.c:6563
+#: ../modules/mod_core.c:6573 ../modules/mod_core.c:6574
+#: ../modules/mod_core.c:6575 ../modules/mod_core.c:6576
+#: ../modules/mod_core.c:6577 ../modules/mod_core.c:6578
+#: ../modules/mod_core.c:6579 ../modules/mod_core.c:6580
+#: ../modules/mod_core.c:6583 ../modules/mod_xfer.c:4190
+#: ../modules/mod_xfer.c:4191 ../modules/mod_xfer.c:4193
+msgid "<sp> pathname"
+msgstr "<sp> ruta"
+
+#: ../contrib/mod_digest.c:1804
+msgid "Computing..."
+msgstr "Calculando..."
+
+#: ../contrib/mod_digest.c:1818 ../include/dirtree.h:177
+#: ../include/dirtree.h:183 ../modules/mod_facts.c:998
+#: ../modules/mod_facts.c:1229 ../modules/mod_lang.c:524
+msgid "Invalid number of parameters"
+msgstr "Número incorrecto de parámetros"
+
+#: ../contrib/mod_digest.c:1887 ../contrib/mod_digest.c:2051
+#: ../contrib/mod_digest.c:2633 ../modules/mod_ls.c:3380
+#: ../modules/mod_xfer.c:1387 ../modules/mod_xfer.c:1651
+#: ../modules/mod_xfer.c:2520
+#, c-format
+msgid "%s: Not a regular file"
+msgstr "%s: No es un archivo normal"
+
+#: ../contrib/mod_digest.c:1904
+#, c-format
+msgid "%s requires a start greater than or equal to 0"
+msgstr "%s necesita un valor de comienzo mayor o igual a 0"
+
+#: ../contrib/mod_digest.c:1918
+#, c-format
+msgid "%s requires an end greater than 0"
+msgstr "%s necesita un final mayor de 0"
+
+#: ../contrib/mod_digest.c:1929
+#, c-format
+msgid "%s: end exceeds file size"
+msgstr "%s: el final excede el tamaño del archivo"
+
+#: ../contrib/mod_digest.c:1937
+msgid "%s requires end (%"
+msgstr "%s necesita un final (%"
+
+#: ../contrib/mod_digest.c:1952 ../contrib/mod_digest.c:2069
+#: ../contrib/mod_digest.c:2651
+#, c-format
+msgid "Computing %s digest"
+msgstr "Calculando resumen de %s"
+
+#: ../contrib/mod_digest.c:1964
+#, c-format
+msgid "%s: Hash algorithm not available"
+msgstr "%s: Algoritmo hash no disponible"
+
+#: ../contrib/mod_digest.c:2122
+msgid "OPTS HASH: Wrong number of parameters"
+msgstr "OPTS HASH: Número incorrecto de parámetros"
+
+#: ../contrib/mod_digest.c:2144 ../contrib/mod_digest.c:2155
+#: ../contrib/mod_digest.c:2167 ../contrib/mod_digest.c:2179
+#: ../contrib/mod_digest.c:2191 ../contrib/mod_digest.c:2197
+#, c-format
+msgid "%s: Unsupported algorithm"
+msgstr "%s: Algoritmo incompatible"
+
+#: ../contrib/mod_load/mod_load.c:1031
+msgid "System busy, try again later"
+msgstr "Sistema ocupado, inténtelo nuevamente más tarde"
+
+#: ../contrib/mod_quotatab.c:219 ../contrib/mod_quotatab.c:284
+msgid "upload"
+msgstr "subir"
+
+#: ../contrib/mod_quotatab.c:223 ../contrib/mod_quotatab.c:288
+msgid "download"
+msgstr "descargar"
+
+#: ../contrib/mod_quotatab.c:227 ../contrib/mod_quotatab.c:292
+msgid "transfer"
+msgstr "transferir"
+
+#: ../contrib/mod_quotatab.c:238
+#, c-format
+msgid "%.2f of %.2f %s %s"
+msgstr "%.2f de %.2f %s %s"
+
+#: ../contrib/mod_quotatab.c:239
+msgid "byte"
+msgstr "byte"
+
+#: ../contrib/mod_quotatab.c:239
+msgid "bytes"
+msgstr "bytes"
+
+#: ../contrib/mod_quotatab.c:246
+#, c-format
+msgid "%.2f of %.2f %s Kb"
+msgstr "%.2f de %.2f %s Kb"
+
+#: ../contrib/mod_quotatab.c:254
+#, c-format
+msgid "%.2f of %.2f %s Mb"
+msgstr "%.2f de %.2f %s Mb"
+
+#: ../contrib/mod_quotatab.c:262
+#, c-format
+msgid "%.2f of %.2f %s Gb"
+msgstr "%.2f de %.2f %s Gb"
+
+#: ../contrib/mod_quotatab.c:299
+#, c-format
+msgid "%u of %u %s %s"
+msgstr "%u de %u %s %s"
+
+#: ../contrib/mod_quotatab.c:300
+msgid "file"
+msgstr "archivo"
+
+#: ../contrib/mod_quotatab.c:300
+msgid "files"
+msgstr "archivos"
+
+#: ../contrib/mod_quotatab.c:317
+#, c-format
+msgid "bytes:\t%.2f/%.2f"
+msgstr "bytes:\t%.2f/%.2f"
+
+#: ../contrib/mod_quotatab.c:321
+msgid "bytes:\tunlimited"
+msgstr "bytes:\tilimitados"
+
+#: ../contrib/mod_quotatab.c:331
+#, c-format
+msgid "Kb:\t%s%.2f/%.2f"
+msgstr "Kb:\t%s%.2f/%.2f"
+
+#: ../contrib/mod_quotatab.c:335
+msgid "Kb:\tunlimited"
+msgstr "Kb:\tilimitado"
+
+#: ../contrib/mod_quotatab.c:345
+#, c-format
+msgid "Mb:\t%s%.2f/%.2f"
+msgstr "Mb:\t%s%.2f/%.2f"
+
+#: ../contrib/mod_quotatab.c:349
+msgid "Mb:\tunlimited"
+msgstr "Mb:\tilimitado"
+
+#: ../contrib/mod_quotatab.c:359
+#, c-format
+msgid "Gb:\t%s%.2f/%.2f"
+msgstr "Gb:\t%s%.2f/%.2f"
+
+#: ../contrib/mod_quotatab.c:363
+msgid "Gb:\tunlimited"
+msgstr "Gb:\tilimitado"
+
+#: ../contrib/mod_quotatab.c:383
+#, c-format
+msgid "files:\t%u/%u"
+msgstr "archivos:\t%u/%u"
+
+#: ../contrib/mod_quotatab.c:387
+msgid "files:\tunlimited"
+msgstr "archivos:\tilimitados"
+
+#: ../contrib/mod_quotatab.c:1891 ../contrib/mod_quotatab.c:1906
+#: ../contrib/mod_quotatab.c:2193 ../contrib/mod_quotatab.c:2208
+#: ../contrib/mod_quotatab.c:2252 ../contrib/mod_quotatab.c:2267
+#: ../contrib/mod_quotatab.c:3280 ../contrib/mod_quotatab.c:3295
+#: ../contrib/mod_quotatab.c:3314 ../contrib/mod_quotatab.c:3329
+#: ../contrib/mod_quotatab.c:3607 ../contrib/mod_quotatab.c:3622
+#: ../contrib/mod_quotatab.c:3641 ../contrib/mod_quotatab.c:3656
+#, c-format
+msgid "%s denied: quota exceeded: used %s"
+msgstr "%s denegado: Cupo excedido: Usado %s"
+
+#: ../contrib/mod_quotatab.c:1978 ../contrib/mod_quotatab.c:2015
+#: ../contrib/mod_quotatab.c:2088 ../contrib/mod_quotatab.c:2125
+#: ../contrib/mod_quotatab.c:2355 ../contrib/mod_quotatab.c:2393
+#: ../contrib/mod_quotatab.c:2437 ../contrib/mod_quotatab.c:2448
+#: ../contrib/mod_quotatab.c:3368 ../contrib/mod_quotatab.c:3377
+#: ../contrib/mod_quotatab.c:3390 ../contrib/mod_quotatab.c:3399
+#: ../contrib/mod_quotatab.c:3433 ../contrib/mod_quotatab.c:3445
+#: ../contrib/mod_quotatab.c:3461 ../contrib/mod_quotatab.c:3473
+#: ../contrib/mod_quotatab.c:3754 ../contrib/mod_quotatab.c:3792
+#: ../contrib/mod_quotatab.c:3834 ../contrib/mod_quotatab.c:3845
+#: ../contrib/mod_quotatab.c:3929 ../contrib/mod_quotatab.c:3970
+#: ../contrib/mod_quotatab.c:4013 ../contrib/mod_quotatab.c:4022
+#, c-format
+msgid "%s: notice: quota reached: used %s"
+msgstr "%s: aviso: cupo alcanzado: usado %s"
+
+#: ../contrib/mod_quotatab.c:2004 ../contrib/mod_quotatab.c:2031
+#: ../contrib/mod_quotatab.c:2114 ../contrib/mod_quotatab.c:2151
+#: ../contrib/mod_quotatab.c:2381 ../contrib/mod_quotatab.c:2419
+#: ../contrib/mod_quotatab.c:3780 ../contrib/mod_quotatab.c:3818
+#: ../contrib/mod_quotatab.c:3954 ../contrib/mod_quotatab.c:3995
+#, c-format
+msgid "%s: notice: quota reached: '%s' removed"
+msgstr "%s: aviso: cupo alcanzado: '%s' eliminado"
+
+#: ../contrib/mod_quotatab.c:4094
+msgid "'SITE QUOTA' not understood."
+msgstr "'SITE QUOTA' no entendido."
+
+#: ../contrib/mod_quotatab.c:4117
+msgid "No quotas in effect"
+msgstr "No hay cupos vigentes"
+
+#: ../contrib/mod_quotatab.c:4125
+msgid "The current quota for this session are [current/limit]:"
+msgstr "El cupo de esta sesión en este momento es [actual/límite]:"
+
+#: ../contrib/mod_quotatab.c:4127
+#, c-format
+msgid "Name: %s"
+msgstr "Nombre: %s"
+
+#: ../contrib/mod_quotatab.c:4128
+#, c-format
+msgid "Quota Type: %s"
+msgstr "Tipo de cupo: %s"
+
+#: ../contrib/mod_quotatab.c:4129
+msgid "User"
+msgstr "Usuario"
+
+#: ../contrib/mod_quotatab.c:4130
+msgid "Group"
+msgstr "Grupo"
+
+#: ../contrib/mod_quotatab.c:4131
+msgid "Class"
+msgstr "Clase"
+
+#: ../contrib/mod_quotatab.c:4132 ../contrib/mod_quotatab.c:4140
+msgid "(unknown)"
+msgstr "(desconocido)"
+
+#: ../contrib/mod_quotatab.c:4132
+msgid "All"
+msgstr "Todos"
+
+#: ../contrib/mod_quotatab.c:4134
+#, c-format
+msgid "Per Session: %s"
+msgstr "Por sesión: %s"
+
+#: ../contrib/mod_quotatab.c:4135
+msgid "False"
+msgstr "Falso"
+
+#: ../contrib/mod_quotatab.c:4135
+msgid "True"
+msgstr "Verdadero"
+
+#: ../contrib/mod_quotatab.c:4137
+#, c-format
+msgid "Limit Type: %s"
+msgstr "Tipo de límite: %s"
+
+#: ../contrib/mod_quotatab.c:4138
+msgid "Hard"
+msgstr "Duro"
+
+#: ../contrib/mod_quotatab.c:4139
+msgid "Soft"
+msgstr "Suave"
+
+#: ../contrib/mod_quotatab.c:4142 ../contrib/mod_quotatab.c:4152
+#, c-format
+msgid "  Uploaded %s"
+msgstr "  Subido %s"
+
+#: ../contrib/mod_quotatab.c:4145 ../contrib/mod_quotatab.c:4155
+#, c-format
+msgid "  Downloaded %s"
+msgstr "  Descargado %s"
+
+#: ../contrib/mod_quotatab.c:4148 ../contrib/mod_quotatab.c:4158
+#, c-format
+msgid "  Transferred %s"
+msgstr "  Transferido %s"
+
+#: ../contrib/mod_quotatab.c:4164
+#, c-format
+msgid "Please contact %s if these entries are inaccurate"
+msgstr "Por favor contacta con %s si estos datos son incorrectos"
+
+#: ../contrib/mod_quotatab.c:4165
+msgid "ftp-admin"
+msgstr "el administrador del ftp"
+
+#: ../contrib/mod_radius.c:3520 ../modules/mod_auth.c:2576
+msgid "Login with USER first"
+msgstr "Primero inicie sesión con USER"
+
+#: ../contrib/mod_readme.c:91
+#, c-format
+msgid "Please read the file %s"
+msgstr "Por favor lee el archivo %s"
+
+#: ../contrib/mod_readme.c:93
+#, c-format
+msgid "   it was last modified on %.26s - %i %s ago"
+msgstr "   fue modificado por última vez en %.26s - hace %i %s"
+
+#: ../contrib/mod_readme.c:94
+msgid "day"
+msgstr "día"
+
+#: ../contrib/mod_readme.c:94
+msgid "days"
+msgstr "días"
+
+#: ../contrib/mod_site_misc.c:263 ../modules/mod_core.c:5355
+#: ../modules/mod_core.c:5458 ../modules/mod_core.c:5902
+#: ../modules/mod_xfer.c:3197
+#, c-format
+msgid "%s command successful"
+msgstr "orden %s ejecutada correctamente"
+
+#: ../contrib/mod_site_misc.c:317 ../modules/mod_core.c:5559
+#, c-format
+msgid "\"%s\" - Directory successfully created"
+msgstr "\"%s\" - Directorio creado correctamente"
+
+#: ../contrib/mod_tls.c:11990 ../contrib/mod_tls.c:12005
+#: ../contrib/mod_tls.c:12018
+msgid "SSL/TLS required on the control channel"
+msgstr "necesario SSL/TLS en el canal de control"
+
+#: ../contrib/mod_tls.c:12045 ../contrib/mod_tls.c:12086
+msgid "SSL/TLS required on the data channel"
+msgstr "necesario SSL/TLS en el canal de datos"
+
+#: ../contrib/mod_tls.c:12114
+msgid "Unwilling to accept second AUTH"
+msgstr "No se acepta un segundo AUTH"
+
+#: ../contrib/mod_tls.c:12122
+msgid "AUTH requires at least one argument"
+msgstr "AUTH necesita al menos un argumento"
+
+#: ../contrib/mod_tls.c:12131 ../contrib/mod_tls.c:12298
+#: ../contrib/mod_tls.c:12310 ../contrib/mod_tls.c:12499
+#: ../contrib/mod_tls.c:12521 ../contrib/mod_tls.c:12544
+msgid "Unwilling to accept security parameters"
+msgstr "No se aceptan parámetros de seguridad"
+
+#: ../contrib/mod_tls.c:12146
+msgid "Necessary security resource unavailable"
+msgstr "Un recurso de seguridad necesario no está disponible"
+
+#: ../contrib/mod_tls.c:12163 ../contrib/mod_tls.c:12217
+#, c-format
+msgid "AUTH %s successful"
+msgstr "Orden AUTH %s ejecutada correctamente"
+
+#: ../contrib/mod_tls.c:12175 ../contrib/mod_tls.c:12184
+#: ../contrib/mod_tls.c:12228 ../contrib/mod_tls.c:12237
+msgid "TLS handshake failed"
+msgstr "handshake TLS fallido"
+
+#: ../contrib/mod_tls.c:12290
+msgid "CCC not allowed on insecure control connection"
+msgstr "no se permite CCC en conexión de control insegura"
+
+#: ../contrib/mod_tls.c:12324
+msgid "Clearing control channel protection"
+msgstr "Eliminando protección del canal de control"
+
+#: ../contrib/mod_tls.c:12355
+msgid "PBSZ not allowed on insecure control connection"
+msgstr "no se permite PBSZ en conexión de control insegura"
+
+#: ../contrib/mod_tls.c:12364
+msgid "PBSZ 0 successful"
+msgstr "PBSZ 0 ejecutado correctamente"
+
+#: ../contrib/mod_tls.c:12367
+msgid "PBSZ=0 successful"
+msgstr "PBSZ=0 ejecutado correctamente"
+
+#: ../contrib/mod_tls.c:12478
+msgid "PROT not allowed on insecure control connection"
+msgstr "no se permite PROT en conexión de control insegura"
+
+#: ../contrib/mod_tls.c:12557 ../contrib/mod_tls.c:12573
+#, c-format
+msgid "PROT %s unsupported"
+msgstr "PROT %s incompatible"
+
+#: ../contrib/mod_tls.c:12597 ../contrib/mod_tls.c:12611
+#: ../contrib/mod_tls.c:12639 ../modules/mod_core.c:5989
+#: ../modules/mod_core.c:6035 ../modules/mod_core.c:6055
+#, c-format
+msgid "%s: %s"
+msgstr "%s: %s"
+
+#: ../contrib/mod_tls.c:15909 ../modules/mod_core.c:6591
+#: ../modules/mod_core.c:6593 ../modules/mod_core.c:6594
+#: ../modules/mod_core.c:6595
+msgid "<sp> base64-data"
+msgstr "<sp> datos-base64"
+
+#: ../contrib/mod_tls.c:15910 ../modules/mod_core.c:6596
+msgid "<sp> protection buffer size"
+msgstr "<sp> tamaño del buffer de protección"
+
+#: ../contrib/mod_tls.c:15911 ../modules/mod_core.c:6597
+msgid "<sp> protection code"
+msgstr "<sp> código de protección"
+
+#: ../contrib/mod_wrap.c:972 ../contrib/mod_wrap2/mod_wrap2.c:1849
+#: ../contrib/mod_wrap2/mod_wrap2.c:2064
+msgid "Access denied"
+msgstr "Acceso denegado"
+
+#: ../modules/mod_auth.c:97
+#, c-format
+msgid "Login timeout (%d %s): closing control connection"
+msgstr "Tiempo límite para inicio de sesión (%d %s): cerrando conexión de control"
+
+#: ../modules/mod_auth.c:118
+#, c-format
+msgid "Session Timeout (%d seconds): closing control connection"
+msgstr "Tiempo límite de sesión (%d segundos): cerrando conexión de control"
+
+#: ../modules/mod_auth.c:172
+msgid "<sp> username"
+msgstr "<sp> nombre de usuario"
+
+#: ../modules/mod_auth.c:173
+msgid "<sp> password"
+msgstr "<sp> contraseña"
+
+#: ../modules/mod_auth.c:174 ../modules/mod_auth.c:175
+#: ../modules/mod_core.c:6566
+msgid "is not implemented"
+msgstr "no está implementado"
+
+#: ../modules/mod_auth.c:654
+msgid "Anonymous access granted, restrictions apply"
+msgstr "Aceptado acceso anónimo, aplicadas restricciones"
+
+#: ../modules/mod_auth.c:657 ../modules/mod_auth.c:2358
+#, c-format
+msgid "User %s logged in"
+msgstr "Usuario %s conectado"
+
+#: ../modules/mod_auth.c:1506
+msgid "Unable to set anonymous privileges."
+msgstr "No se han podido establecer privilegios de anónimo"
+
+#: ../modules/mod_auth.c:2347
+msgid "USER: command requires a parameter"
+msgstr "USER: la orden requiere un parámetro"
+
+#: ../modules/mod_auth.c:2362
+msgid "Reauthentication not supported"
+msgstr "No compatible con reautenticación"
+
+#: ../modules/mod_auth.c:2402
+msgid "Anonymous login ok, send your complete email address as your password"
+msgstr "Conexión anónima ok, envía tu dirección de email como contraseña"
+
+#: ../modules/mod_auth.c:2431
+#, c-format
+msgid "Password required for %s"
+msgstr "Contraseña necesaria para %s"
+
+#: ../modules/mod_auth.c:2568
+msgid "You are already logged in"
+msgstr "Ya habías iniciado sesión"
+
+#: ../modules/mod_auth.c:2671
+msgid "ACCT command not implemented"
+msgstr "No compatible con orden ACCT"
+
+#: ../modules/mod_auth.c:2676
+msgid "REIN command not implemented"
+msgstr "No compatible con orden REIN"
+
+#: ../modules/mod_core.c:143
+#, c-format
+msgid "Idle timeout (%d seconds): closing control connection"
+msgstr "Temporizador de inactividad (%d segundos): cerrando conexión de control"
+
+#: ../modules/mod_core.c:3496 ../modules/mod_core.c:3510
+#, c-format
+msgid "%s: Forbidden command argument"
+msgstr "%s: Argumento de orden prohibido"
+
+#: ../modules/mod_core.c:3624 ../modules/mod_core.c:3629
+msgid "Goodbye."
+msgstr "Hasta luego"
+
+#: ../modules/mod_core.c:3666
+#, c-format
+msgid "\"%s\" is the current directory"
+msgstr "\"%s\" es el directorio actual"
+
+#: ../modules/mod_core.c:3680
+msgid "Illegal PASV command, EPSV ALL in effect"
+msgstr "Orden PASV ilegal, EPSV ALL en vigor"
+
+#: ../modules/mod_core.c:3770 ../modules/mod_core.c:4622
+msgid "Unable to build data connection: Internal error"
+msgstr "No se ha podido crear la conexión de datos: Error interno"
+
+#: ../modules/mod_core.c:3876
+msgid "Illegal PORT command, EPSV ALL in effect"
+msgstr "Orden PORT ilegal, EPSV ALL en vigor"
+
+#: ../modules/mod_core.c:3914
+msgid "Unable to service PORT commands"
+msgstr "No se puede dar servicio a órdenes PORT"
+
+#: ../modules/mod_core.c:3926 ../modules/mod_core.c:3936
+#: ../modules/mod_core.c:3962 ../modules/mod_core.c:4068
+#: ../modules/mod_core.c:4080 ../modules/mod_core.c:4098
+msgid "Illegal PORT command"
+msgstr "Orden PORT ilegal"
+
+#: ../modules/mod_core.c:4116
+msgid "PORT command successful"
+msgstr "Orden PORT ejecutada correctamente"
+
+#: ../modules/mod_core.c:4133
+msgid "Illegal EPRT command, EPSV ALL in effect"
+msgstr "Orden EPRT ilegal, EPSV ALL en vigor"
+
+#: ../modules/mod_core.c:4174
+msgid "Unable to service EPRT commands"
+msgstr "No se puede dar servicio a órdenes EPRT"
+
+#: ../modules/mod_core.c:4205 ../modules/mod_core.c:4558
+msgid "Network protocol not supported, use (1,2)"
+msgstr "Protocolo de red incompatible, usa (1,2)"
+
+#: ../modules/mod_core.c:4209 ../modules/mod_core.c:4212
+#: ../modules/mod_core.c:4562 ../modules/mod_core.c:4565
+msgid "Network protocol not supported, use (1)"
+msgstr "Protocolo de red incompatible, usa (1)"
+
+#: ../modules/mod_core.c:4232 ../modules/mod_core.c:4243
+#: ../modules/mod_core.c:4271 ../modules/mod_core.c:4290
+#: ../modules/mod_core.c:4315 ../modules/mod_core.c:4414
+#: ../modules/mod_core.c:4432
+msgid "Illegal EPRT command"
+msgstr "Orden EPRT ilegal"
+
+#: ../modules/mod_core.c:4464
+msgid "EPRT command successful"
+msgstr "Orden EPRT ejecutada correctamente"
+
+#: ../modules/mod_core.c:4500
+msgid "EPSV ALL command successful"
+msgstr "Orden EPSV ALL ejecutada correctamente"
+
+#: ../modules/mod_core.c:4515
+#, c-format
+msgid "%s: unknown network protocol"
+msgstr "%s: protocolo de red desconocido"
+
+#: ../modules/mod_core.c:4701
+#, c-format
+msgid "Unknown command '%s'"
+msgstr "Orden desconocida '%s'"
+
+#: ../modules/mod_core.c:4720 ../modules/mod_facts.c:1789
+#: ../modules/mod_lang.c:613 ../modules/mod_lang.c:622
+#: ../modules/mod_xfer.c:1286 ../modules/mod_xfer.c:1540
+#: ../modules/mod_xfer.c:2283 ../modules/mod_xfer.c:2340
+#: ../modules/mod_xfer.c:2448 ../modules/mod_xfer.c:2944
+#: ../modules/mod_xfer.c:2979 ../modules/mod_xfer.c:3035
+#: ../modules/mod_xfer.c:3089 ../modules/mod_xfer.c:3136
+#, c-format
+msgid "'%s' not understood"
+msgstr "'%s' no entendido"
+
+#: ../modules/mod_core.c:4785 ../modules/mod_core.c:4801
+#: ../modules/mod_core.c:4863
+#, c-format
+msgid "%s: Invalid IPv6 address provided"
+msgstr "%s: La dirección IPv6 proporcionada es incorrecta"
+
+#: ../modules/mod_core.c:4812 ../modules/mod_core.c:4905
+#, c-format
+msgid "%s: Invalid hostname provided"
+msgstr "%s: El nombre de host proporcionado es incorrecto" 
+
+#: ../modules/mod_core.c:4831 ../modules/mod_core.c:4877
+#: ../modules/mod_core.c:4918 ../modules/mod_core.c:4939
+#, c-format
+msgid "%s: Unknown hostname provided"
+msgstr "%s: Nombre de host desconocido"
+
+#: ../modules/mod_core.c:4849 ../modules/mod_core.c:4895
+msgid "HOST command successful"
+msgstr "Orden HOST ejecutada correctamente"
+
+#: ../modules/mod_core.c:5472
+#, c-format
+msgid "%s: Invalid directory name"
+msgstr "%s: Nombre de directorio no válido"
+
+#: ../modules/mod_core.c:5631
+#, c-format
+msgid "%s: not a plain file"
+msgstr "%s: no es un archivo normal"
+
+#: ../modules/mod_core.c:5682
+#, c-format
+msgid "%s not allowed in ASCII mode"
+msgstr "%s no aceptado en modo ASCII"
+
+#: ../modules/mod_core.c:5725
+#, c-format
+msgid "%s: not a regular file"
+msgstr "%s: no es un archivo normal"
+
+#: ../modules/mod_core.c:5980
+#, c-format
+msgid "%s: Rename permission denied"
+msgstr "%s: Permiso para renombrar denegado"
+
+#: ../modules/mod_core.c:6074
+#, c-format
+msgid "Rename %s: %s"
+msgstr "Renombra %s: %s"
+
+#: ../modules/mod_core.c:6106
+msgid "Rename successful"
+msgstr "Renombrado ejecutado correctamente"
+
+#: ../modules/mod_core.c:6212
+msgid "NOOP command successful"
+msgstr "Orden NOOP ejecutada correctamente"
+
+#: ../modules/mod_core.c:6242
+msgid "No features supported"
+msgstr "No es compatible con características"
+
+#: ../modules/mod_core.c:6257
+msgid "Features:"
+msgstr "Características:"
+
+#: ../modules/mod_core.c:6261
+msgid "End"
+msgstr "Fin"
+
+#: ../modules/mod_core.c:6564 ../modules/mod_core.c:6565
+msgid "(up one directory)"
+msgstr "(sube un directorio)"
+
+#: ../modules/mod_core.c:6567
+msgid "(close control connection)"
+msgstr "(cierra la conexión de control)"
+
+#: ../modules/mod_core.c:6568
+msgid "<sp> h1,h2,h3,h4,p1,p2"
+msgstr "<sp> h1,h2,h3,h4,p1,p2"
+
+#: ../modules/mod_core.c:6569
+msgid "(returns address/port)"
+msgstr "(devuelve la dirección/puerto)"
+
+#: ../modules/mod_core.c:6570
+msgid "<sp> |proto|addr|port|"
+msgstr "<sp> |proto|direc|puerto|"
+
+#: ../modules/mod_core.c:6571
+msgid "(returns port |||port|)"
+msgstr "(devuelve el puerto |||port|)"
+
+#: ../modules/mod_core.c:6572
+msgid "<sp> size"
+msgstr "<sp> tamaño"
+
+#: ../modules/mod_core.c:6581 ../modules/mod_core.c:6582
+msgid "(returns current working directory)"
+msgstr "(devuelve el directorio de trabajo actual)"
+
+#: ../modules/mod_core.c:6584
+msgid "(returns system type)"
+msgstr "(devuelve el tipo de sistema)"
+
+#: ../modules/mod_core.c:6585
+msgid "[<sp> command]"
+msgstr "[<sp> orden]"
+
+#: ../modules/mod_core.c:6586
+msgid "(no operation)"
+msgstr "(ninguna operación)"
+
+#: ../modules/mod_core.c:6587
+msgid "(returns feature list)"
+msgstr "(devuelve la lista de características)"
+
+#: ../modules/mod_core.c:6588
+msgid "<sp> command [<sp> options]"
+msgstr "<sp> orden [<sp> opciones]"
+
+#: ../modules/mod_core.c:6589
+msgid "<cp> hostname"
+msgstr "<cp> nombre de host"
+
+#: ../modules/mod_core.c:6590
+msgid "<cp> client-info"
+msgstr "<cp> información de cliente"
+
+#: ../modules/mod_core.c:6592
+msgid "(clears protection level)"
+msgstr "(borra el nivel de protección)"
+
+#: ../modules/mod_facts.c:1013 ../modules/mod_facts.c:1244
+msgid "Invalid command syntax"
+msgstr "Sintaxis de la orden incorrecta"
+
+#: ../modules/mod_facts.c:1051 ../modules/mod_facts.c:1282
+#: ../modules/mod_facts.c:1387 ../modules/mod_facts.c:1651
+#: ../modules/mod_lang.c:496 ../modules/mod_lang.c:516
+msgid "Unable to handle command"
+msgstr "No se puede ejecutar la orden"
+
+#: ../modules/mod_facts.c:1201
+#, c-format
+msgid "Cannot modify fact '%s'"
+msgstr "No se puede modificar el hecho '%s'"
+
+#: ../modules/mod_facts.c:1418
+#, c-format
+msgid "'%s' is not a directory"
+msgstr "'%s' no es un directorio"
+
+#: ../modules/mod_facts.c:1662 ../modules/mod_facts.c:1768
+#, c-format
+msgid "Start of list for %s"
+msgstr "Comienzo de la lista para %s"
+
+#: ../modules/mod_facts.c:1663 ../modules/mod_facts.c:1770
+msgid "End of list"
+msgstr "Fin de la lista"
+
+#: ../modules/mod_facts.c:1736
+#, c-format
+msgid "'%s' cannot be listed"
+msgstr "'%s' no puede ser listado"
+
+#: ../modules/mod_facts.c:1977 ../modules/mod_facts.c:1978
+#: ../modules/mod_ls.c:3631 ../modules/mod_ls.c:3633
+msgid "[<sp> pathname]"
+msgstr "[<sp> ruta]"
+
+#: ../modules/mod_lang.c:542
+#, c-format
+msgid "Using default language %s"
+msgstr "Usando lenguaje por defecto %s"
+
+#: ../modules/mod_lang.c:549
+#, c-format
+msgid "Language %s not supported"
+msgstr "Lenguaje %s no admitido"
+
+#: ../modules/mod_lang.c:586
+#, c-format
+msgid "Using language %s"
+msgstr "Usando lenguaje %s"
+
+#: ../modules/mod_lang.c:646 ../modules/mod_lang.c:767
+msgid "UTF8 set to on"
+msgstr "Configurado UTF8"
+
+#: ../modules/mod_lang.c:661 ../modules/mod_lang.c:682
+#: ../modules/mod_lang.c:696 ../modules/mod_lang.c:732
+#: ../modules/mod_lang.c:745 ../modules/mod_lang.c:759
+#, c-format
+msgid "Unable to accept %s"
+msgstr "No se acepta %s"
+
+#: ../modules/mod_lang.c:707 ../modules/mod_lang.c:717
+#: ../modules/mod_lang.c:773
+msgid "UTF8 set to off"
+msgstr "Desactivado UTF8"
+
+#: ../modules/mod_ls.c:1544
+#, c-format
+msgid "ERROR: %s"
+msgstr "ERROR: %s"
+
+#: ../modules/mod_ls.c:2177
+#, c-format
+msgid "Out of memory during globbing of %s"
+msgstr "Memoria insuficiente mientras globbing de %s"
+
+#: ../modules/mod_ls.c:2181
+#, c-format
+msgid "Read error during globbing of %s"
+msgstr "Error de lectura mientras globbing de %s"
+
+#: ../modules/mod_ls.c:2185
+#, c-format
+msgid "Unknown error during globbing of %s"
+msgstr "Error desconocido mientras globbing de %s"
+
+#: ../modules/mod_ls.c:2698
+#, c-format
+msgid "Status of '%s'"
+msgstr "Estado de '%s'"
+
+#: ../modules/mod_ls.c:2699
+#, c-format
+msgid "Connected from %s (%s)"
+msgstr "Conectado desde %s (%s)"
+
+#: ../modules/mod_ls.c:2701
+#, c-format
+msgid "Logged in as %s"
+msgstr "Iniciando sesión como %s"
+
+#: ../modules/mod_ls.c:2702
+#, c-format
+msgid "TYPE: %s, STRUcture: File, Mode: Stream"
+msgstr "Tipo: %s, Estructura: Fichero, Modo: Flujo"
+
+#: ../modules/mod_ls.c:2706
+msgid "Total bytes transferred for session: %"
+msgstr "Total de bytes transferidos por sesión: %s"
+
+#: ../modules/mod_ls.c:2713
+#, c-format
+msgid "%s from %s port %u"
+msgstr "%s de %s puerto %u"
+
+#: ../modules/mod_ls.c:2715
+msgid "Active data transfer to"
+msgstr "Transferencia activa de datos a"
+
+#: ../modules/mod_ls.c:2715
+msgid "Passive data transfer from"
+msgstr "Transferencia pasiva de datos de"
+
+#: ../modules/mod_ls.c:2731
+msgid "No data connection"
+msgstr "No hay conexión de datos"
+
+#: ../modules/mod_ls.c:2734 ../modules/mod_ls.c:2887
+msgid "End of status"
+msgstr "Fin del estado"
+
+#: ../modules/mod_ls.c:2884
+#, c-format
+msgid "Status of %s:"
+msgstr "Estado de %s:"
+
+#: ../modules/mod_ls.c:3116 ../modules/mod_ls.c:3143 ../modules/mod_ls.c:3261
+#: ../modules/mod_ls.c:3298 ../modules/mod_ls.c:3339 ../src/data.c:680
+msgid "Transfer complete"
+msgstr "Transferencia completada"
+
+#: ../modules/mod_ls.c:3122 ../modules/mod_ls.c:3149
+msgid "No files found"
+msgstr "No se encontraron archivos"
+
+#: ../modules/mod_ls.c:3632
+msgid "[<sp> (pathname)]"
+msgstr "[<sp> (ruta)]"
+
+#: ../modules/mod_site.c:76 ../modules/mod_site.c:199 ../modules/mod_site.c:564
+#, c-format
+msgid "'SITE %s' not understood"
+msgstr "'SITE %s' no entendido"
+
+#: ../modules/mod_site.c:94 ../modules/mod_site.c:217
+#, c-format
+msgid "SITE %s: Illegal character sequence in command"
+msgstr "SITE %s: Secuencia ilegal de caracteres en la orden"
+
+#: ../modules/mod_site.c:448
+#, c-format
+msgid "'%s': invalid mode"
+msgstr "'%s': modo incorrecto"
+
+#: ../modules/mod_site.c:512
+#, c-format
+msgid "Syntax: SITE %s %s"
+msgstr "Sintaxis: SITE %s %s"
+
+#: ../modules/mod_site.c:518
+#, c-format
+msgid "Unknown command 'SITE %s'"
+msgstr "Orden 'SITE %s' desconocida"
+
+#: ../modules/mod_site.c:542
+msgid "'SITE' requires parameters"
+msgstr "'SITE' requiere parámetros"
+
+#: ../modules/mod_site.c:578
+msgid "The following SITE commands are recognized (* =>'s unimplemented)"
+msgstr "Se reconocen las siguientes órdenes SITE (* =>'s no implementadas)"
+
+#: ../modules/mod_site.c:607 ../src/help.c:141
+#, c-format
+msgid "Direct comments to %s"
+msgstr "Envía comentario a %s"
+
+#: ../modules/mod_site.c:619
+msgid "<sp> string"
+msgstr "<sp> cadena"
+
+#: ../modules/mod_xfer.c:1153
+#, c-format
+msgid "%s: Bad file name"
+msgstr "%s: Nombre de archivo no adecuado"
+
+#: ../modules/mod_xfer.c:1170
+#, c-format
+msgid "%s: File name too long"
+msgstr "%s: Nombre de archivo demasiado largo"
+
+#: ../modules/mod_xfer.c:1211
+#, c-format
+msgid "%s: Temporary hidden file %s already exists"
+msgstr "%s: El archivo temporal oculto %s ya existía"
+
+#: ../modules/mod_xfer.c:1350 ../modules/mod_xfer.c:1549
+#: ../modules/mod_xfer.c:1739 ../modules/mod_xfer.c:2497
+#, c-format
+msgid "%s: Too many transfers"
+msgstr "%s: Demasiadas transferencias"
+
+#: ../modules/mod_xfer.c:1364 ../modules/mod_xfer.c:1640
+#, c-format
+msgid "%s: Overwrite permission denied"
+msgstr "%s: Denegado permiso de sobrescritura"
+
+#: ../modules/mod_xfer.c:1406
+#, c-format
+msgid "%s: Append/Restart not permitted, try again"
+msgstr "%s: No se permite añadir/reanudar, inténtalo de nuevo"
+
+#: ../modules/mod_xfer.c:1419
+msgid "APPE incompatible with RANG"
+msgstr "APPE no es compatible con RANG"
+
+#: ../modules/mod_xfer.c:1466
+#, c-format
+msgid "%s not compatible with server configuration"
+msgstr "%s no es compatible con la configuración del servidor"
+
+#: ../modules/mod_xfer.c:1563
+msgid "STOU incompatible with REST"
+msgstr "STOU incompatible con REST"
+
+#: ../modules/mod_xfer.c:1566
+msgid "STOU incompatible with RANG"
+msgstr "STOU incompatible con RANG"
+
+#: ../modules/mod_xfer.c:1595
+#, c-format
+msgid "%s: unable to generate unique filename"
+msgstr "%s: imposible generar nombre único de archivo"
+
+#: ../modules/mod_xfer.c:1910 ../modules/mod_xfer.c:2662
+#: ../modules/mod_xfer.c:2714
+#, c-format
+msgid "%s: invalid %s argument"
+msgstr "%s: argumento %s no válido"
+
+#: ../modules/mod_xfer.c:2226
+#, c-format
+msgid "%s: Rename of hidden file %s failed: %s"
+msgstr "%s: El renombrado de archivo oculto %s falló: %s"
+
+#: ../modules/mod_xfer.c:2296
+msgid "REST requires a value greater than or equal to 0"
+msgstr "REST requiere un valor mayor o igual a 0"
+
+#: ../modules/mod_xfer.c:2317
+#, c-format
+msgid "%s: Resuming transfers not allowed in ASCII mode"
+msgstr "%s: No se permite reanudar transferencias en modo ASCII"
+
+#: ../modules/mod_xfer.c:2330
+msgid "Restarting at %"
+msgstr "Reanudando en %s"
+
+#: ../modules/mod_xfer.c:2365 ../modules/mod_xfer.c:2377
+msgid "RANG requires a value greater than or equal to 0"
+msgstr "RANG requiere un valor mayor o igual a 0"
+
+#: ../modules/mod_xfer.c:2393
+msgid "Reset byte transfer range"
+msgstr "Restablecer rango de transferencia de bytes"
+
+#: ../modules/mod_xfer.c:2399
+msgid "RANG start must be less than end"
+msgstr "El comienzo de RANG debe ser menor que el final"
+
+#: ../modules/mod_xfer.c:2410
+#, c-format
+msgid "%s: Transfer ranges not allowed in ASCII mode"
+msgstr "%s: No se permiten rangos de transferencia en modo ASCII"
+
+#: ../modules/mod_xfer.c:2429
+msgid "Transferring byte range of %"
+msgstr "Transfiriendo un rango de bytes de %"
+
+#: ../modules/mod_xfer.c:2535
+#, c-format
+msgid "%s: Restart not permitted, try again"
+msgstr "%s: No se permite reanudar, inténtalo de nuevo"
+
+#: ../modules/mod_xfer.c:2691
+#, c-format
+msgid "%s: invalid RANG argument"
+msgstr "%s: Argumento de RANG no válido"
+
+#: ../modules/mod_xfer.c:2961
+msgid "Abort successful"
+msgstr "Interrupción realizada con éxito"
+
+#: ../modules/mod_xfer.c:3007
+#, c-format
+msgid "%s not implemented for '%s' parameter"
+msgstr "%s no compatible con el parámetro '%s'"
+
+#: ../modules/mod_xfer.c:3027
+#, c-format
+msgid "Type set to %s"
+msgstr "Tipo establecido en %s"
+
+#: ../modules/mod_xfer.c:3049
+msgid "Structure set to F"
+msgstr "Estructura establecida en File"
+
+#: ../modules/mod_xfer.c:3068
+#, c-format
+msgid "'%s' unsupported structure type"
+msgstr "Tipo de estructura '%s' no compatible"
+
+#: ../modules/mod_xfer.c:3076
+#, c-format
+msgid "'%s' unrecognized structure type"
+msgstr "Tipo de estructura '%s' no reconocida"
+
+#: ../modules/mod_xfer.c:3103
+msgid "Mode set to S"
+msgstr "Modo establecido en Stream"
+
+#: ../modules/mod_xfer.c:3110
+#, c-format
+msgid "'%s' unsupported transfer mode"
+msgstr "Modo de transferencia '%s' no compatible"
+
+#: ../modules/mod_xfer.c:3118
+#, c-format
+msgid "'%s' unrecognized transfer mode"
+msgstr "Modo de transferencia '%s' no reconocido"
+
+#: ../modules/mod_xfer.c:3151
+#, c-format
+msgid "%s: Invalid ALLO argument"
+msgstr "%s: Argumento de ALLO no válido"
+
+#: ../modules/mod_xfer.c:3173 ../modules/mod_xfer.c:3201
+msgid "No storage allocation necessary"
+msgstr "No se necesita la asignación de almacenamiento"
+
+#: ../modules/mod_xfer.c:3208
+msgid "SMNT command not implemented"
+msgstr "Orden SMNT no implementada"
+
+#: ../modules/mod_xfer.c:3294
+#, c-format
+msgid "No transfer timeout (%d seconds): closing control connection"
+msgstr "Tiempo límite sin transferencias (%d segundos): Cerrando conexión de control"
+
+#: ../modules/mod_xfer.c:4187
+msgid "<sp> type-code (A, I, L 7, L 8)"
+msgstr "<sp> tipo (A, I, L 7, L 8)"
+
+#: ../modules/mod_xfer.c:4188
+msgid "is not implemented (always F)"
+msgstr "no está implementado (siempre F)"
+
+#: ../modules/mod_xfer.c:4189
+msgid "is not implemented (always S)"
+msgstr "no está implementado (siempre S)"
+
+#: ../modules/mod_xfer.c:4192
+msgid "(store unique filename)"
+msgstr "(almacena con nombre de archivo único)"
+
+#: ../modules/mod_xfer.c:4194
+msgid "<sp> byte-count"
+msgstr "<sp> número de bytes"
+
+#: ../modules/mod_xfer.c:4195
+msgid "(abort current operation)"
+msgstr "(interrumpe operación en curso)"
+
+#: ../modules/mod_xfer.c:4196
+msgid "<sp> start-point <sp> end-point"
+msgstr "<sp> comienzo <sp> punto final"
+
+#: ../src/data.c:161 ../src/data.c:365
+msgid "Opening %s mode data connection for %s (%"
+msgstr "Abriendo conexión de datos en modo %s para %s (%"
+
+#: ../src/data.c:166 ../src/data.c:370
+#, c-format
+msgid "Opening %s mode data connection for %s"
+msgstr "Abriendo conexión de datos en modo %s para %s"
+
+#: ../src/data.c:205 ../src/data.c:282 ../src/data.c:342 ../src/data.c:404
+#: ../src/data.c:578 ../src/data.c:587
+#, c-format
+msgid "Unable to build data connection: %s"
+msgstr "Incapaz de crear conexión de datos: %s"
+
+#: ../src/data.c:757
+msgid "Data connection closed"
+msgstr "Conexión de datos cerrada"
+
+#: ../src/data.c:763
+msgid "Unexpected streams hangup"
+msgstr "Cuelgue inesperado en el flujo"
+
+#: ../src/data.c:776
+msgid "Insufficient memory or file locked"
+msgstr "Memoria insuficiente o archivo bloqueado"
+
+#: ../src/data.c:882
+msgid "Link to file server lost"
+msgstr "Se ha cortado el enlace al servidor de archivos"
+
+#: ../src/data.c:891
+#, c-format
+msgid "Unknown or out of range errno [%d]"
+msgstr "Errno [%d] desconocido o fuera de rango"
+
+#: ../src/data.c:902
+#, c-format
+msgid "Transfer aborted. %s"
+msgstr "Transferencia interrumpida. %s"
+
+#: ../src/data.c:999 ../src/data.c:1025
+#, c-format
+msgid "%s: data transfer in progress"
+msgstr "%s: Transferencia de datos en progreso"
+
+#: ../src/data.c:1068 ../src/main.c:928
+msgid "Invalid command: try being more creative"
+msgstr "Orden incorrecta: Intenta ser más creativo"
+
+#: ../src/help.c:97
+msgid "The following commands are recognized (* =>'s unimplemented):"
+msgstr "Se reconocen las siguiente órdenes (* =>'s no implementadas):"
+
+#: ../src/main.c:199
+#, c-format
+msgid "FTP server shutting down - %s"
+msgstr "Apagando servidor FTP - %s"
+
+#: ../src/main.c:443
+#, c-format
+msgid "%s not understood"
+msgstr "No entiendo %s"
+
+#: ../src/main.c:1336
+#, c-format
+msgid "Sorry, no server available to handle request on %s"
+msgstr "Lo siento, no hay servidor disponible en %s para responder tus peticiones"
+
+#: ../src/main.c:1406
+#, c-format
+msgid "FTP server shut down (%s) -- please try again later"
+msgstr "Servidor FTP parado (%s) -- Inténtalo más tarde, por favor"
+
+#: ../src/netio.c:561
+msgid "Transfer aborted. Data connection closed."
+msgstr "Transferencia interrumpida. Conexión de datos cerrada."
+
+#: ../src/session.c:344 ../src/session.c:347
+msgid "ProFTPD Server ready."
+msgstr "Servidor ProFTPD listo."
+
+#: ../src/session.c:352 ../src/session.c:356
+#, c-format
+msgid "ProFTPD Server (%s) [%s]"
+msgstr "Servidor ProFTPD (%s) [%s]"
+
+#: ../src/session.c:363 ../src/session.c:366
+#, c-format
+msgid "%s FTP server ready"
+msgstr "Servidor FTP %s disponible"

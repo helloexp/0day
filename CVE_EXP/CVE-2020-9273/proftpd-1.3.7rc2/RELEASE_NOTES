@@ -1,0 +1,143 @@
+                    1.3.7 Release Notes
+                  ------------------------
+
+This file contains a description of the major changes to ProFTPD for the
+1.3.7 release cycle, from the 1.3.7rc1 release to the 1.3.7 maintenance
+releases.  More information on these changes can be found in the NEWS and
+ChangeLog files.
+
+1.3.7rc2
+---------
+
+  + Fixed pre-authentication remote denial-of-service issue (Issue #846).
+
+1.3.7rc1
+---------
+
+  + RootRevoke is now on by default, meaning that once authentication succeeds,
+    all root privileges are dropped by default, unless the UserOwner directive
+    (which requires root privileges) is used (Bug#4241).
+
+  + The mod_ident module is no longer automatically built by default.
+    To include the mod_ident module in the build, it must be explicitly
+    requested via --enable-ident or --with-shared=mod_ident.
+
+    This means that configuration files using the IdentLookups directive
+    will now want to using an enclosing <IfModule> section, like so:
+
+      <IfModule mod_ident.c>
+        IdentLookups off
+      </IfModule>
+
+  + The mod_tls module now performs basic sanity checks of configured TLS
+    files on startup (Issue#491).
+
+  + The mod_deflate module now supports MODE Z data transfers when TLS
+    is used (Issue#505).
+
+  + The mod_xfer module now supports the RANG FTP command; see
+    https://tools.ietf.org/html/draft-bryan-ftp-range-08 (Issue#351).
+
+  + The ftpasswd script now supports a --change-home option, for changing
+    the home directory of a user in an AuthUserFile (Issue#566).
+
+  + The ftpasswd script supports deleting a user from a group (Issue#620).
+
+  + Refactored the LogFormat handling code so that it is not longer
+    duplicated by mod_log, mod_sql, etc.  The new Jot API is the common API
+    to be used by modules for LogFormat variables and logging.
+
+  + Generated new DH parameters for mod_sftp, mod_tls.
+
+
+  + New Configuration Directives
+
+    AuthFileOptions
+      The mod_auth_file module supports a configuration directive for disabling
+      its requirement for secure permissions on configured
+      AuthUserFile/AuthGroupFile.  See
+      doc/modules/mod_auth_file.html#AuthFileOptions for information.
+
+    RedisLogOnEvent
+      The mod_redis module can be configured to log JSON messages based on
+      specified events (Issue#392).  See the
+      doc/modules/mod_redis.html#RedisLogOnEvent documentation for details.
+
+    RedisOptions
+      The mod_redis module now implements a RedisOptions directive, for tuning
+      some of the module behavior (Issue#477).  The
+      doc/modules/mod_redis.html#RedisOptions documentation has more details.
+
+    RedisSentinel
+      The mod_redis module now supports use of Redis Sentinels (Issue#396);
+      see doc/modules/mod_redis.html#RedisSentinel.
+
+
+  + Changed Configuration Directives
+
+    AllowForeignAddress class-name
+      The AllowForeignAddress directive supports a Class name, for finer-grained
+      control over which clients are allowed to use foreign/mismatching IP
+      addresses for transfers.  See
+      doc/modules/mod_core.html#AllowForeignAddress for more information.
+
+    ExecEnviron %b
+      The ExecEnviron directive has been fixed to properly resolve the %b
+      LogFormat variable (Issue#515).
+
+    RedisServer db-index (Issue#550)
+      The mod_redis module can now be configured to select a database index
+      via the RedisServer directive (Issue#550).  See the
+      doc/modules/mod_redis.html#RedisServer documentation for details.
+
+    RewriteMap idnatrans
+      The mod_rewrite module can now support rewriting `idn` to `idna`
+      formats (Issue#231).  See the doc/modules/mod_rewrite#RewriteMap for
+      details on how to do so.
+
+    RootRevoke on
+      The RootRevoke directive is now enabled by default (Bug#4241).  This
+      makes for more secure configurations/sessions out-of-the-box.  See
+      doc/modules/mod_auth.html#RootRevoke for more information.
+
+    SFTPCiphers, SFTPDigests
+      Some weak algorithms are now disabled by default in mod_sftp (Bug#4279).
+      These algorithms, if need be, can be explicitly enabled by configuration;
+      they are just not enabled automatically.  For list of the algorithms
+      affected, see doc/contrib/mod_sftp.html#SFTPCiphers,
+      doc/contrib/mod_sftp.html#SFTPDigests.
+
+    SFTPOptions IncludeSFTPTimes
+      The SFTOptions directive of mod_sftp now supports an option for explicitly
+      including the timestamps of files when SFTP protocol 4 and higher are
+      used, even if the SFTP client did not request these timestamps.  This
+      works around a bug in the popular Rebex SFTP library; see
+      doc/contrib/mod_sftp.html#SFTPOptions for details.
+
+    TLSProtocol TLSv1.3
+      The mod_tls module, and its TLSProtocol directive, now support TLSv1.3
+      (Issue#536).  See doc/contrib/mod_tls.html#TLSProtocol for more
+      information.
+
+    TLSServerCipherPreference
+      The TLSServerCipherPreference directive is now enabled by default.
+      See doc/contrib/mod_tls.html#TLSServerCipherPrefrence.
+
+    TLSStaplingOptions NoFakeTryLater
+      Some TLS clients have trouble with the "fake" OCSP response that mod_tls
+      might stable, when the client requested stapled OCSP responses and
+      mod_tls is unable to contact the OCSP responder.  Use this option to
+      disable such fake responses (Issue#518):
+
+        TLSStaplingOptions NoFakeTryLater
+
+      See doc/contrib/mod_tls.html#TLSStaplingOptions for details.
+
+
+  + Removed Configuration Directives
+
+    The following directives have been removed:
+
+      GroupPassword
+      LoginPasswordPrompt
+      TransferPriority

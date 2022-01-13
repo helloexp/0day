@@ -1,0 +1,16 @@
+/* Exim: OS-specific C header file for OSF1 */
+
+#define HAVE_SYS_MOUNT_H
+#define HAVE_GETIPNODEBYNAME    1
+
+typedef struct flock flock_t;
+#define F_FREESP     O_TRUNC
+
+/* This was here for some time, but it seems that now (June 2005) things have
+changed. */
+/* #define EXIM_SOCKLEN_T    size_t */
+
+/* Still not "socklen_t", which is the most common setting */
+#define EXIM_SOCKLEN_T       int
+
+/* End */

@@ -1,0 +1,16 @@
+/*************************************************
+*     Exim - an Internet mail transport agent    *
+*************************************************/
+
+/* Copyright (c) University of Cambridge 2016 */
+/* Copyright (c) Jeremy Harris 2016 */
+/* See the file NOTICE for conditions of use and distribution. */
+
+/* Solaris-specific code. This is concatenated onto the generic
+src/os.c file. */
+
+#if defined(MISSING_UNSETENV_3) && !defined(COMPILE_UTILITY)
+# include "setenv.c"
+#endif
+
+/* End of os.c-SunOS5 */

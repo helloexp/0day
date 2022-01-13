@@ -1,0 +1,14 @@
+Files in this directory are historical.  They may have worked once but the
+project has no assurance that they still do.
+
+If you need to use one for a build for your platform, copy it up one directory
+level first.  We'll reinstate it given a current version and evidence of testing.
+For the latter please look into the project regression testsuite, and please
+consider operating a buildfarm animal in the long term (it runs the testsuite).
+
+The buildfarm status page is:
+  https://buildfarm.exim.org/cgi-bin/show_status.pl
+There's a "register" link there with a link to how-to instructions.  Please do
+monitor the status of your animal on an ongoing basis.  The exim-users or
+exim-dev mailinglist are good places to ask for help and to discuss any regressions
+seen in test runs.  There is also the #exim IRC channel on Freenode.

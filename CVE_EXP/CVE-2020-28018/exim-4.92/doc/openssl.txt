@@ -1,0 +1,165 @@
+OpenSSL
+=======
+
+The OpenSSL Project documents their supported releases at
+<https://www.openssl.org/policies/releasestrat.html>.  The Exim
+Maintainers are unwilling to try to support Exim built with a
+version of a critical security library which is unmaintained.
+
+Thus as versions of OpenSSL become unsupported by OpenSSL, they become
+unsupported by Exim.  Exim might build with older releases of OpenSSL,
+but that's risky behaviour.
+
+If your operating system vendor continues to ship an older version of
+OpenSSL and is diligently backporting security fixes, and they support
+Exim, then they will be backporting fixes to their packages of Exim too.
+If you wish to stick purely to packages of OpenSSL, then stick to
+packages of Exim too.
+
+If someone maintains "backports", that is worth exploring too.
+
+Note that a number of OSes use Exim with GnuTLS, not OpenSSL.
+
+Otherwise, assuming that your operating system has old OpenSSL, and you
+wish to use current Exim with OpenSSL, then you need to build and
+install your own, without interfering with the system libraries.
+Fortunately, this is easy.
+
+So this only applies if you build Exim yourself.
+
+
+Insecure versions and ciphers
+-----------------------------
+
+Email delivery to MX hosts is usually done with automatic fallback to
+plaintext if TLS could not be negotiated.  There are good historical reasons
+for this.  You can and should avoid it by using DNSSEC for signing your DNS
+and publishing TLSA records, to enable "DANE" security.  This signals to
+senders that they should be able to verify your certificates, and that they
+should not fallback to cleartext.
+
+In the absence of DANE, trying to increase the security of TLS by removing
+support for older generations of ciphers and protocols will actually _lower_
+the security, because the clients fallback to plaintext and retry anyway.  As
+a result, you should give serious thought to enabling older features which are
+no longer default in OpenSSL.
+
+The examples below explicitly enable ssl3 and weak ciphers.
+
+We don't like this, but reality doesn't care and is messy.
+
+
+Build
+-----
+
+Extract the current source of OpenSSL.  Change into that directory.
+
+This assumes that `/opt/openssl` is not in use.  If it is, pick
+something else.  `/opt/exim/openssl` perhaps.
+
+If you pick a location shared amongst various local packages, such as
+`/usr/local` on Linux, then the new OpenSSL will be used by all of those
+packages.  If that's what you want, great!  If instead you want to
+ensure that only software you explicitly set to use the newer OpenSSL
+will try to use the new OpenSSL, then stick to something like
+`/opt/openssl`.
+
+    ./config --prefix=/opt/openssl --openssldir=/etc/ssl  \
+        -L/opt/openssl/lib -Wl,-R/opt/openssl/lib         \
+        enable-ssl-trace shared                           \
+        enable-ssl3 enable-ssl3-method enable-weak-ssl-ciphers
+    make
+    make install
+
+On some systems, the linker uses `-rpath` instead of `-R`; on such systems,
+replace the parameter starting `-Wl` with: `-Wl,-rpath,/opt/openssl/lib`.
+There are more variations on less common systems.
+
+You now have an installed OpenSSL under /opt/openssl which will not be
+used by any system programs.
+
+When you copy `src/EDITME` to `Local/Makefile` to make your build edits,
+choose the pkg-config approach in that file, but also tell Exim to add
+the relevant directory into the rpath stamped into the binary:
+
+    PKG_CONFIG_PATH=/opt/openssl/lib/pkgconfig
+
+    SUPPORT_TLS=yes
+    USE_OPENSSL_PC=openssl
+    LDFLAGS+=-ldl -Wl,-rpath,/opt/openssl/lib
+
+The -ldl is needed by OpenSSL 1.0.2+ on Linux and is not needed on most
+other platforms.  The LDFLAGS is needed because `pkg-config` doesn't know
+how to emit information about RPATH-stamping, but we can still leverage
+`pkg-config` for everything else.
+
+Then build Exim:
+
+    make
+    sudo make install
+
+
+Confirming
+----------
+
+Run:
+
+    exim -d-all+expand --version
+
+and look for the `Library version: OpenSSL:` lines.
+
+To look at the libraries _probably_ found by the linker, use:
+
+    ldd $(which exim)		# most platforms
+    otool -L $(which exim)	# MacOS
+
+although that does not correctly handle restrictions imposed upon
+executables which are setuid.
+
+If the `chrpath` package is installed, then:
+
+    chrpath -l $(which exim)
+
+will show the DT_RPATH stamped into the binary.
+
+Your `binutils` package should come with `readelf`, so an alternative
+is to run:
+
+    readelf -d $(which exim) | grep RPATH
+
+It is important to use `RPATH` and not `RUNPATH`!
+
+The gory details about `RUNPATH` (skip unless interested):
+The OpenSSL library might be opened indirectly by some other library
+which Exim depends upon.  If the executable does have `RUNPATH` then
+that will inhibit using either of `RPATH` or `RUNPATH` from the
+executable for finding the OpenSSL library when that other library tries
+to load it.
+In fact, if the intermediate library has a `RUNPATH` stamped into it,
+then this will block `RPATH` too, and will create problems with Exim.
+If you're in such a situation, and those libraries were supplied to you
+instead of built by you, then you're reaching the limits of sane
+repairability and it's time to prioritize rebuilding your mail-server
+hosts to be a current OS release which natively pulls in an
+upstream-supported OpenSSL, or stick to the OS releases of Exim.
+
+
+Very Advanced
+-------------
+
+You can not use $ORIGIN for portably packing OpenSSL in with Exim with
+normal Exim builds, because Exim is installed setuid which causes the
+runtime linker to ignore $ORIGIN in DT_RPATH.
+
+_If_ following the steps for a non-setuid Exim, _then_ you can use:
+
+    EXTRALIBS_EXIM=-ldl '-Wl,-rpath,$$ORIGIN/../lib'
+
+The doubled `$$` is needed for the make(1) layer and the quotes needed
+for the shell invoked by make(1) for calling the linker.
+
+Note that this is sufficiently far outside normal that the build-system
+doesn't support it by default; you'll want to drop a symlink to the lib
+directory into the Exim release top-level directory, so that lib exists
+as a sibling to the build-$platform directory.
+

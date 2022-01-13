@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_ban</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_ban</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_ban</code> module is designed to add dynamic &quot;ban&quot;
+lists to <code>proftpd</code>.  A ban prevents the banned user, host, or
+class from logging in to the server; it <b>does not</b> prevent the banned
+user, host, or class from <i>connecting</i> to the server.
+<b><code>mod_ban</code> is not a firewall</b>. The module also provides
+automatic bans that are triggered based on configurable criteria.
+
+<p>
+This module is contained in the <code>mod_ban.c</code> file for
+ProFTPD 1.2.<i>x</i>/1.3.<i>x</i>, and is not compiled by default.
+Installation instructions are discussed <a href="#Installation">here</a>.
+Detailed documentation on <code>mod_ban</code> usage can be found
+<a href="#Usage">here</a>.
+
+<p>
+The most current version of <code>mod_ban</code> is distributed with the
+proftpd source.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#BanCache">BanCache</a>
+  <li><a href="#BanCacheOptions">BanCacheOptions</a>
+  <li><a href="#BanControlsACLs">BanControlsACLs</a>
+  <li><a href="#BanEngine">BanEngine</a>
+  <li><a href="#BanLog">BanLog</a>
+  <li><a href="#BanMessage">BanMessage</a>
+  <li><a href="#BanOnEvent">BanOnEvent</a>
+  <li><a href="#BanTable">BanTable</a>
+</ul>
+
+<h2>Control Actions</h2>
+<ul>
+  <li><a href="#ban"><code>ban</code></a>
+  <li><a href="#permit"><code>permit</code></a>
+</ul>
+
+<p>
+<hr>
+<h3><a name="BanCache">BanCache</a></h3>
+<strong>Syntax:</strong> BanCache <em>driver</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_ban<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+<hr>
+<h3><a name="BanCacheOptions">BanCacheOptions</a></h3>
+<strong>Syntax:</strong> BanCacheOptions <em>opt1 ... optN</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_ban<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+The <code>BanCacheOptions</code> directive is used to configure various optional
+caching behavior of <code>mod_ban</code>.  <b>Note</b>: all of the configured
+<code>BanCacheOptions</code> parameters <b>must</b> appear on the same line in
+the configuration; only the first <code>BanCacheOptions</code> directive that
+appears in the configuration is used.
+
+<p>
+Example:
+<pre>
+  BanCacheOptions UseJSON
+</pre>
+
+<p>
+The currently implemented options are:
+<ul>
+  <li><code>MatchServer</code><br>
+    <p>
+    This option tells <code>mod_ban</code> to ignore cached entries unless
+    they <b>match</b> the IP address/port of the server handling the FTP
+    session.  There might be other servers adding their own entries to
+    a common cache, for example; it is for these situations that the
+    <code>MatchServer</code> option should be used, to avoid false positives.
+  </li>
+
+  <p>
+  <li><code>UseJSON</code><br>
+    <p>
+    This option tells <code>mod_ban</code> to store the ban rules in the
+    cache as JSON-formatted data.  This makes it possible for other tools
+    to discover/display the cached ban rules.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.6rc2</code>.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h3><a name="BanControlsACLs">BanControlsACLs</a></h3>
+<strong>Syntax:</strong> BanControlsACLs <em>actions|&quot;all&quot; &quot;allow&quot;|&quot;deny&quot; &quot;user&quot;|&quot;group&quot; list</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ban<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>BanControlsACLs</code> directive configures access lists of
+<em>users</em> or <em>groups</em> who are allowed (or denied) the ability to
+use the <em>actions</em> implemented by <code>mod_ban</code>. The default
+behavior is to deny everyone unless an ACL allowing access has been explicitly
+configured.
+
+<p>
+If &quot;allow&quot; is used, then <em>list</em>, a comma-delimited list
+of <em>users</em> or <em>groups</em>, can use the given <em>actions</em>; all
+others are denied.  If &quot;deny&quot; is used, then the <em>list</em> of
+<em>users</em> or <em>groups</em> cannot use <em>actions</em> all others are
+allowed.  Multiple <code>BanControlsACLs</code> directives may be used to
+configure ACLs for different control actions, and for both users and groups.
+
+<p>
+The <em>actions</em> provided by <code>mod_ban</code> are &quot;ban&quot;
+and &quot;permit&quot;.
+
+<p>
+Examples:
+<pre>
+  # Allow only user root to ban and permit users
+  BanControlsACLs all allow user root
+</pre>
+
+<p>
+<hr>
+<h3><a name="BanEngine">BanEngine</a></h3>
+<strong>Syntax:</strong> BanEngine <em>on|off</em><br>
+<strong>Default:</strong> off<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ban<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>BanEngine</code> directive enables or disables the banning of
+sessions by <code>mod_ban</code>.  If it is set to <em>off</em> this module
+does no banning. Use this directive to disable the module instead of
+commenting out all <code>mod_ban</code> directives.
+
+<p>
+<hr>
+<h3><a name="BanLog">BanLog</a></h3>
+<strong>Syntax:</strong> BanLog <em>path|&quot;none&quot;</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ban<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>BanLog</code> directive is used to specify a log file for
+<code>mod_ban</code> reporting and debugging. The <em>path</em> parameter
+must be the full path to the file to use for logging.  Note that this path must
+<b>not</b> be to a world-writeable directory and, unless
+<code>AllowLogSymlinks</code> is explicitly set to <em>on</em>
+(generally a bad idea), the path must <b>not</b> be a symbolic link.
+
+<p>
+If <em>path</em> is &quot;none&quot;, no logging will be done at all.
+
+<p>
+<hr>
+<h3><a name="BanMessage">BanMessage</a></h3>
+<strong>Syntax:</strong> BanMessage <em>mesg</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ban<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>BanMessage</code> directive configures a message that will be
+sent to clients that have been banned.  This message may contain the
+following variables:
+<ul>
+  <li><code>%a</code>: client IP address
+  <li><code>%c</code>: client class (if none, will be empty)
+  <li><code>%u</code>: USER name (if none, will be empty)
+</ul>
+
+<p>
+Example:
+<pre>
+  BanMessage "Host %a has been banned"
+</pre>
+
+<p>
+<hr>
+<h3><a name="BanOnEvent">BanOnEvent</a></h3>
+<strong>Syntax:</strong> BanOnEvent <em>event freq expires [mesg]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ban<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>BanOnEvent</code> directive is used to configure a &quot;rule&quot;
+that is triggered whenever the named <em>event</em> occurs.  The currently
+supported events are:
+<p>
+<table border=1 summary="Ban Events">
+  <tr>
+    <td><b>Directive</b></td>
+    <td><b>Class/Host/User Ban</b></td>
+  </tr>
+
+  <tr>
+    <td><code>AnonRejectPasswords</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>BadProtocol</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>ClientConnectRate</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>EmptyPassword</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>MaxClientsPerClass</code></td>
+    <td>Class ban</td>
+  </tr>
+
+  <tr>
+    <td><code>MaxClientsPerHost</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>MaxClientsPerUser</code></td>
+    <td>User ban</td>
+  </tr>
+
+  <tr>
+    <td><code>MaxCommandRate</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>MaxConnectionsPerHost</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>MaxHostsPerUser</code></td>
+    <td>User ban</td>
+  </tr>
+
+  <tr>
+    <td><code>MaxLoginAttempts</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>RootLogin</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>TimeoutIdle</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>TimeoutLogin</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>TimeoutNoTransfer</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>TLSHandshake</code></td>
+    <td>Host ban</td>
+  </tr>
+
+  <tr>
+    <td><code>UnhandledCommand</code></td>
+    <td>Host ban</td>
+  </tr>
+</table>
+
+<p>
+An event is generated whenever one of these limits is reached by a client.
+
+<p>
+The <em>freq</em> parameter should be formatted as:
+<pre>
+  <i>N</i>/hh:mm:ss
+</pre>
+where <i>N</i> is the number of occurrences, and <code>hh:mm:ss</code>
+specifies a number of hours, minutes, and seconds.  This parameter says
+that if <i>N</i> occurrences of <em>event</em> happen within the given
+time interval, then a ban is automatically added.  The IP address of
+the connecting client is banned when the following event rules are
+triggered: <code>AnonRejectPasswords</code>, <code>BadProtocol</code>,
+<code>MaxCommandRate</code>, <code>MaxClientsPerHost</code>,
+<code>MaxConnectionsPerHost</code>, <code>MaxLoginAttempts</code>,
+<code>TimeoutIdle</code>, <code>TimeoutNoTransfer</code>, and
+<code>UnhandledCommand</code>.  The class of the connected client, if any, is
+banned when a rule for <code>MaxClientsPerClass</code> is triggered.  Rules for
+<code>MaxClientsPerUser</code> and <code>MaxHostsPerUser</code> will cause
+the connected username to be banned.
+
+<p>
+The <em>duration</em> should be formatted as:
+<pre>
+  hh:mm:ss
+</pre>
+and specifies the numbers of hours, minutes, and seconds that the automatic
+ban generated a <code>BanOnEvent</code> rule lasts.  Unlike bans added via the
+<a href="#ban">ban</a> <code>ftpdctl</code> control action, automatic bans do
+<b>not</b> have infinite lifetimes.
+
+<p>
+An optional message, to be displayed to banned clients, can be configured.
+If no such optional message is configured using the <code>BanOnEvent</code>
+directive, then any <code>BanMessage</code> message will be displayed.
+
+<p>
+For example:
+<pre>
+  # Configure a rule to automatically ban scripts looking for anonymous
+  # servers to which they can upload
+  BanOnEvent AnonRejectPasswords 1/01:00:00 99:99:99
+
+  # Ban clients which connect too frequently.  This rule bans clients
+  # which connect more than 5 times within one minute.  Include a special
+  # message just for them.
+  BanOnEvent ClientConnectRate 5/00:01:00 04:00:00 "Stop connecting frequently"
+</pre>
+
+<p>
+See also: <a href="#BanMessage"><code>BanMessage</code></a>
+
+<p>
+<hr>
+<h3><a name="BanTable">BanTable</a></h3>
+<strong>Syntax:</strong> BanTable <em>path</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_ban<br>
+<strong>Compatibility:</strong> 1.2.10rc1 and later
+
+<p>
+The <code>BanTable</code> directive configures a <em>path</em> to a file
+that <code>mod_ban</code> uses for handling its ban data.  The given
+<em>path</em> must be an absolute path.  <b>Note</b>: this directive is
+<b>required</b> for <code>mod_ban</code> to function.  It is recommended
+that this file <b>not</b> be on an NFS mounted partition.
+
+<p>
+Note that ban data <b>is not</b> kept across daemon stop/starts.  That is,
+once <code>proftpd</code> is shutdown, all current ban data is lost.
+
+<p>
+<hr>
+<h2>Control Actions</h2>
+
+<p>
+<hr>
+<h3><a name="ban"><code>ban</code></a></h3>
+<strong>Syntax:</strong> ftpdctl ban <em>class|host|info|user [-s address#port] name1 [name2 ...]</em><br>
+<strong>Purpose:</strong> Add a ban or display ban information<br>
+
+<p>
+The <code>ban</code> action is used to add bans to the <code>mod_ban</code>
+lists.  For example, to ban a user:
+<pre>
+  ftpdctl ban user dave
+</pre>
+This will create a ban rule for user 'dave' for <i>all</i> virtual servers in
+your <code>proftpd.conf</code>.  If you want to create such a ban rule, but
+only for one specific <code>&lt;VirtualHost&gt;</code>, use the <code>-s</code>
+command-line option, <i>e.g.</i>:
+<pre>
+  ftpdctl ban user -s 1.2.3.4#21 dave
+</pre>
+This example will create the user 'dave' ban rule for the
+<code>&lt;VirtualHost&gt;</code> handling IP address 1.2.3.4, port 21.
+The <code>-s</code> command-line option applies to <em>host</em> and
+<em>class</em> bans as well.
+
+<p>
+To ban specific hosts, you can use either IP addresses or DNS names:
+<pre>
+  ftpdctl ban host 1.2.3.4 5.6.7.8
+  ftpdctl ban host gw.evil.com
+</pre>
+Banning a class works the same way:
+<pre>
+  ftpdctl ban class anonftp
+</pre>
+
+<p>
+The <em>info</em> parameter is used to view information on current bans.
+Example listing:
+<pre>
+  # ftpdctl ban info
+  ftpdctl: Banned Hosts:
+  ftpdctl:   127.0.0.1
+</pre>
+Or, if you wish to see more information, use the <code>-v</code> option:
+<pre>
+  # ftpdctl ban info -v
+  ftpdctl: Banned Hosts:
+  ftpdctl:   127.0.0.1
+  ftpdctl:     Reason: MaxLoginAttempts autoban at Wed May 19 14:59:25 2004
+  ftpdctl:     Expires: Wed May 19 14:59:55 2004 (in 24 seconds)
+  ftpdctl:     &lt;VirtualHost&gt; <i>ServerName</i> (1.2.3.4#21)
+</pre>
+It is also possible to see the state of ban event rules, using the
+<code>-e</code> option:
+<pre>
+  # ftpdctl ban info -e
+  ftpdctl: No bans
+  ftpdctl: 
+  ftpdctl: Ban Event Entries:
+  ftpdctl:   Event: MaxLoginAttempts
+  ftpdctl:   Source: 127.0.0.1
+  ftpdctl:     Occurrences: 1/2
+  ftpdctl:     Entry Expires: 589 seconds
+</pre>
+This shows that no bans are currently in effect, and that a
+<code>BanOnEvent</code> has been configured for the
+<code>MaxLoginAttempts</code> event.  That event has occurred once, and
+will need to happen one more time within 589 seconds in order for an
+automatic ban to be added.
+
+<p>
+See also: <a href="#permit"><code>permit</code></a>
+
+<p>
+<hr>
+<h3><a name="permit"><code>permit</code></a></h3>
+<strong>Syntax:</strong> ftpdctl permit <em>class|host|user [-s address#port] name1 [name2 ...]</em><br>
+<strong>Purpose:</strong> Permit banned clients to connect<br>
+
+<p>
+The <code>permit</code> action is used to remove a ban for users, hosts,
+and classes:
+<pre>
+  # ftpdctl permit user dave
+  # ftpdctl permit user -s 1.2.3.4#21 dave
+  # ftpdctl permit host 1.2.3.4 gw.evil.com
+  # ftpdctl permit class anonftp
+</pre>
+
+<p>
+See also: <a href="#ban"><code>ban</code></a>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_ban</code> module is distributed with ProFTPD.  Simply follow
+the normal steps for using third-party modules in ProFTPD, making sure to
+include the <code>--enable-ctrls</code> configure option, which
+<code>mod_ban</code> requires:
+<pre>
+  $ ./configure --enable-ctrls --with-modules=mod_ban
+</pre>
+To build <code>mod_ban</code> as a DSO module:
+<pre>
+  $ ./configure --enable-ctrls --enable-dso --with-shared=mod_ban
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+For those with an existing ProFTPD installation, you can use the
+<code>prxs</code> tool to add <code>mod_ban</code>, as a DSO module, to
+your existing server:
+<pre>
+  $ prxs -c -i -d mod_ban.c
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+The <code>mod_ban</code> module implements its bans by checking if a client
+is banned, either by <i>host</i> or by <i>class</i>, when that client
+<i>connects to the server</i>.  Banned clients are immediately disconnected.
+Banned <i>users</i> are checked after the client has sent the <code>USER</code>
+and <code>PASS</code> commands; if that user has been banned, the client is
+immediately disconnected.
+
+<p>
+Here is an example <code>mod_ban</code> configuration, demonstrating how
+to configure an automatic ban for <code>MaxLoginAttempts</code>:
+<pre>
+  MaxLoginAttempts 1
+
+  &lt;IfModule mod_ban.c&gt;
+    BanEngine on
+    BanLog /var/log/proftpd/ban.log
+    BanTable /var/data/proftpd/ban.tab
+
+    # If the same client reaches the MaxLoginAttempts limit 2 times
+    # within 10 minutes, automatically add a ban for that client that
+    # will expire after one hour.
+    BanOnEvent MaxLoginAttempts 2/00:10:00 01:00:00
+
+    # Allow the FTP admin to manually add/remove bans
+    BanControlsACLs all allow user ftpadm
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+By default, the <code>mod_ban</code> module allocate size for 512 bans.
+In practice, this has seemed to work well.  However, if you need to allocate
+space for more bans, you will need to recompile proftpd, and use the
+<code>CFLAGS</code> environment variable like so:
+<pre>
+    ./configure CFLAGS="-DBAN_LIST_MAXSZ=<em>1024</em>" ...
+</pre>
+or whatever your necessary ban list size is.
+
+<p>
+<b>Logging</b><br>
+The <code>mod_ban</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>ban
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace ban:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p><a name="FAQ"></a>
+<b>Frequently Asked Questions</b><br>
+<font color=red>Question</font>: Why does <code>mod_ban</code> not store ban
+data across daemon stop/starts?<br>
+<font color=blue>Answer</font>: The <code>mod_ban</code> module was not
+designed to add yet another ACL mechanism to <code>proftpd</code>.  For
+persistent access control, there is the <code>&lt;Limit LOGIN&gt;</code>
+section, the <code>mod_wrap</code> module, the <code>/etc/ftpusers</code>
+file, and various other mechanisms.  The purpose of <code>mod_ban</code>
+is to provide dynamic, short-lived bans.
+
+<p>
+<font color=red>Question</font>: What about having <code>proftpd</code> delay
+sending responses to clients, say by 30 seconds or so?<br>
+<font color=blue>Answer</font>:  This is a bad idea.  It would allow
+malicious clients, who <i>knew</i> they were banned, to tie up your
+<code>proftpd</code> processes, since those processes would be taking up
+space, waiting before sending responses back to the client.  This makes it
+possible for those clients to use the delaying as a Denial of Service attack,
+eventually tying up your available system resources with waiting
+<code>proftpd</code> processes.
+
+<p><a name="BanMaxLoginAttempts">
+<font color=red>Question</font>: I have the following, taken from
+the example config above, configured for <code>mod_ban</code>, but it does not
+appear to be working.  Why not?<br>
+<pre>
+  # If the same client reaches the MaxLoginAttempts limit 2 times
+  # within 10 minutes, automatically add a ban for that client that
+  # will expire after one hour.
+  BanOnEvent MaxLoginAttempts 2/00:10:00 01:00:00
+</pre>
+<font color=blue>Answer</font>: The most common reason is that the
+<code>MaxLoginAttempts</code> directive does not function the way that many
+assume it does.
+
+<p>
+The above <code>BanOnEvent</code> rule says that the same client (<i>i.e.</i>
+source IP address) which reaches the <code>MaxLoginAttempts</code> limit
+2 times within 10 minutes will be banned.  If you test by connecting to
+<code>proftpd</code>, trying a bad password once, disconnecting, then
+connecting again and trying the same bad password again, you will <b>not</b>
+be hitting the <code>MaxLoginAttempts</code> limit.  Remember that the
+<code>MaxLoginAttempts</code> directive configures a limit to the number
+of bad login attempts <i>for the same connection</i>; it does <b>not</b>
+configure limit on the number of bad login attempts across multiple
+connections.
+
+<p>
+The default <code>MaxLoginAttempts</code> value for <code>proftpd</code>
+is 3.  Which means that simply connecting, trying a bad login attempt once,
+then disconnecting, will not trigger the <code>MaxLoginAttempts</code> limit.
+This is why the example configuration given above explicitly configures
+the <code>MaxLoginAttempts</code> limit to be lower:
+<pre>
+  MaxLoginAttempts 1
+</pre>
+in order to make <code>mod_ban</code> behave the way that most administrators
+assume it will.  If you have not explicitly configured
+<code>MaxLoginAttempts</code> lower, then this is probably why your
+<code>BanOnEvent</code> rule is not taking effect as you expect.
+
+<p>
+<font color=red>Question</font>: It looks like the <code>BanTable</code> file
+I configured is untouched:
+<pre>
+  -rw-r--r-- 1 ftp  ftp     0 2007-01-13 23:18 ban.table
+</pre>
+Does this mean that something is wrong, or that <code>mod_ban</code> is not
+using that file?<br>
+<p>
+<font color=blue>Answer</font>: A <code>BanTable</code> file <i>is</i> needed,
+just not in an obvious way.  The <code>mod_ban</code> module stores its ban
+information in a SysV shared memory segment.  The configured
+<code>BanTable</code> file is used <i>a)</i> to generate a unique name/ID for
+the shared memory segment to use (and to see if a segment for that name/ID
+already exists), and <i>b)</i> for locking, as when multiple sessions are
+trying to update the shared memory segment at the same time.  But
+<code>mod_ban</code> does not write any data into that file itself, and hence
+the last-modified-time of the file, and the file size, does not change much.
+
+<p><a name="BanWhitelist">
+<font color=red>Question</font>: How can I configure a whitelist of IP
+addresses, to be excluded from the effects of <code>mod_ban</code>?<br>
+<font color=blue>Answer</font>: This can be done using a combination of
+<a href="../howto/Classes.html">Classes</a> and the <a href="mod_ifsession.html"><code>mod_ifsession</code></a> module.  For example:
+<pre>
+  &lt;Class whitelist&gt;
+    From ...
+  &lt;/Class&gt;
+
+  &lt;IfClass whitelist&gt;
+    # Turn the mod_ban module off for whitelisted clients
+    BanEngine off
+  &lt;/IfClass&gt;
+
+  &lt;IfClass !whitelist&gt;
+    # Make sure the mod_ban module is on for clients that are not whitelisted
+    BanEngine on
+  &lt;/IfClass&gt;
+</pre>
+Note that it is <b>important</b> to have <i>both</i>
+<code>&lt;IfClass&gt;</code> sections in your configuration.
+
+<p>
+It is <b>also important</b> that for the above to work, when using shared/DSO
+modules, that <code>mod_ban</code> be loaded in your configuration
+<i>before</i> <code>mod_ifsession</code>:
+<pre>
+  LoadModule mod_ban.c
+  ...
+  LoadModule mod_ifsession.c
+</pre>
+Otherwise, when parsing the configuration, <code>mod_ban</code> might not
+set all of the proper internal state for implementing the whitelists.
+
+<p><a name="BanRootLogins">
+<font color=red>Question</font>: I would like to ban clients which try to
+login as root.  How would I do this?<br>
+<font color=blue>Answer</font>: You would use the
+<a href="#BanOnEvent"><code>BanOnEvent</code></a> directive, with an
+<em>event name</em> of "mod_auth.root-login", thus:
+<pre>
+  # Ban clients which try to login as root.  This bans clients which
+  # try root logins twice within 10 minutes, banning them for 6 hours.
+  BanOnEvent mod_auth.root-login 2/00:10:00 06:00:00
+</pre>
+
+<br><hr>
+
+<font size=2><b><i>
+&copy; Copyright 2004-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+
+<hr><br>
+
+</body>
+</html>
+

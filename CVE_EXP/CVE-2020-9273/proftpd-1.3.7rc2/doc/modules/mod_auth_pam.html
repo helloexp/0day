@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_auth_pam</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_auth_pam</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+PAM stands for <b>P</b>luggable <b>A</b>uthentication <b>M</b>odules,
+and is used to configure ways for authenticating users.  Now
+&quot;authenticating&quot; a user usually means comparing a password they
+give with some other information, and returning a &quot;yes/no&quot;-style
+answer.  PAM does <b>not</b> provide all of the other information for a user,
+such as UID, GID, home, and shell.  This means that <code>mod_auth_pam</code>
+cannot be used, by itself, as an auth module for <code>proftpd</code>;
+<code>mod_auth_pam</code> is used to supplement other auth modules by
+providing access to PAM's additional authentication checks.
+
+<p>
+Installation instructions for <code>mod_auth_pam</code> can be found
+<a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_auth_pam</code> is distributed in the
+ProFTPD source distribution.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#AuthPAM">AuthPAM</a>
+  <li><a href="#AuthPAMConfig">AuthPAMConfig</a>
+  <li><a href="#AuthPAMOptions">AuthPAMOptions</a>
+</ul>
+
+<hr>
+<h3><a name="AuthPAM">AuthPAM</a></h3>
+<strong>Syntax:</strong> AuthPAM <em>on|off</em><br>
+<strong>Default:</strong> AuthPAM on<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_auth_pam<br>
+<strong>Compatibility:</strong> 1.2.8rc2 and later
+
+<p>
+The <code>AuthPAM</code> directive enables or disables the module's runtime
+PAM check.  If it is set to <em>off</em> this module does not consult PAM
+when authenticating a user.
+
+<p>
+<hr>
+<h3><a name="AuthPAMConfig">AuthPAMConfig</a></h3>
+<strong>Syntax:</strong> AuthPAMConfig <em>service</em><br>
+<strong>Default:</strong> AuthPAMConfig ftp<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_auth_pam<br>
+<strong>Compatibility:</strong> 1.2.8rc2 and later
+
+<p>
+The <code>AuthPAMConfig</code> directive is used to specify the name of
+the service used when performing the PAM check; PAM configurations can
+vary depending on the service.  By default, the &quot;ftp&quot; service
+is used.  Note that on some platforms, <i>e.g.</i> FreeBSD, this may
+need to be set to &quot;ftpd&quot;, depending on the PAM configuration
+involved.
+
+<p>
+Here's an example of changing the <em>service</em> used:
+<pre>
+  &lt;IfModule mod_auth_pam.c&gt;
+    AuthPAMConfig ftpd
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<hr>
+<h3><a name="AuthPAMOptions">AuthPAMOptions</a></h3>
+<strong>Syntax:</strong> AuthPAMOptions <em>opt1 opt2 ... optN</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_auth_pam<br>
+<strong>Compatibility:</strong> 1.3.2rc1 and later
+
+<p>
+The <code>AuthPAMOptions</code> directive is used to configure various optional
+behavior of <code>mod_auth_pam</code>.
+
+<p>
+Example:
+<pre>
+  &lt;IfModule mod_auth_pam.c&gt;
+    # Do not set the PAM_TTY token when authenticating via PAM
+    AuthPAMOptions NoTTY
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+The currently implemented options are:
+<ul>
+  <li><code>NoTTY</code><br>
+    <p>
+    By default, <code>mod_auth_pam</code> will use the <code>PAM_TTY</code>
+    PAM API item, and will use a value of "/dev/ftpd<i>PID</i>".  The item
+    can be used by PAM modules for filtering access, for example.  This
+    "NoTTY" option tells <code>mod_auth_pam</code> to <b>not</b> set the
+    <code>PAM_TTY</code> item.
+
+    <p>
+    <b>Note</b>: On Solaris platforms, the use of this <code>PAM_TTY</code>
+    token is <i>mandatory</i>, and cannot be disabled.  This is due to 
+    Solaris Bug ID 4250887.
+  </li>
+</ul>
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_auth_pam</code> module is automatically included when
+<code>proftpd</code> is built on a system that supports PAM. To disable
+this automatic inclusion, use the <code>--disable-auth-pam</code> configure
+option.
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+The following are some example platform-specific PAM configurations.
+
+<p>
+<i>FreeBSD</i><br>
+To use PAM with ProFTPD, you must edit <code>/etc/pam.conf</code> (or
+<code>/etc/pam.d/ftpd</code>) and add the following lines, if they are not
+already present:
+<pre>
+  ftpd auth    required    pam_unix.so         try_first_pass
+  ftpd account required    pam_unix.so         try_first_pass
+  ftpd session required    pam_permit.so
+</pre>
+In your <code>proftpd.conf</code>, you will need to set
+<code>AuthPAMConfig</code> to use the above service name, <i>i.e.</i> "ftpd":
+<pre>
+  &lt;IfModule mod_auth_pam.c&gt;
+    AuthPAMConfig ftpd
+  &lt;/IfModule&gt;
+</pre>
+PAM authentication should now work properly.
+
+<p>
+<i>Linux</i><br>
+To use PAM with ProFTPD, you must edit <code>/etc/pam.d/ftp</code> and add the
+following lines for RedHat installations:
+<pre>
+  #%PAM-1.0
+  auth       required     /lib/security/pam_pwdb.so shadow nullok
+  account    required     /lib/security/pam_pwdb.so
+  session    required     /lib/security/pam_pwdb.so
+</pre>
+For SuSE:
+<pre>
+  #%PAM-1.0
+  auth       required     /lib/security/pam_unix.so shadow nullok
+  account    required     /lib/security/pam_unix.so
+  session    required     /lib/security/pam_unix.so
+</pre>
+These settings are valid for RedHat and SuSE Linux systems.  Other Linux
+distributions may differ.
+
+<p>
+<b>NOTE</b>: If you are using a 64-bit system, you may need to change the above
+paths from "/lib/security/..." to "/lib64/security/...".  Without this
+correction, on 64-bit systems, your ProFTPD logs may contain errors like:
+<pre>
+  PAM unable to dlopen(/lib/security/pam_pwdb.so)
+  PAM [dlerror: /lib/security/pam_pwdb.so: cannot open shared object file:
+  No such file or directory]
+</pre>
+After updating the paths in your <code>/etc/pam.d/ftp</code> file, be sure to
+restart ProFTPD, so that the new PAM configuration takes effect.
+
+<p>
+<i>Mac OS X</i><br>
+To use PAM with ProFTPD, you must edit <code>/etc/pam.d/ftp</code> and add the
+following lines:
+<pre>
+  auth       required    pam_unix.so try_first_pass
+  account    required    pam_unix.so try_first_pass
+  session    required    pam_permit.so
+</pre>
+Or, if you are running Mac OSX 10.3 or later, you should have an
+<code>/etc/pam.d/ftpd</code> file that contains the following:
+<pre>
+  auth       sufficient     pam_securityserver.so
+  auth       required       pam_deny.so
+  account    required       pam_permit.so
+  password   required       pam_deny.so
+  session    required       pam_permit.so
+</pre>
+Then, in your <code>proftpd.conf</code>, use:
+<pre>
+  &lt;IfModule mod_auth_pam.c&gt;
+    AuthPAMConfig ftpd
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_auth_pam</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>auth.pam
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace auth.pam:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p><a name="AuthPAMAuthoritative">
+<font color=red>Question</font>: I need to use PAM for enforcing the
+handling of aged/expired passwords on my Unix system.  How do I make sure
+that PAM does the right thing?<br>
+<font color=blue>Answer</font>: For this sort of requirement, you are
+probably already using ProFTPD's default authentication modules, which include
+<code>mod_auth_unix</code> and <code>mod_auth_pam</code>.  But to make sure
+that the PAM rules are enforced, you need to make <code>mod_auth_pam</code>
+be "authoritative", <i>i.e.</i> have the final say on whether a given password
+is acceptable.  Use the <code>AuthOrder</code> directive to accomplish this,
+using:
+<pre>
+  # It is important that mod_auth_pam appear before mod_auth_unix, and
+  # that the asterisk appear <i>after</i> the name, not before.
+  AuthOrder mod_auth_pam.c* mod_auth_unix.c
+</pre>
+The asterisk ("*") after a module name in the <code>AuthOrder</code> directive
+is what tells <code>proftpd</code> to treat that module's results as
+authoritative.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

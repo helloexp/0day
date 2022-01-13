@@ -1,0 +1,1252 @@
+#
+# SPDX-License-Identifier: ISC
+#
+# Copyright (c) 2011-2019 Todd C. Miller <Todd.Miller@sudo.ws>
+#
+# Permission to use, copy, modify, and distribute this software for any
+# purpose with or without fee is hereby granted, provided that the above
+# copyright notice and this permission notice appear in all copies.
+#
+# THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+# WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+# MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+# ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+# WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+# ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+# OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+# @configure_input@
+#
+
+#### Start of system configuration section. ####
+
+srcdir = @srcdir@
+devdir = @devdir@
+top_builddir = @top_builddir@
+top_srcdir = @top_srcdir@
+incdir = $(top_srcdir)/include
+cross_compiling = @CROSS_COMPILING@
+
+# Where to install things...
+prefix = @prefix@
+exec_prefix = @exec_prefix@
+bindir = @bindir@
+sbindir = @sbindir@
+sysconfdir = @sysconfdir@
+libexecdir = @libexecdir@
+datarootdir = @datarootdir@
+localstatedir = @localstatedir@
+
+# File extension, mode and map file to use for shared libraries/objects
+shlib_enable = @SHLIB_ENABLE@
+shlib_mode = @SHLIB_MODE@
+shlib_exp = ./util.exp
+shlib_map = util.map
+shlib_opt = util.opt
+
+# Compiler & tools to use
+CC = @CC@
+LIBTOOL = @LIBTOOL@
+SED = @SED@
+AWK = @AWK@
+
+# Our install program supports extra flags...
+INSTALL = $(SHELL) $(top_srcdir)/install-sh -c
+INSTALL_OWNER = -o $(install_uid) -g $(install_gid)
+INSTALL_BACKUP = @INSTALL_BACKUP@
+
+# C preprocessor defines
+CPPDEFS = -D_PATH_SUDO_CONF=\"$(sysconfdir)/sudo.conf\"
+
+# C preprocessor flags
+CPPFLAGS = -I$(incdir) -I$(top_builddir) -I$(srcdir) -I$(top_srcdir) $(CPPDEFS) @CPPFLAGS@
+
+# Usually -O and/or -g
+CFLAGS = @CFLAGS@
+
+# Flags to pass to the link stage
+LDFLAGS = @LDFLAGS@
+LT_LDFLAGS = @LIBUTIL_LDFLAGS@ @LT_LDFLAGS@ @LT_LDEXPORTS@
+
+# Flags to pass to libtool
+LTFLAGS = @LT_STATIC@
+
+# Address sanitizer flags
+ASAN_CFLAGS = @ASAN_CFLAGS@
+ASAN_LDFLAGS = @ASAN_LDFLAGS@
+
+# PIE flags
+PIE_CFLAGS = @PIE_CFLAGS@
+PIE_LDFLAGS = @PIE_LDFLAGS@
+
+# Stack smashing protection flags
+SSP_CFLAGS = @SSP_CFLAGS@
+SSP_LDFLAGS = @SSP_LDFLAGS@
+
+# Libtool style shared library version
+SHLIB_VERSION = 0:0:0
+
+# cppcheck options, usually set in the top-level Makefile
+CPPCHECK_OPTS = -q --force --enable=warning,performance,portability --suppress=constStatement --error-exitcode=1 --inline-suppr -Dva_copy=va_copy -U__cplusplus -UQUAD_MAX -UQUAD_MIN -UUQUAD_MAX -U_POSIX_HOST_NAME_MAX -U_POSIX_PATH_MAX -U__NBBY -DNSIG=64
+
+# splint options, usually set in the top-level Makefile
+SPLINT_OPTS = -D__restrict= -checks
+
+# PVS-studio options
+PVS_CFG = $(top_srcdir)/PVS-Studio.cfg
+PVS_IGNORE = 'V707,V011,V002,V536'
+PVS_LOG_OPTS = -a 'GA:1,2' -e -t errorfile -d $(PVS_IGNORE)
+
+# Regression tests
+TEST_PROGS = conf_test hltq_test parseln_test progname_test strsplit_test \
+	     strtobool_test strtoid_test strtomode_test strtonum_test \
+	     parse_gids_test getgrouplist_test @COMPAT_TEST_PROGS@
+TEST_LIBS = @LIBS@
+TEST_LDFLAGS = @LDFLAGS@
+
+# User and group ids the installed files should be "owned" by
+install_uid = 0
+install_gid = 0
+
+# Set to non-empty for development mode
+DEVEL = @DEVEL@
+
+#### End of system configuration section. ####
+
+SHELL = @SHELL@
+
+LTOBJS = @DIGEST@ event.lo fatal.lo key_val.lo gethostname.lo gettime.lo \
+	 getgrouplist.lo gidlist.lo lbuf.lo locking.lo parseln.lo progname.lo \
+	 secure_path.lo setgroups.lo strsplit.lo strtobool.lo strtoid.lo \
+	 strtomode.lo strtonum.lo sudo_conf.lo sudo_debug.lo sudo_dso.lo \
+	 term.lo ttyname_dev.lo ttysize.lo @COMMON_OBJS@ @LTLIBOBJS@
+
+IOBJS = $(LTOBJS:.lo=.i)
+
+POBJS = $(IOBJS:.i=.plog)
+
+MKTEMP_TEST_OBJS = mktemp_test.lo mktemp.lo
+
+PARSELN_TEST_OBJS = parseln_test.lo parseln.lo
+
+PROGNAME_TEST_OBJS = progname_test.lo progname.lo
+
+CONF_TEST_OBJS = conf_test.lo sudo_conf.lo
+
+HLTQ_TEST_OBJS = hltq_test.lo
+
+FNM_TEST_OBJS = fnm_test.lo fnmatch.lo
+
+GLOBTEST_OBJS = globtest.lo glob.lo
+
+GETDELIM_TEST_OBJS = getdelim_test.lo getdelim.lo
+
+STRTOBOOL_TEST_OBJS = strtobool_test.lo strtobool.lo
+
+STRTOMODE_TEST_OBJS = strtomode_test.lo strtomode.lo
+
+STRTOID_TEST_OBJS = strtoid_test.lo strtoid.lo strtonum.lo
+
+STRTONUM_TEST_OBJS = strtonum_test.lo strtonum.lo
+
+STRSPLIT_TEST_OBJS = strsplit_test.lo strsplit.lo
+
+PARSE_GIDS_TEST_OBJS = parse_gids_test.lo gidlist.lo
+
+GETGROUPLIST_TEST_OBJS = getgrouplist_test.lo getgrouplist.lo
+
+STRSIG_TEST_OBJS = strsig_test.lo sig2str.lo str2sig.lo @SIGNAME@
+
+VSYSLOG_TEST_OBJS = vsyslog_test.lo vsyslog.lo
+
+all: libsudo_util.la
+
+pvs-log-files: $(POBJS)
+
+pvs-studio: $(POBJS)
+	plog-converter $(PVS_LOG_OPTS) $(POBJS)
+
+depend:
+	$(top_srcdir)/mkdep.pl --srcdir=$(top_srcdir) \
+	    --builddir=`pwd`/$(top_builddir) lib/util/Makefile.in
+	cd $(top_builddir) && ./config.status --file lib/util/Makefile
+
+Makefile: $(srcdir)/Makefile.in
+	cd $(top_builddir) && ./config.status --file lib/util/Makefile
+
+.SUFFIXES: .c .h .i .lo .plog
+
+.c.lo:
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $<
+
+.c.i:
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+
+.i.plog:
+	ifile=$<; rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $${ifile%i}c --i-file $< --output-file $@
+
+$(shlib_map): $(shlib_exp)
+	@$(AWK) 'BEGIN { print "{\n\tglobal:" } { print "\t\t"$$0";" } END { print "\tlocal:\n\t\t*;\n};" }' $(shlib_exp) > $@
+
+$(shlib_opt): $(shlib_exp)
+	@$(SED) 's/^/+e /' $(shlib_exp) > $@
+
+libsudo_util.la: $(LTOBJS) @LT_LDDEP@
+	case "$(LT_LDFLAGS)" in \
+	*-no-install*) \
+	    $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(LDFLAGS) $(LT_LDFLAGS) $(LTOBJS) @LT_DEP_LIBS@ @LIBINTL@ @LIBMD@ @LIBPTHREAD@ @LIBDL@ @LIBRT@;; \
+	*) \
+	    $(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(LDFLAGS) $(ASAN_LDFLAGS) $(SSP_LDFLAGS) $(LT_LDFLAGS) $(LTOBJS) -version-info $(SHLIB_VERSION) -rpath $(libexecdir)/sudo @LT_DEP_LIBS@ @LIBINTL@ @LIBMD@ @LIBPTHREAD@ @LIBDL@ @LIBRT@;; \
+	esac
+
+siglist.c: mksiglist
+	./mksiglist > $@
+
+signame.c: mksigname
+	./mksigname > $@
+
+mksiglist: $(srcdir)/mksiglist.c $(srcdir)/mksiglist.h $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(srcdir)/mksiglist.c -o $@
+
+mksigname: $(srcdir)/mksigname.c $(srcdir)/mksigname.h $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(srcdir)/mksigname.c -o $@
+
+$(srcdir)/mksiglist.h: $(srcdir)/siglist.in
+	@if [ -n "$(DEVEL)" ]; then \
+	    $(AWK) 'BEGIN {print "/* public domain */\n"} /^    [A-Z]/ {printf("#ifdef SIG%s\n    if (sudo_sys_siglist[SIG%s] == NULL)\n\tsudo_sys_siglist[SIG%s] = \"%s\";\n#endif\n", $$1, $$1, $$1, substr($$0, 13))}' < $(srcdir)/siglist.in > $@; \
+	fi
+
+$(srcdir)/mksigname.h: $(srcdir)/siglist.in
+	@if [ -n "$(DEVEL)" ]; then \
+	    $(AWK) 'BEGIN {print "/* public domain */\n"} /^    [A-Z]/ {printf("#ifdef SIG%s\n    if (sudo_sys_signame[SIG%s] == NULL)\n\tsudo_sys_signame[SIG%s] = \"%s\";\n#endif\n", $$1, $$1, $$1, $$1)}' < $(srcdir)/siglist.in > $@; \
+	fi
+
+conf_test: $(CONF_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(CONF_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+fnm_test: $(FNM_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(FNM_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+globtest: $(GLOBTEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(GLOBTEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+getdelim_test: $(GETDELIM_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(GETDELIM_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+hltq_test: $(HLTQ_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(HLTQ_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+mktemp_test: $(MKTEMP_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(MKTEMP_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+parseln_test: $(PARSELN_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(PARSELN_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+progname_test: $(PROGNAME_TEST_OBJS)
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(PROGNAME_TEST_OBJS) $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+parse_gids_test: $(PARSE_GIDS_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(PARSE_GIDS_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+getgrouplist_test: $(GETGROUPLIST_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(GETGROUPLIST_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+strsplit_test: $(STRSPLIT_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(STRSPLIT_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+strsig_test: $(STRSIG_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(STRSIG_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+strtobool_test: $(STRTOBOOL_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(STRTOBOOL_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+strtomode_test: $(STRTOMODE_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(STRTOMODE_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+strtonum_test: $(STRTONUM_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(STRTONUM_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+strtoid_test: $(STRTOID_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(STRTOID_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+vsyslog_test: $(VSYSLOG_TEST_OBJS) libsudo_util.la
+	$(LIBTOOL) $(LTFLAGS) --mode=link $(CC) -o $@ $(VSYSLOG_TEST_OBJS) libsudo_util.la $(ASAN_LDFLAGS) $(PIE_LDFLAGS) $(SSP_LDFLAGS) $(TEST_LDFLAGS) $(TEST_LIBS)
+
+pre-install:
+
+install: install-dirs
+	case "$(LT_LDFLAGS)" in \
+	*-no-install*) ;; \
+	*)  if [ X"$(shlib_enable)" = X"yes" ]; then \
+		INSTALL_BACKUP='$(INSTALL_BACKUP)' $(LIBTOOL) $(LTFLAGS) --quiet --mode=install $(INSTALL) $(INSTALL_OWNER) libsudo_util.la $(DESTDIR)$(libexecdir)/sudo; \
+	    fi;; \
+	esac
+
+install-dirs:
+	$(SHELL) $(top_srcdir)/mkinstalldirs $(DESTDIR)$(libexecdir)/sudo
+
+install-binaries:
+
+install-includes:
+
+install-doc:
+
+install-plugin:
+
+uninstall:
+	$(LIBTOOL) $(LTFLAGS) --mode=uninstall rm -f $(DESTDIR)$(libexecdir)/sudo/libsudo_util.la
+	-test -z "$(INSTALL_BACKUP)" || \
+	    rf -f $(DESTDIR)$(libexecdir)/sudo/libsudo_util.*~
+
+splint:
+	splint $(SPLINT_OPTS) -I$(incdir) -I$(top_builddir) -I$(top_srcdir) $(srcdir)/*.c
+
+cppcheck:
+	cppcheck $(CPPCHECK_OPTS) -I$(incdir) -I$(top_builddir) -I$(top_srcdir) $(srcdir)/*.c
+
+pvs-log-files: $(POBJS)
+
+# Note: some regress checks are run from srcdir for consistent error messages
+check: $(TEST_PROGS)
+	@if test X"$(cross_compiling)" != X"yes"; then \
+	    MALLOC_OPTIONS=S; export MALLOC_OPTIONS; \
+	    MALLOC_CONF="abort:true,junk:true"; export MALLOC_CONF; \
+	    rval=0; \
+	    if test -f parse_gids_test; then \
+		./parse_gids_test || rval=`expr $$rval + $$?`; \
+	    fi; \
+	    if test -f strsplit_test; then \
+		./strsplit_test || rval=`expr $$rval + $$?`; \
+	    fi; \
+	    if test -f fnm_test; then \
+		./fnm_test $(srcdir)/regress/fnmatch/fnm_test.in || rval=`expr $$rval + $$?`; \
+	    fi; \
+	    if test -f globtest; then \
+		mkdir -p `$(SED) 's@/[^/]*$$@@' $(srcdir)/regress/glob/files | sort -u`; \
+		touch `cat $(srcdir)/regress/glob/files`; \
+		chmod 0755 `grep '/r[^/]*$$' $(srcdir)/regress/glob/files`; \
+		chmod 0444 `grep '/s[^/]*$$' $(srcdir)/regress/glob/files`; \
+		chmod 0711 `grep '/t[^/]*$$' $(srcdir)/regress/glob/files`; \
+		./globtest $(srcdir)/regress/glob/globtest.in || rval=`expr $$rval + $$?`; \
+		rm -rf fake; \
+	    fi; \
+	    if test -f getdelim_test; then \
+		./getdelim_test || rval=`expr $$rval + $$?`; \
+	    fi; \
+	    if test -f mktemp_test; then \
+		./mktemp_test || rval=`expr $$rval + $$?`; \
+	    fi; \
+	    if test -f strsig_test; then \
+		./strsig_test || rval=`expr $$rval + $$?`; \
+	    fi; \
+	    ./getgrouplist_test || rval=`expr $$rval + $$?`; \
+	    ./strtobool_test || rval=`expr $$rval + $$?`; \
+	    ./strtoid_test || rval=`expr $$rval + $$?`; \
+	    ./strtomode_test || rval=`expr $$rval + $$?`; \
+	    ./strtonum_test || rval=`expr $$rval + $$?`; \
+	    ./hltq_test || rval=`expr $$rval + $$?`; \
+	    ./progname_test || rval=`expr $$rval + $$?`; \
+	    rm -f ./progname_test2; ln -s ./progname_test ./progname_test2; \
+	    ./progname_test2 || rval=`expr $$rval + $$?`; \
+	    rm -f ./progname_test2; \
+	    if test -f vsyslog_test; then \
+		./vsyslog_test || rval=`expr $$rval + $$?`; \
+	    fi; \
+	    build_dir=`pwd`; \
+	    cd $(srcdir); \
+	    for dir in sudo_conf sudo_parseln; do \
+		passed=0; failed=0; total=0; \
+		mkdir -p $$build_dir/regress/$$dir; \
+		for t in regress/$$dir/*.in; do \
+		    base=`basename $$t .in`; \
+		    out="$$build_dir/regress/$$dir/$${base}.out"; \
+		    out_ok="regress/$$dir/$${base}.out.ok"; \
+		    err="$$build_dir/regress/$$dir/$${base}.err"; \
+		    err_ok="regress/$$dir/$${base}.err.ok"; \
+		    if test "$$dir" = "sudo_conf"; then \
+			$$build_dir/conf_test $$t >$$out 2>$$err; \
+		    else \
+			$$build_dir/parseln_test <$$t >$$out 2>$$err; \
+		    fi; \
+		    if cmp $$out $$out_ok >/dev/null; then \
+			passed=`expr $$passed + 1`; \
+			echo "$$dir/$$base: OK"; \
+		    else \
+			failed=`expr $$failed + 1`; \
+			echo "$$dir/$$base: FAIL"; \
+			diff $$out $$out_ok || true; \
+		    fi; \
+		    total=`expr $$total + 1`; \
+		    if test -s $$err_ok; then \
+			if cmp $$err $$err_ok >/dev/null; then \
+			    passed=`expr $$passed + 1`; \
+			    echo "$$dir/$$base (stderr): OK"; \
+			else \
+			    failed=`expr $$failed + 1`; \
+			    echo "$$dir/$$base (stderr): FAIL"; \
+			    diff $$err $$err_ok || true; \
+			fi; \
+			total=`expr $$total + 1`; \
+		    elif test -s $$err; then \
+			failed=`expr $$failed + 1`; \
+			echo "$$dir/$$base (stderr): FAIL"; \
+			cat $$err 1>&2; \
+		    fi; \
+		done; \
+		if test $$failed -ne 0; then \
+		    rval=`expr $$rval + $$failed`; \
+		fi; \
+		echo "$$dir: $$passed/$$total tests passed; $$failed/$$total tests failed"; \
+	    done; \
+	    exit $$rval; \
+	fi
+
+clean:
+	-$(LIBTOOL) $(LTFLAGS) --mode=clean rm -f $(TEST_PROGS) *.lo *.o \
+	    *.la *.a *.i *.plog stamp-* core *.core core.* regress/*/*.out \
+	    regress/*/*.err
+
+mostlyclean: clean
+
+distclean: clean
+	-rm -rf Makefile mksiglist siglist.c mksigname signame.c .libs \
+	    $(shlib_exp) $(shlib_map) $(shlib_opt)
+
+clobber: distclean
+
+realclean: distclean
+	rm -f TAGS tags
+
+cleandir: realclean
+
+# Autogenerated dependencies, do not modify
+aix.lo: $(srcdir)/aix.c $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+        $(incdir)/sudo_debug.h $(incdir)/sudo_fatal.h $(incdir)/sudo_gettext.h \
+        $(incdir)/sudo_queue.h $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/aix.c
+aix.i: $(srcdir)/aix.c $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+        $(incdir)/sudo_debug.h $(incdir)/sudo_fatal.h $(incdir)/sudo_gettext.h \
+        $(incdir)/sudo_queue.h $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+aix.plog: aix.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/aix.c --i-file $< --output-file $@
+arc4random.lo: $(srcdir)/arc4random.c $(incdir)/sudo_compat.h \
+               $(incdir)/sudo_rand.h $(srcdir)/chacha_private.h \
+               $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/arc4random.c
+arc4random.i: $(srcdir)/arc4random.c $(incdir)/sudo_compat.h \
+               $(incdir)/sudo_rand.h $(srcdir)/chacha_private.h \
+               $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+arc4random.plog: arc4random.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/arc4random.c --i-file $< --output-file $@
+arc4random_uniform.lo: $(srcdir)/arc4random_uniform.c $(incdir)/sudo_compat.h \
+                       $(incdir)/sudo_rand.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/arc4random_uniform.c
+arc4random_uniform.i: $(srcdir)/arc4random_uniform.c $(incdir)/sudo_compat.h \
+                       $(incdir)/sudo_rand.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+arc4random_uniform.plog: arc4random_uniform.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/arc4random_uniform.c --i-file $< --output-file $@
+closefrom.lo: $(srcdir)/closefrom.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h $(top_builddir)/pathnames.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/closefrom.c
+closefrom.i: $(srcdir)/closefrom.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h $(top_builddir)/pathnames.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+closefrom.plog: closefrom.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/closefrom.c --i-file $< --output-file $@
+conf_test.lo: $(srcdir)/regress/sudo_conf/conf_test.c \
+              $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+              $(incdir)/sudo_conf.h $(incdir)/sudo_debug.h \
+              $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/sudo_conf/conf_test.c
+conf_test.i: $(srcdir)/regress/sudo_conf/conf_test.c \
+              $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+              $(incdir)/sudo_conf.h $(incdir)/sudo_debug.h \
+              $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+conf_test.plog: conf_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/sudo_conf/conf_test.c --i-file $< --output-file $@
+digest.lo: $(srcdir)/digest.c $(incdir)/compat/sha2.h \
+           $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+           $(incdir)/sudo_debug.h $(incdir)/sudo_digest.h \
+           $(incdir)/sudo_queue.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/digest.c
+digest.i: $(srcdir)/digest.c $(incdir)/compat/sha2.h \
+           $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+           $(incdir)/sudo_debug.h $(incdir)/sudo_digest.h \
+           $(incdir)/sudo_queue.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+digest.plog: digest.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/digest.c --i-file $< --output-file $@
+digest_gcrypt.lo: $(srcdir)/digest_gcrypt.c $(incdir)/compat/stdbool.h \
+                  $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+                  $(incdir)/sudo_digest.h $(incdir)/sudo_queue.h \
+                  $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/digest_gcrypt.c
+digest_gcrypt.i: $(srcdir)/digest_gcrypt.c $(incdir)/compat/stdbool.h \
+                  $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+                  $(incdir)/sudo_digest.h $(incdir)/sudo_queue.h \
+                  $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+digest_gcrypt.plog: digest_gcrypt.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/digest_gcrypt.c --i-file $< --output-file $@
+digest_openssl.lo: $(srcdir)/digest_openssl.c $(incdir)/compat/stdbool.h \
+                   $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+                   $(incdir)/sudo_digest.h $(incdir)/sudo_queue.h \
+                   $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/digest_openssl.c
+digest_openssl.i: $(srcdir)/digest_openssl.c $(incdir)/compat/stdbool.h \
+                   $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+                   $(incdir)/sudo_digest.h $(incdir)/sudo_queue.h \
+                   $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+digest_openssl.plog: digest_openssl.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/digest_openssl.c --i-file $< --output-file $@
+event.lo: $(srcdir)/event.c $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+          $(incdir)/sudo_debug.h $(incdir)/sudo_event.h $(incdir)/sudo_fatal.h \
+          $(incdir)/sudo_queue.h $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/event.c
+event.i: $(srcdir)/event.c $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+          $(incdir)/sudo_debug.h $(incdir)/sudo_event.h $(incdir)/sudo_fatal.h \
+          $(incdir)/sudo_queue.h $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+event.plog: event.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/event.c --i-file $< --output-file $@
+event_poll.lo: $(srcdir)/event_poll.c $(incdir)/compat/stdbool.h \
+               $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+               $(incdir)/sudo_event.h $(incdir)/sudo_fatal.h \
+               $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+               $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/event_poll.c
+event_poll.i: $(srcdir)/event_poll.c $(incdir)/compat/stdbool.h \
+               $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+               $(incdir)/sudo_event.h $(incdir)/sudo_fatal.h \
+               $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+               $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+event_poll.plog: event_poll.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/event_poll.c --i-file $< --output-file $@
+event_select.lo: $(srcdir)/event_select.c $(incdir)/compat/stdbool.h \
+                 $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+                 $(incdir)/sudo_event.h $(incdir)/sudo_fatal.h \
+                 $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+                 $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/event_select.c
+event_select.i: $(srcdir)/event_select.c $(incdir)/compat/stdbool.h \
+                 $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+                 $(incdir)/sudo_event.h $(incdir)/sudo_fatal.h \
+                 $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+                 $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+event_select.plog: event_select.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/event_select.c --i-file $< --output-file $@
+fatal.lo: $(srcdir)/fatal.c $(incdir)/compat/getaddrinfo.h \
+          $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+          $(incdir)/sudo_fatal.h $(incdir)/sudo_gettext.h \
+          $(incdir)/sudo_plugin.h $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+          $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/fatal.c
+fatal.i: $(srcdir)/fatal.c $(incdir)/compat/getaddrinfo.h \
+          $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+          $(incdir)/sudo_fatal.h $(incdir)/sudo_gettext.h \
+          $(incdir)/sudo_plugin.h $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+          $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+fatal.plog: fatal.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/fatal.c --i-file $< --output-file $@
+fnm_test.lo: $(srcdir)/regress/fnmatch/fnm_test.c $(incdir)/compat/fnmatch.h \
+             $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+             $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/fnmatch/fnm_test.c
+fnm_test.i: $(srcdir)/regress/fnmatch/fnm_test.c $(incdir)/compat/fnmatch.h \
+             $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+             $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+fnm_test.plog: fnm_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/fnmatch/fnm_test.c --i-file $< --output-file $@
+fnmatch.lo: $(srcdir)/fnmatch.c $(incdir)/compat/charclass.h \
+            $(incdir)/compat/fnmatch.h $(incdir)/sudo_compat.h \
+            $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/fnmatch.c
+fnmatch.i: $(srcdir)/fnmatch.c $(incdir)/compat/charclass.h \
+            $(incdir)/compat/fnmatch.h $(incdir)/sudo_compat.h \
+            $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+fnmatch.plog: fnmatch.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/fnmatch.c --i-file $< --output-file $@
+getaddrinfo.lo: $(srcdir)/getaddrinfo.c $(incdir)/compat/getaddrinfo.h \
+                $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/getaddrinfo.c
+getaddrinfo.i: $(srcdir)/getaddrinfo.c $(incdir)/compat/getaddrinfo.h \
+                $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+getaddrinfo.plog: getaddrinfo.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/getaddrinfo.c --i-file $< --output-file $@
+getcwd.lo: $(srcdir)/getcwd.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/getcwd.c
+getcwd.i: $(srcdir)/getcwd.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+getcwd.plog: getcwd.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/getcwd.c --i-file $< --output-file $@
+getdelim.lo: $(srcdir)/getdelim.c $(incdir)/sudo_compat.h \
+             $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/getdelim.c
+getdelim.i: $(srcdir)/getdelim.c $(incdir)/sudo_compat.h \
+             $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+getdelim.plog: getdelim.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/getdelim.c --i-file $< --output-file $@
+getdelim_test.lo: $(srcdir)/regress/getdelim/getdelim_test.c \
+                  $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                  $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                  $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/getdelim/getdelim_test.c
+getdelim_test.i: $(srcdir)/regress/getdelim/getdelim_test.c \
+                  $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                  $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                  $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+getdelim_test.plog: getdelim_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/getdelim/getdelim_test.c --i-file $< --output-file $@
+getentropy.lo: $(srcdir)/getentropy.c $(incdir)/sudo_compat.h \
+               $(incdir)/sudo_digest.h $(incdir)/sudo_rand.h \
+               $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/getentropy.c
+getentropy.i: $(srcdir)/getentropy.c $(incdir)/sudo_compat.h \
+               $(incdir)/sudo_digest.h $(incdir)/sudo_rand.h \
+               $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+getentropy.plog: getentropy.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/getentropy.c --i-file $< --output-file $@
+getgrouplist.lo: $(srcdir)/getgrouplist.c $(incdir)/compat/nss_dbdefs.h \
+                 $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                 $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/getgrouplist.c
+getgrouplist.i: $(srcdir)/getgrouplist.c $(incdir)/compat/nss_dbdefs.h \
+                 $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                 $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+getgrouplist.plog: getgrouplist.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/getgrouplist.c --i-file $< --output-file $@
+getgrouplist_test.lo: $(srcdir)/regress/getgrouplist/getgrouplist_test.c \
+                      $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                      $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                      $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/getgrouplist/getgrouplist_test.c
+getgrouplist_test.i: $(srcdir)/regress/getgrouplist/getgrouplist_test.c \
+                      $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                      $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                      $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+getgrouplist_test.plog: getgrouplist_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/getgrouplist/getgrouplist_test.c --i-file $< --output-file $@
+gethostname.lo: $(srcdir)/gethostname.c $(incdir)/compat/stdbool.h \
+                $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+                $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/gethostname.c
+gethostname.i: $(srcdir)/gethostname.c $(incdir)/compat/stdbool.h \
+                $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+                $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+gethostname.plog: gethostname.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/gethostname.c --i-file $< --output-file $@
+getopt_long.lo: $(srcdir)/getopt_long.c $(incdir)/compat/getopt.h \
+                $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                $(incdir)/sudo_fatal.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/getopt_long.c
+getopt_long.i: $(srcdir)/getopt_long.c $(incdir)/compat/getopt.h \
+                $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                $(incdir)/sudo_fatal.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+getopt_long.plog: getopt_long.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/getopt_long.c --i-file $< --output-file $@
+gettime.lo: $(srcdir)/gettime.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/gettime.c
+gettime.i: $(srcdir)/gettime.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+gettime.plog: gettime.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/gettime.c --i-file $< --output-file $@
+getusershell.lo: $(srcdir)/getusershell.c $(incdir)/compat/stdbool.h \
+                 $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+                 $(incdir)/sudo_gettext.h $(incdir)/sudo_queue.h \
+                 $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/getusershell.c
+getusershell.i: $(srcdir)/getusershell.c $(incdir)/compat/stdbool.h \
+                 $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+                 $(incdir)/sudo_gettext.h $(incdir)/sudo_queue.h \
+                 $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+getusershell.plog: getusershell.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/getusershell.c --i-file $< --output-file $@
+gidlist.lo: $(srcdir)/gidlist.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_fatal.h $(incdir)/sudo_gettext.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/gidlist.c
+gidlist.i: $(srcdir)/gidlist.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_fatal.h $(incdir)/sudo_gettext.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+gidlist.plog: gidlist.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/gidlist.c --i-file $< --output-file $@
+glob.lo: $(srcdir)/glob.c $(incdir)/compat/charclass.h $(incdir)/compat/glob.h \
+         $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/glob.c
+glob.i: $(srcdir)/glob.c $(incdir)/compat/charclass.h $(incdir)/compat/glob.h \
+         $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+glob.plog: glob.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/glob.c --i-file $< --output-file $@
+globtest.lo: $(srcdir)/regress/glob/globtest.c $(incdir)/compat/glob.h \
+             $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+             $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/glob/globtest.c
+globtest.i: $(srcdir)/regress/glob/globtest.c $(incdir)/compat/glob.h \
+             $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+             $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+globtest.plog: globtest.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/glob/globtest.c --i-file $< --output-file $@
+hltq_test.lo: $(srcdir)/regress/tailq/hltq_test.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_fatal.h \
+              $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/tailq/hltq_test.c
+hltq_test.i: $(srcdir)/regress/tailq/hltq_test.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_fatal.h \
+              $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+hltq_test.plog: hltq_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/tailq/hltq_test.c --i-file $< --output-file $@
+inet_pton.lo: $(srcdir)/inet_pton.c $(incdir)/sudo_compat.h \
+              $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/inet_pton.c
+inet_pton.i: $(srcdir)/inet_pton.c $(incdir)/sudo_compat.h \
+              $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+inet_pton.plog: inet_pton.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/inet_pton.c --i-file $< --output-file $@
+isblank.lo: $(srcdir)/isblank.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/isblank.c
+isblank.i: $(srcdir)/isblank.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+isblank.plog: isblank.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/isblank.c --i-file $< --output-file $@
+key_val.lo: $(srcdir)/key_val.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/key_val.c
+key_val.i: $(srcdir)/key_val.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+key_val.plog: key_val.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/key_val.c --i-file $< --output-file $@
+lbuf.lo: $(srcdir)/lbuf.c $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+         $(incdir)/sudo_debug.h $(incdir)/sudo_lbuf.h $(incdir)/sudo_queue.h \
+         $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/lbuf.c
+lbuf.i: $(srcdir)/lbuf.c $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+         $(incdir)/sudo_debug.h $(incdir)/sudo_lbuf.h $(incdir)/sudo_queue.h \
+         $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+lbuf.plog: lbuf.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/lbuf.c --i-file $< --output-file $@
+locking.lo: $(srcdir)/locking.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/locking.c
+locking.i: $(srcdir)/locking.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+locking.plog: locking.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/locking.c --i-file $< --output-file $@
+memrchr.lo: $(srcdir)/memrchr.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/memrchr.c
+memrchr.i: $(srcdir)/memrchr.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+memrchr.plog: memrchr.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/memrchr.c --i-file $< --output-file $@
+memset_s.lo: $(srcdir)/memset_s.c $(incdir)/sudo_compat.h \
+             $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/memset_s.c
+memset_s.i: $(srcdir)/memset_s.c $(incdir)/sudo_compat.h \
+             $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+memset_s.plog: memset_s.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/memset_s.c --i-file $< --output-file $@
+mksiglist.lo: $(srcdir)/mksiglist.c $(incdir)/sudo_compat.h \
+              $(srcdir)/mksiglist.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/mksiglist.c
+mksiglist.i: $(srcdir)/mksiglist.c $(incdir)/sudo_compat.h \
+              $(srcdir)/mksiglist.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+mksiglist.plog: mksiglist.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/mksiglist.c --i-file $< --output-file $@
+mksigname.lo: $(srcdir)/mksigname.c $(incdir)/sudo_compat.h \
+              $(srcdir)/mksigname.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/mksigname.c
+mksigname.i: $(srcdir)/mksigname.c $(incdir)/sudo_compat.h \
+              $(srcdir)/mksigname.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+mksigname.plog: mksigname.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/mksigname.c --i-file $< --output-file $@
+mktemp.lo: $(srcdir)/mktemp.c $(incdir)/sudo_compat.h $(incdir)/sudo_rand.h \
+           $(top_builddir)/config.h $(top_builddir)/pathnames.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/mktemp.c
+mktemp.i: $(srcdir)/mktemp.c $(incdir)/sudo_compat.h $(incdir)/sudo_rand.h \
+           $(top_builddir)/config.h $(top_builddir)/pathnames.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+mktemp.plog: mktemp.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/mktemp.c --i-file $< --output-file $@
+mktemp_test.lo: $(srcdir)/regress/mktemp/mktemp_test.c \
+                $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/mktemp/mktemp_test.c
+mktemp_test.i: $(srcdir)/regress/mktemp/mktemp_test.c \
+                $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+mktemp_test.plog: mktemp_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/mktemp/mktemp_test.c --i-file $< --output-file $@
+nanosleep.lo: $(srcdir)/nanosleep.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/nanosleep.c
+nanosleep.i: $(srcdir)/nanosleep.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+nanosleep.plog: nanosleep.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/nanosleep.c --i-file $< --output-file $@
+parse_gids_test.lo: $(srcdir)/regress/parse_gids/parse_gids_test.c \
+                    $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                    $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                    $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/parse_gids/parse_gids_test.c
+parse_gids_test.i: $(srcdir)/regress/parse_gids/parse_gids_test.c \
+                    $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                    $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                    $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+parse_gids_test.plog: parse_gids_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/parse_gids/parse_gids_test.c --i-file $< --output-file $@
+parseln.lo: $(srcdir)/parseln.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/parseln.c
+parseln.i: $(srcdir)/parseln.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+parseln.plog: parseln.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/parseln.c --i-file $< --output-file $@
+parseln_test.lo: $(srcdir)/regress/sudo_parseln/parseln_test.c \
+                 $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                 $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/sudo_parseln/parseln_test.c
+parseln_test.i: $(srcdir)/regress/sudo_parseln/parseln_test.c \
+                 $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                 $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+parseln_test.plog: parseln_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/sudo_parseln/parseln_test.c --i-file $< --output-file $@
+pipe2.lo: $(srcdir)/pipe2.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/pipe2.c
+pipe2.i: $(srcdir)/pipe2.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+pipe2.plog: pipe2.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/pipe2.c --i-file $< --output-file $@
+progname.lo: $(srcdir)/progname.c $(incdir)/compat/stdbool.h \
+             $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+             $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/progname.c
+progname.i: $(srcdir)/progname.c $(incdir)/compat/stdbool.h \
+             $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+             $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+progname.plog: progname.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/progname.c --i-file $< --output-file $@
+progname_test.lo: $(srcdir)/regress/progname/progname_test.c \
+                  $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                  $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/progname/progname_test.c
+progname_test.i: $(srcdir)/regress/progname/progname_test.c \
+                  $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                  $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+progname_test.plog: progname_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/progname/progname_test.c --i-file $< --output-file $@
+pw_dup.lo: $(srcdir)/pw_dup.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/pw_dup.c
+pw_dup.i: $(srcdir)/pw_dup.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+pw_dup.plog: pw_dup.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/pw_dup.c --i-file $< --output-file $@
+reallocarray.lo: $(srcdir)/reallocarray.c $(incdir)/sudo_compat.h \
+                 $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/reallocarray.c
+reallocarray.i: $(srcdir)/reallocarray.c $(incdir)/sudo_compat.h \
+                 $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+reallocarray.plog: reallocarray.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/reallocarray.c --i-file $< --output-file $@
+secure_path.lo: $(srcdir)/secure_path.c $(incdir)/compat/stdbool.h \
+                $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+                $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+                $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/secure_path.c
+secure_path.i: $(srcdir)/secure_path.c $(incdir)/compat/stdbool.h \
+                $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+                $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+                $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+secure_path.plog: secure_path.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/secure_path.c --i-file $< --output-file $@
+setgroups.lo: $(srcdir)/setgroups.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+              $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/setgroups.c
+setgroups.i: $(srcdir)/setgroups.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+              $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+setgroups.plog: setgroups.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/setgroups.c --i-file $< --output-file $@
+sha2.lo: $(srcdir)/sha2.c $(incdir)/compat/endian.h $(incdir)/compat/sha2.h \
+         $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/sha2.c
+sha2.i: $(srcdir)/sha2.c $(incdir)/compat/endian.h $(incdir)/compat/sha2.h \
+         $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+sha2.plog: sha2.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/sha2.c --i-file $< --output-file $@
+sig2str.lo: $(srcdir)/sig2str.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/sig2str.c
+sig2str.i: $(srcdir)/sig2str.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+sig2str.plog: sig2str.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/sig2str.c --i-file $< --output-file $@
+siglist.lo: siglist.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) siglist.c
+siglist.i: siglist.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+siglist.plog: siglist.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file siglist.c --i-file $< --output-file $@
+signame.lo: signame.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) signame.c
+signame.i: signame.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+signame.plog: signame.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file signame.c --i-file $< --output-file $@
+snprintf.lo: $(srcdir)/snprintf.c $(incdir)/sudo_compat.h \
+             $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/snprintf.c
+snprintf.i: $(srcdir)/snprintf.c $(incdir)/sudo_compat.h \
+             $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+snprintf.plog: snprintf.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/snprintf.c --i-file $< --output-file $@
+str2sig.lo: $(srcdir)/str2sig.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/str2sig.c
+str2sig.i: $(srcdir)/str2sig.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+str2sig.plog: str2sig.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/str2sig.c --i-file $< --output-file $@
+strlcat.lo: $(srcdir)/strlcat.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/strlcat.c
+strlcat.i: $(srcdir)/strlcat.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strlcat.plog: strlcat.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/strlcat.c --i-file $< --output-file $@
+strlcpy.lo: $(srcdir)/strlcpy.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/strlcpy.c
+strlcpy.i: $(srcdir)/strlcpy.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strlcpy.plog: strlcpy.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/strlcpy.c --i-file $< --output-file $@
+strndup.lo: $(srcdir)/strndup.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/strndup.c
+strndup.i: $(srcdir)/strndup.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strndup.plog: strndup.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/strndup.c --i-file $< --output-file $@
+strnlen.lo: $(srcdir)/strnlen.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/strnlen.c
+strnlen.i: $(srcdir)/strnlen.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strnlen.plog: strnlen.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/strnlen.c --i-file $< --output-file $@
+strsig_test.lo: $(srcdir)/regress/strsig/strsig_test.c \
+                $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/strsig/strsig_test.c
+strsig_test.i: $(srcdir)/regress/strsig/strsig_test.c \
+                $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strsig_test.plog: strsig_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/strsig/strsig_test.c --i-file $< --output-file $@
+strsignal.lo: $(srcdir)/strsignal.c $(incdir)/sudo_compat.h \
+              $(incdir)/sudo_gettext.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/strsignal.c
+strsignal.i: $(srcdir)/strsignal.c $(incdir)/sudo_compat.h \
+              $(incdir)/sudo_gettext.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strsignal.plog: strsignal.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/strsignal.c --i-file $< --output-file $@
+strsplit.lo: $(srcdir)/strsplit.c $(incdir)/compat/stdbool.h \
+             $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+             $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+             $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/strsplit.c
+strsplit.i: $(srcdir)/strsplit.c $(incdir)/compat/stdbool.h \
+             $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+             $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+             $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strsplit.plog: strsplit.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/strsplit.c --i-file $< --output-file $@
+strsplit_test.lo: $(srcdir)/regress/strsplit/strsplit_test.c \
+                  $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                  $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                  $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/strsplit/strsplit_test.c
+strsplit_test.i: $(srcdir)/regress/strsplit/strsplit_test.c \
+                  $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                  $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                  $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strsplit_test.plog: strsplit_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/strsplit/strsplit_test.c --i-file $< --output-file $@
+strtobool.lo: $(srcdir)/strtobool.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+              $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/strtobool.c
+strtobool.i: $(srcdir)/strtobool.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+              $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strtobool.plog: strtobool.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/strtobool.c --i-file $< --output-file $@
+strtobool_test.lo: $(srcdir)/regress/strtofoo/strtobool_test.c \
+                   $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                   $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                   $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/strtofoo/strtobool_test.c
+strtobool_test.i: $(srcdir)/regress/strtofoo/strtobool_test.c \
+                   $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                   $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                   $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strtobool_test.plog: strtobool_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/strtofoo/strtobool_test.c --i-file $< --output-file $@
+strtoid.lo: $(srcdir)/strtoid.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_gettext.h $(incdir)/sudo_queue.h \
+            $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/strtoid.c
+strtoid.i: $(srcdir)/strtoid.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_gettext.h $(incdir)/sudo_queue.h \
+            $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strtoid.plog: strtoid.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/strtoid.c --i-file $< --output-file $@
+strtoid_test.lo: $(srcdir)/regress/strtofoo/strtoid_test.c \
+                 $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                 $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                 $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/strtofoo/strtoid_test.c
+strtoid_test.i: $(srcdir)/regress/strtofoo/strtoid_test.c \
+                 $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                 $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                 $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strtoid_test.plog: strtoid_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/strtofoo/strtoid_test.c --i-file $< --output-file $@
+strtomode.lo: $(srcdir)/strtomode.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+              $(incdir)/sudo_gettext.h $(incdir)/sudo_queue.h \
+              $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/strtomode.c
+strtomode.i: $(srcdir)/strtomode.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+              $(incdir)/sudo_gettext.h $(incdir)/sudo_queue.h \
+              $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strtomode.plog: strtomode.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/strtomode.c --i-file $< --output-file $@
+strtomode_test.lo: $(srcdir)/regress/strtofoo/strtomode_test.c \
+                   $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                   $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                   $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/strtofoo/strtomode_test.c
+strtomode_test.i: $(srcdir)/regress/strtofoo/strtomode_test.c \
+                   $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                   $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                   $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strtomode_test.plog: strtomode_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/strtofoo/strtomode_test.c --i-file $< --output-file $@
+strtonum.lo: $(srcdir)/strtonum.c $(incdir)/compat/stdbool.h \
+             $(incdir)/sudo_compat.h $(incdir)/sudo_gettext.h \
+             $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/strtonum.c
+strtonum.i: $(srcdir)/strtonum.c $(incdir)/compat/stdbool.h \
+             $(incdir)/sudo_compat.h $(incdir)/sudo_gettext.h \
+             $(incdir)/sudo_util.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strtonum.plog: strtonum.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/strtonum.c --i-file $< --output-file $@
+strtonum_test.lo: $(srcdir)/regress/strtofoo/strtonum_test.c \
+                  $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                  $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                  $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/strtofoo/strtonum_test.c
+strtonum_test.i: $(srcdir)/regress/strtofoo/strtonum_test.c \
+                  $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                  $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                  $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+strtonum_test.plog: strtonum_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/strtofoo/strtonum_test.c --i-file $< --output-file $@
+sudo_conf.lo: $(srcdir)/sudo_conf.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_conf.h \
+              $(incdir)/sudo_debug.h $(incdir)/sudo_fatal.h \
+              $(incdir)/sudo_gettext.h $(incdir)/sudo_plugin.h \
+              $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h $(top_builddir)/pathnames.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/sudo_conf.c
+sudo_conf.i: $(srcdir)/sudo_conf.c $(incdir)/compat/stdbool.h \
+              $(incdir)/sudo_compat.h $(incdir)/sudo_conf.h \
+              $(incdir)/sudo_debug.h $(incdir)/sudo_fatal.h \
+              $(incdir)/sudo_gettext.h $(incdir)/sudo_plugin.h \
+              $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+              $(top_builddir)/config.h $(top_builddir)/pathnames.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+sudo_conf.plog: sudo_conf.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/sudo_conf.c --i-file $< --output-file $@
+sudo_debug.lo: $(srcdir)/sudo_debug.c $(incdir)/compat/stdbool.h \
+               $(incdir)/sudo_compat.h $(incdir)/sudo_conf.h \
+               $(incdir)/sudo_debug.h $(incdir)/sudo_fatal.h \
+               $(incdir)/sudo_gettext.h $(incdir)/sudo_plugin.h \
+               $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+               $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/sudo_debug.c
+sudo_debug.i: $(srcdir)/sudo_debug.c $(incdir)/compat/stdbool.h \
+               $(incdir)/sudo_compat.h $(incdir)/sudo_conf.h \
+               $(incdir)/sudo_debug.h $(incdir)/sudo_fatal.h \
+               $(incdir)/sudo_gettext.h $(incdir)/sudo_plugin.h \
+               $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+               $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+sudo_debug.plog: sudo_debug.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/sudo_debug.c --i-file $< --output-file $@
+sudo_dso.lo: $(srcdir)/sudo_dso.c $(incdir)/sudo_compat.h $(incdir)/sudo_dso.h \
+             $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/sudo_dso.c
+sudo_dso.i: $(srcdir)/sudo_dso.c $(incdir)/sudo_compat.h $(incdir)/sudo_dso.h \
+             $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+sudo_dso.plog: sudo_dso.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/sudo_dso.c --i-file $< --output-file $@
+term.lo: $(srcdir)/term.c $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+         $(incdir)/sudo_debug.h $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+         $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/term.c
+term.i: $(srcdir)/term.c $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+         $(incdir)/sudo_debug.h $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+         $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+term.plog: term.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/term.c --i-file $< --output-file $@
+ttyname_dev.lo: $(srcdir)/ttyname_dev.c $(incdir)/compat/stdbool.h \
+                $(incdir)/sudo_compat.h $(incdir)/sudo_conf.h \
+                $(incdir)/sudo_debug.h $(incdir)/sudo_queue.h \
+                $(incdir)/sudo_util.h $(top_builddir)/config.h \
+                $(top_builddir)/pathnames.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/ttyname_dev.c
+ttyname_dev.i: $(srcdir)/ttyname_dev.c $(incdir)/compat/stdbool.h \
+                $(incdir)/sudo_compat.h $(incdir)/sudo_conf.h \
+                $(incdir)/sudo_debug.h $(incdir)/sudo_queue.h \
+                $(incdir)/sudo_util.h $(top_builddir)/config.h \
+                $(top_builddir)/pathnames.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+ttyname_dev.plog: ttyname_dev.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/ttyname_dev.c --i-file $< --output-file $@
+ttysize.lo: $(srcdir)/ttysize.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/ttysize.c
+ttysize.i: $(srcdir)/ttysize.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_debug.h \
+            $(incdir)/sudo_queue.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+ttysize.plog: ttysize.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/ttysize.c --i-file $< --output-file $@
+utimens.lo: $(srcdir)/utimens.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/utimens.c
+utimens.i: $(srcdir)/utimens.c $(incdir)/compat/stdbool.h \
+            $(incdir)/sudo_compat.h $(incdir)/sudo_util.h \
+            $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+utimens.plog: utimens.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/utimens.c --i-file $< --output-file $@
+vsyslog.lo: $(srcdir)/vsyslog.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/vsyslog.c
+vsyslog.i: $(srcdir)/vsyslog.c $(incdir)/sudo_compat.h $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+vsyslog.plog: vsyslog.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/vsyslog.c --i-file $< --output-file $@
+vsyslog_test.lo: $(srcdir)/regress/vsyslog/vsyslog_test.c \
+                 $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                 $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                 $(top_builddir)/config.h
+	$(LIBTOOL) $(LTFLAGS) --mode=compile $(CC) -c -o $@ $(CPPFLAGS) $(CFLAGS) $(ASAN_CFLAGS) $(PIE_CFLAGS) $(SSP_CFLAGS) $(srcdir)/regress/vsyslog/vsyslog_test.c
+vsyslog_test.i: $(srcdir)/regress/vsyslog/vsyslog_test.c \
+                 $(incdir)/compat/stdbool.h $(incdir)/sudo_compat.h \
+                 $(incdir)/sudo_fatal.h $(incdir)/sudo_util.h \
+                 $(top_builddir)/config.h
+	$(CC) -E -o $@ $(CPPFLAGS) $<
+vsyslog_test.plog: vsyslog_test.i
+	rm -f $@; pvs-studio --cfg $(PVS_CFG) --sourcetree-root $(top_srcdir) --skip-cl-exe yes --source-file $(srcdir)/regress/vsyslog/vsyslog_test.c --i-file $< --output-file $@

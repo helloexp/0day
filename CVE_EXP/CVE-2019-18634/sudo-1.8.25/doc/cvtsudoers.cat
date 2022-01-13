@@ -1,0 +1,268 @@
+CVTSUDOERS(1)               General Commands Manual              CVTSUDOERS(1)
+
+NNAAMMEE
+     ccvvttssuuddooeerrss - convert between sudoers file formats
+
+SSYYNNOOPPSSIISS
+     ccvvttssuuddooeerrss [--eehhMMppVV] [--bb _d_n] [--cc _c_o_n_f___f_i_l_e] [--dd _d_e_f_t_y_p_e_s]
+                [--ff _o_u_t_p_u_t___f_o_r_m_a_t] [--ii _i_n_p_u_t___f_o_r_m_a_t] [--II _i_n_c_r_e_m_e_n_t]
+                [--mm _f_i_l_t_e_r] [--oo _o_u_t_p_u_t___f_i_l_e] [--OO _s_t_a_r_t___p_o_i_n_t] [--ss _s_e_c_t_i_o_n_s]
+                [_i_n_p_u_t___f_i_l_e]
+
+DDEESSCCRRIIPPTTIIOONN
+     ccvvttssuuddooeerrss can be used to convert between _s_u_d_o_e_r_s security policy file
+     formats.  The default input format is sudoers.  The default output format
+     is LDIF.  It is only possible to convert a _s_u_d_o_e_r_s file that is
+     syntactically correct.
+
+     If no _i_n_p_u_t___f_i_l_e is specified, or if it is `-', the policy is read from
+     the standard input.  By default, the result is written to the standard
+     output.
+
+     The options are as follows:
+
+     --bb _d_n, ----bbaassee=_d_n
+                 The base DN (distinguished name) that will be used when
+                 performing LDAP queries.  Typically this is of the form
+                 ou=SUDOers,dc=-mydomain,dc=com for the domain my-domain.com.
+                 If this option is not specified, the value of the
+                 SUDOERS_BASE environment variable will be used instead.  Only
+                 necessary when converting to LDIF format.
+
+     --cc, ----ccoonnffiigg
+                 Specify the path to a configuration file.  Defaults to
+                 _/_e_t_c_/_c_v_t_s_u_d_o_e_r_s_._c_o_n_f.
+
+     --dd _d_e_f_t_y_p_e_s, ----ddeeffaauullttss=_d_e_f_t_y_p_e_s
+                 Only convert Defaults entries of the specified types.  One or
+                 more Defaults types may be specified, separated by a comma
+                 (`,').  The supported types are:
+
+                 all       All Defaults entries.
+
+                 global    Global Defaults entries that are applied regardless
+                           of user, runas, host or command.
+
+                 user      Per-user Defaults entries.
+
+                 runas     Per-runas user Defaults entries.
+
+                 host      Per-host Defaults entries.
+
+                 command   Per-command Defaults entries.
+
+                 See the DDeeffaauullttss section in sudoers(4) for more information.
+
+                 If the --dd option is not specified, all Defaults entries will
+                 be converted.
+
+     --ee, ----eexxppaanndd--aalliiaasseess
+                 Expand aliases in _i_n_p_u_t___f_i_l_e.  Aliases are preserved by
+                 default when the output _f_o_r_m_a_t is JSON or sudoers.
+
+     --ff _o_u_t_p_u_t___f_o_r_m_a_t, ----ffoorrmmaatt=_o_u_t_p_u_t___f_o_r_m_a_t
+                 Specify the output format (case-insensitive).  The following
+                 formats are supported:
+
+                 JSON      JSON (JavaScript Object Notation) files are usually
+                           easier for third-party applications to consume than
+                           the traditional _s_u_d_o_e_r_s format.  The various values
+                           have explicit types which removes much of the
+                           ambiguity of the _s_u_d_o_e_r_s format.
+
+                 LDIF      LDIF (LDAP Data Interchange Format) files can be
+                           imported into an LDAP server for use with
+                           sudoers.ldap(4).
+
+                           Conversion to LDIF has the following limitations:
+
+                           ++oo  Command, host, runas and user-specific Defaults
+                              lines cannot be translated as they don't have an
+                              equivalent in the sudoers LDAP schema.
+
+                           ++oo  Command, host, runas and user aliases are not
+                              supported by the sudoers LDAP schema so they are
+                              expanded during the conversion.
+
+                 sudoers   Traditional sudoers format.  A new sudoers file
+                           will be reconstructed from the parsed input file.
+                           Comments are not preserved and data from any
+                           include files will be output inline.
+
+     --hh, ----hheellpp  Display a short help message to the standard output and exit.
+
+     --ii _i_n_p_u_t___f_o_r_m_a_t, ----iinnppuutt--ffoorrmmaatt=_i_n_p_u_t___f_o_r_m_a_t
+                 Specify the input format.  The following formats are
+                 supported:
+
+                 LDIF      LDIF (LDAP Data Interchange Format) files can be
+                           exported from an LDAP server to convert security
+                           policies used by sudoers.ldap(4).  If a base DN
+                           (distinguished name) is specified, only sudoRole
+                           objects that match the base DN will be processed.
+                           Not all sudoOptions specified in a sudoRole can be
+                           translated from LDIF to sudoers format.
+
+                 sudoers   Traditional sudoers format.  This is the default
+                           input format.
+
+     --II _i_n_c_r_e_m_e_n_t, ----iinnccrreemmeenntt=_i_n_c_r_e_m_e_n_t
+                 When generating LDIF output, increment each sudoOrder
+                 attribute by the specified number.  Defaults to an increment
+                 of 1.
+
+     --mm _f_i_l_t_e_r, ----mmaattcchh=_f_i_l_t_e_r
+                 Only output rules that match the specified _f_i_l_t_e_r.  A _f_i_l_t_e_r
+                 expression is made up of one or more kkeeyy == _v_a_l_u_e pairs,
+                 separated by a comma (`,').  The kkeeyy may be "user", "group"
+                 or "host".  For example, uusseerr = _o_p_e_r_a_t_o_r or hhoosstt = _w_w_w.  An
+                 upper-case User_Alias or Host_Alias may be specified as the
+                 "user" or "host".
+
+                 A matching _s_u_d_o_e_r_s rule may also include users, groups and
+                 hosts that are not part of the _f_i_l_t_e_r.  This can happen when
+                 a rule includes multiple users, groups or hosts.  To prune
+                 out any non-matching user, group or host from the rules, the
+                 --pp option may be used.
+
+                 By default, the password and group databases are not
+                 consulted when matching against the filter so the users and
+                 groups do not need to be present on the local system (see the
+                 --MM option).  Only aliases that are referenced by the filtered
+                 policy rules will be displayed.
+
+     --MM, ----mmaattcchh--llooccaall
+                 When the --mm option is also specified, use password and group
+                 database information when matching users and groups in the
+                 filter.  Only users and groups in the filter that exist on
+                 the local system will match, and a user's groups will
+                 automatically be added to the filter.  If the --MM is _n_o_t
+                 specified, users and groups in the filter do not need to
+                 exist on the local system, but all groups used for matching
+                 must be explicitly listed in the filter.
+
+     --oo _o_u_t_p_u_t___f_i_l_e, ----oouuttppuutt=_o_u_t_p_u_t___f_i_l_e
+                 Write the converted output to _o_u_t_p_u_t___f_i_l_e.  If no _o_u_t_p_u_t___f_i_l_e
+                 is specified, or if it is `-', the converted _s_u_d_o_e_r_s policy
+                 will be written to the standard output.
+
+     --OO _s_t_a_r_t___p_o_i_n_t, ----oorrddeerr--ssttaarrtt=_s_t_a_r_t___p_o_i_n_t
+                 When generating LDIF output, use the number specified by
+                 _s_t_a_r_t___p_o_i_n_t in the sudoOrder attribute of the first sudoRole
+                 object.  Subsequent sudoRole object use a sudoOrder value
+                 generated by adding an _i_n_c_r_e_m_e_n_t, see the --II option for
+                 details.  Defaults to a starting point of 1.  A starting
+                 point of 0 will disable the generation of sudoOrder
+                 attributes in the resulting LDIF file.
+
+     --pp, ----pprruunnee--mmaattcchheess
+                 When the --mm option is also specified, ccvvttssuuddooeerrss will prune
+                 out non-matching users, groups and hosts from matching
+                 entries.
+
+     --ss _s_e_c_t_i_o_n_s, ----ssuupppprreessss=_s_e_c_t_i_o_n_s
+                 Suppress the output of specific _s_e_c_t_i_o_n_s of the security
+                 policy.  One or more section names may be specified,
+                 separated by a comma (`,').  The supported section name are:
+                 ddeeffaauullttss, aalliiaasseess and pprriivviilleeggeess (which may be shortened to
+                 pprriivvss).
+
+     --VV, ----vveerrssiioonn
+                 Print the ccvvttssuuddooeerrss and _s_u_d_o_e_r_s grammar versions and exit.
+
+     Options in the form "keyword = value" may also be specified in a
+     configuration file, _/_e_t_c_/_c_v_t_s_u_d_o_e_r_s_._c_o_n_f by default.  The following
+     keywords are recognized:
+
+     ddeeffaauullttss == _d_e_f_t_y_p_e_s
+           See the description of the --dd command line option.
+
+     eexxppaanndd__aalliiaasseess == _y_e_s | _n_o
+           See the description of the --ee command line option.
+
+     iinnppuutt__ffoorrmmaatt == _l_d_i_f | _s_u_d_o_e_r_s
+           See the description of the --ii command line option.
+
+     mmaattcchh == _f_i_l_t_e_r
+           See the description of the --mm command line option.
+
+     oorrddeerr__iinnccrreemmeenntt == _i_n_c_r_e_m_e_n_t
+           See the description of the --II command line option.
+
+     oorrddeerr__ssttaarrtt == _s_t_a_r_t___p_o_i_n_t
+           See the description of the --OO command line option.
+
+     oouuttppuutt__ffoorrmmaatt == _j_s_o_n | _l_d_i_f | _s_u_d_o_e_r_s
+           See the description of the --ff command line option.
+
+     pprruunnee__mmaattcchheess == _y_e_s | _n_o
+           See the description of the --pp command line option.
+
+     ssuuddooeerrss__bbaassee == _d_n
+           See the description of the --bb command line option.
+
+     ssuupppprreessss == _s_e_c_t_i_o_n_s
+           See the description of the --ss command line option.
+
+     Options on the command line will override values from the configuration
+     file.
+
+FFIILLEESS
+     _/_e_t_c_/_c_v_t_s_u_d_o_e_r_s_._c_o_n_f      default configuration for cvtsudoers
+
+EEXXAAMMPPLLEESS
+     Convert _/_e_t_c_/_s_u_d_o_e_r_s to LDIF (LDAP Data Interchange Format) where the
+     _l_d_a_p_._c_o_n_f file uses a _s_u_d_o_e_r_s___b_a_s_e of my-domain,dc=com, storing the
+     result in _s_u_d_o_e_r_s_._l_d_i_f:
+
+           $ cvtsudoers -b ou=SUDOers,dc=my-domain,dc=com -o sudoers.ldif \
+                        /etc/sudoers
+
+     Convert _/_e_t_c_/_s_u_d_o_e_r_s to JSON format, storing the result in _s_u_d_o_e_r_s_._j_s_o_n:
+
+           $ cvtsudoers -f json -o sudoers.json /etc/sudoers
+
+     Parse _/_e_t_c_/_s_u_d_o_e_r_s and display only rules that match user _a_m_b_r_o_s_e on host
+     _h_a_s_t_u_r:
+
+           $ cvtsudoers -f sudoers -m user=ambrose,host=hastur /etc/sudoers
+
+     Same as above, but expand aliases and prune out any non-matching users
+     and hosts from the expanded entries.
+
+           $ cvtsudoers -ep -f sudoers -m user=ambrose,host=hastur /etc/sudoers
+
+     Convert _s_u_d_o_e_r_s_._l_d_i_f from LDIF to traditional _s_u_d_o_e_r_s format:
+
+           $ cvtsudoers -i ldif -f sudoers -o sudoers.new sudoers.ldif
+
+SSEEEE AALLSSOO
+     sudoers(4), sudoers.ldap(4), sudo(1m)
+
+AAUUTTHHOORRSS
+     Many people have worked on ssuuddoo over the years; this version consists of
+     code written primarily by:
+
+           Todd C. Miller
+
+     See the CONTRIBUTORS file in the ssuuddoo distribution
+     (https://www.sudo.ws/contributors.html) for an exhaustive list of people
+     who have contributed to ssuuddoo.
+
+BBUUGGSS
+     If you feel you have found a bug in ccvvttssuuddooeerrss, please submit a bug
+     report at https://bugzilla.sudo.ws/
+
+SSUUPPPPOORRTT
+     Limited free support is available via the sudo-users mailing list, see
+     https://www.sudo.ws/mailman/listinfo/sudo-users to subscribe or search
+     the archives.
+
+DDIISSCCLLAAIIMMEERR
+     ccvvttssuuddooeerrss is provided "AS IS" and any express or implied warranties,
+     including, but not limited to, the implied warranties of merchantability
+     and fitness for a particular purpose are disclaimed.  See the LICENSE
+     file distributed with ssuuddoo or https://www.sudo.ws/license.html for
+     complete details.
+
+Sudo 1.8.25                     April 14, 2018                     Sudo 1.8.25

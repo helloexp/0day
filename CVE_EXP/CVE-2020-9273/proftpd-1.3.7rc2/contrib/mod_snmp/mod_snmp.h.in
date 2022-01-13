@@ -1,0 +1,77 @@
+/*
+ * ProFTPD - mod_snmp
+ * Copyright (c) 2008-2016 TJ Saunders
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA.
+ *
+ * As a special exemption, TJ Saunders and other respective copyright holders
+ * give permission to link this program with OpenSSL, and distribute the
+ * resulting executable, without including the source code for OpenSSL in the
+ * source distribution.
+ */
+
+#ifndef MOD_SNMP_H
+#define MOD_SNMP_H
+
+#include "conf.h"
+#include "privs.h"
+
+/* Define if you have the <sys/sysctl.h> header.  */
+#undef HAVE_SYS_SYSCTL_H
+
+/* Define if you have the <sys/sysinfo.h> header.  */
+#undef HAVE_SYS_SYSINFO_H
+
+/* Define if you have the random(3) function.  */
+#undef HAVE_RANDOM
+
+/* Define if you have the sysctl(3) function.  */
+#undef HAVE_SYSCTL
+
+/* Define if you have the sysinfo(2) function.  */
+#undef HAVE_SYSINFO
+
+#include <signal.h>
+
+#if HAVE_SYS_MMAN_H
+# include <sys/mman.h>
+#endif
+
+#if HAVE_SYS_UIO_H
+# include <sys/uio.h>
+#endif
+
+#define MOD_SNMP_VERSION	"mod_snmp/0.2"
+
+/* Make sure the version of proftpd is as necessary. */
+#if PROFTPD_VERSION_NUMBER < 0x0001030403
+# error "ProFTPD 1.3.4rc3 or later required"
+#endif
+
+/* RFC1157, Section 4 defines SNMPv1 as having a version value of 0. */
+#define SNMP_PROTOCOL_VERSION_1		0
+
+/* RFC1901 defines SNMPv2 as having a version value of 1. */
+#define SNMP_PROTOCOL_VERSION_2		1
+
+#define SNMP_PROTOCOL_VERSION_3		3
+
+/* Miscellaneous */
+extern int snmp_logfd;
+extern pool *snmp_pool;
+extern struct timeval snmp_start_tv;
+extern int snmp_proto_udp;
+
+#endif

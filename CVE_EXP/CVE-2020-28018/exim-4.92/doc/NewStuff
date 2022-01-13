@@ -1,0 +1,1278 @@
+New Features in Exim
+--------------------
+
+This file contains descriptions of new features that have been added to Exim.
+Before a formal release, there may be quite a lot of detail so that people can
+test from the snapshots or the Git before the documentation is updated. Once
+the documentation is updated, this file is reduced to a short list.
+
+Version 4.92
+--------------
+
+ 1. ${l_header:<name>} and ${l_h:<name>} expansion items, giving a colon-sep
+    list when there are multiple headers having a given name.  This matters
+    when individual headers are wrapped onto multiple lines; with previous
+    facilities hard to parse.
+
+ 2. The ${readsocket } expansion item now takes a "tls" option, doing the
+    obvious thing.
+
+ 3. EXPERIMENTAL_REQUIRETLS and EXPERIMENTAL_PIPE_CONNECT optional build
+    features.  See the experimental.spec file.
+
+ 4. If built with SUPPORT_I18N a "utf8_downconvert" option on the smtp transport.
+
+ 5. A "pipelining" log_selector.
+
+ 6. Builtin macros for supported log_selector and openssl_options values.
+
+ 7. JSON variants of the ${extract } expansion item.
+
+ 8. A "noutf8" debug option, for disabling the UTF-8 characters in debug output.
+
+ 9. TCP Fast Open support on MacOS.
+
+Version 4.91
+--------------
+
+ 1. Dual-certificate stacks on servers now support OCSP stapling, under GnuTLS
+    version 3.5.6 or later.
+
+ 2. DANE is now supported under GnuTLS version 3.0.0 or later.  Both GnuTLS and
+    OpenSSL versions are moved to mainline support from Experimental.
+    New SMTP transport option "dane_require_tls_ciphers".
+
+ 3. Feature macros for the compiled-in set of malware scanner interfaces.
+
+ 4. SPF support is promoted from Experimental to mainline status.  The template
+    src/EDITME makefile does not enable its inclusion.
+
+ 5. Logging control for DKIM verification.  The existing DKIM log line is
+    controlled by a "dkim_verbose" selector which is _not_ enabled by default.
+    A new tag "DKIM=<domain>" is added to <= lines by default, controlled by
+    a "dkim" log_selector.
+
+ 6. Receive duration on <= lines, under a new log_selector "receive_time".
+
+ 7. Options "ipv4_only" and "ipv4_prefer" on the dnslookup router and on
+    routing rules in the manualroute router.
+
+ 8. Expansion item ${sha3:<string>} / ${sha3_<N>:<string>} now also supported
+    under OpenSSL version 1.1.1 or later.
+
+ 9. DKIM operations can now use the Ed25519 algorithm in addition to RSA, under
+    GnuTLS 3.6.0 or OpenSSL 1.1.1 or later.
+
+10. Builtin feature-macros _CRYPTO_HASH_SHA3 and _CRYPTO_SIGN_ED25519, library
+    version dependent.
+
+11. "exim -bP macro <name>" returns caller-usable status.
+
+12. Expansion item ${authresults {<machine>}} for creating an
+    Authentication-Results: header.
+
+13. EXPERIMENTAL_ARC.  See the experimental.spec file.
+    See also new util/renew-opendmarc-tlds.sh script for use with DMARC/ARC.
+
+14: A dane:fail event, intended to facilitate reporting.
+
+15. "Lightweight" support for Redis Cluster. Requires redis_servers list to
+    contain all the servers in the cluster, all of which must be reachable from
+    the running exim instance. If the cluster has master/slave replication, the
+    list must contain all the master and slave servers.
+
+16. Add an option to the Avast scanner interface: "pass_unscanned". This
+    allows to treat unscanned files as clean. Files may be unscanned for
+    several reasons: decompression bombs, broken archives.
+
+
+Version 4.90
+------------
+
+ 1. PKG_CONFIG_PATH can now be set in Local/Makefile;
+    wildcards will be expanded, values are collapsed.
+
+ 2. The ${readsocket } expansion now takes an option to not shutdown the
+    connection after sending the query string.  The default remains to do so.
+
+ 3. An smtp transport option "hosts_noproxy_tls" to control whether multiple
+    deliveries on a single TCP connection can maintain a TLS connection
+    open.  By default disabled for all hosts, doing so saves the cost of
+    making new TLS sessions, at the cost of having to proxy the data via
+    another process.  Logging is also affected.
+
+ 4. A malware connection type for the FPSCAND protocol.
+
+ 5. An option for recipient verify callouts to hold the connection open for
+    further recipients and for delivery.
+
+ 6. The reproducible build $SOURCE_DATE_EPOCH environment variable is now
+    supported.
+
+ 7. Optionally, an alternate format for spool data-files which matches the
+    wire format - meaning more efficient reception and transmission (at the
+    cost of difficulty with standard Unix tools).  Only used for messages
+    received using the ESMTP CHUNKING option, and when a new main-section
+    option "spool_wireformat" (false by default) is set.
+
+ 8. New main configuration option "commandline_checks_require_admin" to
+    restrict who can use various introspection options.
+
+ 9. New option modifier "no_check" for quota and quota_filecount
+    appendfile transport.
+
+10. Variable $smtp_command_history returning a comma-sep list of recent
+    SMTP commands.
+
+11. Millisecond timetamps in logs, on log_selector "millisec".  Also affects
+    log elements QT, DT and D, and timstamps in debug output.
+
+12. TCP Fast Open logging.  As a server, logs when the SMTP banner was sent
+    while still in SYN_RECV state; as a client logs when the connection
+    is opened with a TFO cookie.
+
+13. DKIM support for multiple signing, by domain and/or key-selector.
+    DKIM support for multiple hashes, and for alternate-identity tags.
+    Builtin macro with default list of signed headers.
+    Better syntax for specifying oversigning.
+    The DKIM ACL can override verification status, and status is visible in
+    the data ACL.
+
+14. Exipick understands -C|--config for an alternative Exim
+    configuration file.
+
+15. TCP Fast Open used, with data-on-SYN, for client SMTP via SOCKS5 proxy,
+    for ${readsocket } expansions, and for ClamAV.
+
+16. The "-be" expansion test mode now supports macros.  Macros are expanded
+    in test lines, and new macros can be defined.
+
+17. Support for server-side dual-certificate-stacks (eg. RSA + ECDSA).
+
+
+Version 4.89
+------------
+
+ 1. Allow relative config file names for ".include"
+
+ 2. A main-section config option "debug_store" to control the checks on
+    variable locations during store-reset.  Normally false but can be enabled
+    when a memory corrution issue is suspected on a production system.
+
+
+Version 4.88
+------------
+
+ 1. The new perl_taintmode option allows to run the embedded perl
+    interpreter in taint mode.
+
+ 2. New log_selector: dnssec, adds a "DS" tag to acceptance and delivery lines.
+
+ 3. Speculative debugging, via a "kill" option to the "control=debug" ACL
+    modifier.
+
+ 4. New expansion item ${sha3:<string>} / ${sha3_<N>:<string>}.
+    N can be 224, 256 (default), 384, 512.
+    With GnuTLS 3.5.0 or later, only.
+
+ 5. Facility for named queues:  A command-line argument can specify
+    the queue name for a queue operation, and an ACL modifier can set
+    the queue to be used for a message.  A $queue_name variable gives
+    visibility.
+
+ 6. New expansion operators base32/base32d.
+
+ 7. The CHUNKING ESMTP extension from RFC 3030.  May give some slight
+    performance increase and network load decrease.  Main config option
+    chunking_advertise_hosts, and smtp transport option hosts_try_chunking
+    for control.
+
+ 8. LMDB lookup support, as Experimental. Patch supplied by Andrew Colin Kissa.
+
+ 9. Expansion operator escape8bit, like escape but not touching newline etc..
+
+10. Feature macros, generated from compile options.  All start with "_HAVE_"
+    and go on with some roughly recognisable name.  Driver macros, for
+    router, transport and authentication drivers; names starting with "_DRIVER_".
+    Option macros, for each configuration-file option; all start with "_OPT_".
+    Use the "-bP macros" command-line option to see what is present.
+
+11. Integer values for options can take a "G" multiplier.
+
+12. defer=pass option for the ACL control cutthrough_delivery, to reflect 4xx
+    returns from the target back to the initiator, rather than spooling the
+    message.
+
+13. New built-in constants available for tls_dhparam and default changed.
+
+14. If built with EXPERIMENTAL_QUEUEFILE, a queuefile transport, for writing
+    out copies of the message spool files for use by 3rd-party scanners.
+
+15. A new option on the smtp transport, hosts_try_fastopen.  If the system
+    supports it (on Linux it must be enabled in the kernel by the sysadmin)
+    try to use RFC 7413 "TCP Fast Open".  No data is sent on the SYN segment
+    but it permits a peer that also supports the facility to send its SMTP
+    banner immediately after the SYN,ACK segment rather then waiting for
+    another ACK - so saving up to one roundtrip time.  Because it requires
+    previous communication with the peer (we save a cookie from it) this
+    will only become active on frequently-contacted destinations.
+
+16. A new syslog_pid option to suppress PID duplication in syslog lines.
+
+
+Version 4.87
+------------
+
+ 1. The ACL conditions regex and mime_regex now capture substrings
+    into numeric variables $regex1 to 9, like the "match" expansion condition.
+
+ 2. New $callout_address variable records the address used for a spam=,
+    malware= or verify= callout.
+
+ 3. Transports now take a "max_parallel" option, to limit concurrency.
+
+ 4. Expansion operators ${ipv6norm:<string>} and ${ipv6denorm:<string>}.
+    The latter expands to a 8-element colon-sep set of hex digits including
+    leading zeroes. A trailing ipv4-style dotted-decimal set is converted
+    to hex.  Pure ipv4 addresses are converted to IPv4-mapped IPv6.
+    The former operator strips leading zeroes and collapses the longest
+    set of 0-groups to a double-colon.
+
+ 5. New "-bP config" support, to dump the effective configuration.
+
+ 6. New $dkim_key_length variable.
+
+ 7. New base64d and base64 expansion items (the existing str2b64 being a
+    synonym of the latter).  Add support in base64 for certificates.
+
+ 8. New main configuration option "bounce_return_linesize_limit" to
+    avoid oversize bodies in bounces. The default value matches RFC
+    limits.
+
+ 9. New $initial_cwd expansion variable.
+
+
+Version 4.86
+------------
+
+ 1. Support for using the system standard CA bundle.
+
+ 2. New expansion items $config_file, $config_dir, containing the file
+    and directory name of the main configuration file. Also $exim_version.
+
+ 3. New "malware=" support for Avast.
+
+ 4. New "spam=" variant option for Rspamd.
+
+ 5. Assorted options on malware= and spam= scanners.
+
+ 6. A command-line option to write a comment into the logfile.
+
+ 7. If built with EXPERIMENTAL_SOCKS feature enabled, the smtp transport can
+    be configured to make connections via socks5 proxies.
+
+ 8. If built with EXPERIMENTAL_INTERNATIONAL, support is included for
+    the transmission of UTF-8 envelope addresses.
+
+ 9. If built with EXPERIMENTAL_INTERNATIONAL, an expansion item for a commonly
+    used encoding of Maildir folder names.
+
+10. A logging option for slow DNS lookups.
+
+11. New ${env {<variable>}} expansion.
+
+12. A non-SMTP authenticator using information from TLS client certificates.
+
+13. Main option "tls_eccurve" for selecting an Elliptic Curve for TLS.
+    Patch originally by Wolfgang Breyha.
+
+14. Main option "dns_trust_aa" for trusting your local nameserver at the
+    same level as DNSSEC.
+
+
+Version 4.85
+------------
+
+ 1. If built with EXPERIMENTAL_DANE feature enabled, Exim will follow the
+    DANE SMTP draft to assess a secure chain of trust of the certificate
+    used to establish the TLS connection based on a TLSA record in the
+    domain of the sender.
+
+ 2. The EXPERIMENTAL_TPDA feature has been renamed to EXPERIMENTAL_EVENT
+    and several new events have been created. The reason is because it has
+    been expanded beyond just firing events during the transport phase. Any
+    existing TPDA transport options will have to be rewritten to use a new
+    $event_name expansion variable in a condition. Refer to the
+    experimental-spec.txt for details and examples.
+
+ 3. The EXPERIMENTAL_CERTNAMES features is an enhancement to verify that
+    server certs used for TLS match the result of the MX lookup. It does
+    not use the same mechanism as DANE.
+
+
+Version 4.84
+------------
+
+
+Version 4.83
+------------
+
+ 1. If built with the EXPERIMENTAL_PROXY feature enabled, Exim can be
+    configured to expect an initial header from a proxy that will make the
+    actual external source IP:host be used in exim instead of the IP of the
+    proxy that is connecting to it.
+
+ 2. New verify option header_names_ascii, which will check to make sure
+    there are no non-ASCII characters in header names.  Exim itself handles
+    those non-ASCII characters, but downstream apps may not, so Exim can
+    detect and reject if those characters are present.
+
+ 3. New expansion operator ${utf8clean:string} to replace malformed UTF8
+    codepoints with valid ones.
+
+ 4. New malware type "sock".  Talks over a Unix or TCP socket, sending one
+    command line and matching a regex against the return data for trigger
+    and a second regex to extract malware_name.  The mail spoolfile name can
+    be included in the command line.
+
+ 5. The smtp transport now supports options "tls_verify_hosts" and
+    "tls_try_verify_hosts".  If either is set the certificate verification
+    is split from the encryption operation. The default remains that a failed
+    verification cancels the encryption.
+
+ 6. New SERVERS override of default ldap server list.  In the ACLs, an ldap
+    lookup can now set a list of servers to use that is different from the
+    default list.
+
+ 7. New command-line option -C for exiqgrep to specify alternate exim.conf
+    file when searching the queue.
+
+ 8. OCSP now supports GnuTLS also, if you have version 3.1.3 or later of that.
+
+ 9. Support for DNSSEC on outbound connections.
+
+10. New variables "tls_(in,out)_(our,peer)cert" and expansion item
+    "certextract" to extract fields from them. Hash operators md5 and sha1
+    work over them for generating fingerprints, and a new sha256 operator
+    for them added.
+
+11. PRDR is now supported dy default.
+
+12. OCSP stapling is now supported by default.
+
+13. If built with the EXPERIMENTAL_DSN feature enabled, Exim will output
+    Delivery Status Notification messages in MIME format, and negotiate
+    DSN features per RFC 3461.
+
+
+Version 4.82
+------------
+
+ 1. New command-line option -bI:sieve will list all supported sieve extensions
+    of this Exim build on standard output, one per line.
+    ManageSieve (RFC 5804) providers managing scripts for use by Exim should
+    query this to establish the correct list to include in the protocol's
+    SIEVE capability line.
+
+ 2. If the -n option is combined with the -bP option, then the name of an
+    emitted option is not output, only the value (if visible to you).
+    For instance, "exim -n -bP pid_file_path" should just emit a pathname
+    followed by a newline, and no other text.
+
+ 3. When built with SUPPORT_TLS and USE_GNUTLS, the SMTP transport driver now
+    has a "tls_dh_min_bits" option, to set the minimum acceptable number of
+    bits in the Diffie-Hellman prime offered by a server (in DH ciphersuites)
+    acceptable for security.  (Option accepted but ignored if using OpenSSL).
+    Defaults to 1024, the old value.  May be lowered only to 512, or raised as
+    far as you like.  Raising this may hinder TLS interoperability with other
+    sites and is not currently recommended.  Lowering this will permit you to
+    establish a TLS session which is not as secure as you might like.
+
+    Unless you really know what you are doing, leave it alone.
+
+ 4. If not built with DISABLE_DNSSEC, Exim now has the main option
+    dns_dnssec_ok; if set to 1 then Exim will initialise the resolver library
+    to send the DO flag to your recursive resolver.  If you have a recursive
+    resolver, which can set the Authenticated Data (AD) flag in results, Exim
+    can now detect this.  Exim does not perform validation itself, instead
+    relying upon a trusted path to the resolver.
+
+    Current status: work-in-progress; $sender_host_dnssec variable added.
+
+ 5. DSCP support for outbound connections: on a transport using the smtp driver,
+    set "dscp = ef", for instance, to cause the connections to have the relevant
+    DSCP (IPv4 TOS or IPv6 TCLASS) value in the header.
+
+    Similarly for inbound connections, there is a new control modifier, dscp,
+    so "warn control = dscp/ef" in the connect ACL, or after authentication.
+
+    Supported values depend upon system libraries.  "exim -bI:dscp" to list the
+    ones Exim knows of.  You can also set a raw number 0..0x3F.
+
+ 6. The -G command-line flag is no longer ignored; it is now equivalent to an
+    ACL setting "control = suppress_local_fixups".  The -L command-line flag
+    is now accepted and forces use of syslog, with the provided tag as the
+    process name.  A few other flags used by Sendmail are now accepted and
+    ignored.
+
+ 7. New cutthrough routing feature.  Requested by a "control = cutthrough_delivery"
+    ACL modifier; works for single-recipient mails which are received on and
+    deliverable via SMTP.  Using the connection made for a recipient verify,
+    if requested before the verify, or a new one made for the purpose while
+    the inbound connection is still active.  The bulk of the mail item is copied
+    direct from the inbound socket to the outbound (as well as the spool file).
+    When the source notifies the end of data, the data acceptance by the destination
+    is negotiated before the acceptance is sent to the source.  If the destination
+    does not accept the mail item, for example due to content-scanning, the item
+    is not accepted from the source and therefore there is no need to generate
+    a bounce mail.  This is of benefit when providing a secondary-MX service.
+    The downside is that delays are under the control of the ultimate destination
+    system not your own.
+
+    The Received-by: header on items delivered by cutthrough is generated
+    early in reception rather than at the end; this will affect any timestamp
+    included.  The log line showing delivery is recorded before that showing
+    reception; it uses a new ">>" tag instead of "=>".
+
+    To support the feature, verify-callout connections can now use ESMTP and TLS.
+    The usual smtp transport options are honoured, plus a (new, default everything)
+    hosts_verify_avoid_tls.
+
+    New variable families named tls_in_cipher, tls_out_cipher etc. are introduced
+    for specific access to the information for each connection.  The old names
+    are present for now but deprecated.
+
+    Not yet supported: IGNOREQUOTA, SIZE, PIPELINING.
+
+ 8. New expansion operators ${listnamed:name} to get the content of a named list
+    and ${listcount:string} to count the items in a list.
+
+ 9. New global option "gnutls_allow_auto_pkcs11", defaults false.  The GnuTLS
+    rewrite in 4.80 combines with GnuTLS 2.12.0 or later, to autoload PKCS11
+    modules.  For some situations this is desirable, but we expect admin in
+    those situations to know they want the feature.  More commonly, it means
+    that GUI user modules get loaded and are broken by the setuid Exim being
+    unable to access files specified in environment variables and passed
+    through, thus breakage.  So we explicitly inhibit the PKCS11 initialisation
+    unless this new option is set.
+
+    Some older OS's with earlier versions of GnuTLS might not have pkcs11 ability,
+    so have also added a build option which can be used to build Exim with GnuTLS
+    but without trying to use any kind of PKCS11 support.  Uncomment this in the
+    Local/Makefile:
+
+    AVOID_GNUTLS_PKCS11=yes
+
+10. The "acl = name" condition on an ACL now supports optional arguments.
+    New expansion item "${acl {name}{arg}...}" and expansion condition
+    "acl {{name}{arg}...}" are added.  In all cases up to nine arguments
+    can be used, appearing in $acl_arg1 to $acl_arg9 for the called ACL.
+    Variable $acl_narg contains the number of arguments.  If the ACL sets
+    a "message =" value this becomes the result of the expansion item,
+    or the value of $value for the expansion condition.  If the ACL returns
+    accept the expansion condition is true; if reject, false.  A defer
+    return results in a forced fail.
+
+11. Routers and transports can now have multiple headers_add and headers_remove
+    option lines.  The concatenated list is used.
+
+12. New ACL modifier "remove_header" can remove headers before message gets
+    handled by routers/transports.
+
+13. New dnsdb lookup pseudo-type "a+".  A sequence of "a6" (if configured),
+    "aaaa" and "a" lookups is done and the full set of results returned.
+
+14. New expansion variable $headers_added with content from ACL add_header
+    modifier (but not yet added to message).
+
+15. New 8bitmime status logging option for received messages.  Log field "M8S".
+
+16. New authenticated_sender logging option, adding to log field "A".
+
+17. New expansion variables $router_name and $transport_name.  Useful
+    particularly for debug_print as -bt command-line option does not
+    require privilege whereas -d does.
+
+18. If built with EXPERIMENTAL_PRDR, per-recipient data responses per a
+    proposed extension to SMTP from Eric Hall.
+
+19. The pipe transport has gained the force_command option, to allow
+    decorating commands from user .forward pipe aliases with prefix
+    wrappers, for instance.
+
+20. Callout connections can now AUTH; the same controls as normal delivery
+    connections apply.
+
+21. Support for DMARC, using opendmarc libs, can be enabled. It adds new
+    options: dmarc_forensic_sender, dmarc_history_file, and dmarc_tld_file.
+    It adds new expansion variables $dmarc_ar_header, $dmarc_status,
+    $dmarc_status_text, and $dmarc_used_domain.  It adds a new acl modifier
+    dmarc_status.  It adds new control flags dmarc_disable_verify and
+    dmarc_enable_forensic. The default for the dmarc_tld_file option is
+    "/etc/exim/opendmarc.tlds" and can be changed via EDITME.
+
+22. Add expansion variable $authenticated_fail_id, which is the username
+    provided to the authentication method which failed.  It is available
+    for use in subsequent ACL processing (typically quit or notquit ACLs).
+
+23. New ACL modifier "udpsend" can construct a UDP packet to send to a given
+    UDP host and port.
+
+24. New ${hexquote:..string..} expansion operator converts non-printable
+    characters in the string to \xNN form.
+
+25. Experimental TPDA (Transport Post Delivery Action) function added.
+    Patch provided by Axel Rau.
+
+26. Experimental Redis lookup added. Patch provided by Warren Baker.
+
+
+Version 4.80
+------------
+
+ 1. New authenticator driver, "gsasl".  Server-only (at present).
+    This is a SASL interface, licensed under GPL, which can be found at
+    http://www.gnu.org/software/gsasl/.
+    This system does not provide sources of data for authentication, so
+    careful use needs to be made of the conditions in Exim.
+
+ 2. New authenticator driver, "heimdal_gssapi".  Server-only.
+    A replacement for using cyrus_sasl with Heimdal, now that $KRB5_KTNAME
+    is no longer honoured for setuid programs by Heimdal.  Use the
+    "server_keytab" option to point to the keytab.
+
+ 3. The "pkg-config" system can now be used when building Exim to reference
+    cflags and library information for lookups and authenticators, rather
+    than having to update "CFLAGS", "AUTH_LIBS", "LOOKUP_INCLUDE" and
+    "LOOKUP_LIBS" directly.  Similarly for handling the TLS library support
+    without adjusting "TLS_INCLUDE" and "TLS_LIBS".
+
+    In addition, setting PCRE_CONFIG=yes will query the pcre-config tool to
+    find the headers and libraries for PCRE.
+
+ 4. New expansion variable $tls_bits.
+
+ 5. New lookup type, "dbmjz".  Key is an Exim list, the elements of which will
+    be joined together with ASCII NUL characters to construct the key to pass
+    into the DBM library.  Can be used with gsasl to access sasldb2 files as
+    used by Cyrus SASL.
+
+ 6. OpenSSL now supports TLS1.1 and TLS1.2 with OpenSSL 1.0.1.
+
+    Avoid release 1.0.1a if you can.  Note that the default value of
+    "openssl_options" is no longer "+dont_insert_empty_fragments", as that
+    increased susceptibility to attack.  This may still have interoperability
+    implications for very old clients (see version 4.31 change 37) but
+    administrators can choose to make the trade-off themselves and restore
+    compatibility at the cost of session security.
+
+ 7. Use of the new expansion variable $tls_sni in the main configuration option
+    tls_certificate will cause Exim to re-expand the option, if the client
+    sends the TLS Server Name Indication extension, to permit choosing a
+    different certificate; tls_privatekey will also be re-expanded.  You must
+    still set these options to expand to valid files when $tls_sni is not set.
+
+    The SMTP Transport has gained the option tls_sni, which will set a hostname
+    for outbound TLS sessions, and set $tls_sni too.
+
+    A new log_selector, +tls_sni, has been added, to log received SNI values
+    for Exim as a server.
+
+ 8. The existing "accept_8bitmime" option now defaults to true.  This means
+    that Exim is deliberately not strictly RFC compliant.  We're following
+    Dan Bernstein's advice in http://cr.yp.to/smtp/8bitmime.html by default.
+    Those who disagree, or know that they are talking to mail servers that,
+    even today, are not 8-bit clean, need to turn off this option.
+
+ 9. Exim can now be started with -bw (with an optional timeout, given as
+    -bw<timespec>).  With this, stdin at startup is a socket that is
+    already listening for connections.  This has a more modern name of
+    "socket activation", but forcing the activated socket to fd 0.  We're
+    interested in adding more support for modern variants.
+
+10. ${eval } now uses 64-bit values on supporting platforms.  A new "G" suffix
+    for numbers indicates multiplication by 1024^3.
+
+11. The GnuTLS support has been revamped; the three options gnutls_require_kx,
+    gnutls_require_mac & gnutls_require_protocols are no longer supported.
+    tls_require_ciphers is now parsed by gnutls_priority_init(3) as a priority
+    string, documentation for which is at:
+    http://www.gnutls.org/manual/html_node/Priority-Strings.html
+
+    SNI support has been added to Exim's GnuTLS integration too.
+
+    For sufficiently recent GnuTLS libraries, ${randint:..} will now use
+    gnutls_rnd(), asking for GNUTLS_RND_NONCE level randomness.
+
+12. With OpenSSL, if built with EXPERIMENTAL_OCSP, a new option tls_ocsp_file
+    is now available.  If the contents of the file are valid, then Exim will
+    send that back in response to a TLS status request; this is OCSP Stapling.
+    Exim will not maintain the contents of the file in any way: administrators
+    are responsible for ensuring that it is up-to-date.
+
+    See "experimental-spec.txt" for more details.
+
+13. ${lookup dnsdb{ }} supports now SPF record types. They are handled
+    identically to TXT record lookups.
+
+14. New expansion variable $tod_epoch_l for higher-precision time.
+
+15. New global option tls_dh_max_bits, defaulting to current value of NSS
+    hard-coded limit of DH ephemeral bits, to fix interop problems caused by
+    GnuTLS 2.12 library recommending a bit count higher than NSS supports.
+
+16. tls_dhparam now used by both OpenSSL and GnuTLS, can be path or identifier.
+    Option can now be a path or an identifier for a standard prime.
+    If unset, we use the DH prime from section 2.2 of RFC 5114, "ike23".
+    Set to "historic" to get the old GnuTLS behaviour of auto-generated DH
+    primes.
+
+17. SSLv2 now disabled by default in OpenSSL.  (Never supported by GnuTLS).
+    Use "openssl_options -no_sslv2" to re-enable support, if your OpenSSL
+    install was not built with OPENSSL_NO_SSL2 ("no-ssl2").
+
+
+Version 4.77
+------------
+
+ 1. New options for the ratelimit ACL condition: /count= and /unique=.
+    The /noupdate option has been replaced by a /readonly option.
+
+ 2. The SMTP transport's protocol option may now be set to "smtps", to
+    use SSL-on-connect outbound.
+
+ 3. New variable $av_failed, set true if the AV scanner deferred; ie, when
+    there is a problem talking to the AV scanner, or the AV scanner running.
+
+ 4. New expansion conditions, "inlist" and "inlisti", which take simple lists
+    and check if the search item is a member of the list.  This does not
+    support named lists, but does subject the list part to string expansion.
+
+ 5. Unless the new EXPAND_LISTMATCH_RHS build option is set when Exim was
+    built, Exim no longer performs string expansion on the second string of
+    the match_* expansion conditions: "match_address", "match_domain",
+    "match_ip" & "match_local_part".  Named lists can still be used.
+
+
+Version 4.76
+------------
+
+ 1. The global option "dns_use_edns0" may be set to coerce EDNS0 usage on
+    or off in the resolver library.
+
+
+Version 4.75
+------------
+
+ 1. In addition to the existing LDAP and LDAP/SSL ("ldaps") support, there
+    is now LDAP/TLS support, given sufficiently modern OpenLDAP client
+    libraries.  The following global options have been added in support of
+    this: ldap_ca_cert_dir, ldap_ca_cert_file, ldap_cert_file, ldap_cert_key,
+    ldap_cipher_suite, ldap_require_cert, ldap_start_tls.
+
+ 2. The pipe transport now takes a boolean option, "freeze_signal", default
+    false.  When true, if the external delivery command exits on a signal then
+    Exim will freeze the message in the queue, instead of generating a bounce.
+
+ 3. Log filenames may now use %M as an escape, instead of %D (still available).
+    The %M pattern expands to yyyymm, providing month-level resolution.
+
+ 4. The $message_linecount variable is now updated for the maildir_tag option,
+    in the same way as $message_size, to reflect the real number of lines,
+    including any header additions or removals from transport.
+
+ 5. When contacting a pool of SpamAssassin servers configured in spamd_address,
+    Exim now selects entries randomly, to better scale in a cluster setup.
+
+
+Version 4.74
+------------
+
+ 1. SECURITY FIX: privilege escalation flaw fixed. On Linux (and only Linux)
+    the flaw permitted the Exim run-time user to cause root to append to
+    arbitrary files of the attacker's choosing, with the content based
+    on content supplied by the attacker.
+
+ 2. Exim now supports loading some lookup types at run-time, using your
+    platform's dlopen() functionality.  This has limited platform support
+    and the intention is not to support every variant, it's limited to
+    dlopen().  This permits the main Exim binary to not be linked against
+    all the libraries needed for all the lookup types.
+
+
+Version 4.73
+------------
+
+ NOTE: this version is not guaranteed backwards-compatible, please read the
+       items below carefully
+
+ 1. A new main configuration option, "openssl_options", is available if Exim
+    is built with SSL support provided by OpenSSL.  The option allows
+    administrators to specify OpenSSL options to be used on connections;
+    typically this is to set bug compatibility features which the OpenSSL
+    developers have not enabled by default.  There may be security
+    consequences for certain options, so these should not be changed
+    frivolously.
+
+ 2. A new pipe transport option, "permit_coredumps", may help with problem
+    diagnosis in some scenarios.  Note that Exim is typically installed as
+    a setuid binary, which on most OSes will inhibit coredumps by default,
+    so that safety mechanism would have to be overridden for this option to
+    be able to take effect.
+
+ 3. ClamAV 0.95 is now required for ClamAV support in Exim, unless
+    Local/Makefile sets: WITH_OLD_CLAMAV_STREAM=yes
+    Note that this switches Exim to use a new API ("INSTREAM") and a future
+    release of ClamAV will remove support for the old API ("STREAM").
+
+    The av_scanner option, when set to "clamd", now takes an optional third
+    part, "local", which causes Exim to pass a filename to ClamAV instead of
+    the file content.  This is the same behaviour as when clamd is pointed at
+    a Unix-domain socket.  For example:
+
+      av_scanner = clamd:192.0.2.3 1234:local
+
+    ClamAV's ExtendedDetectionInfo response format is now handled.
+
+ 4. There is now a -bmalware option, restricted to admin users.  This option
+    takes one parameter, a filename, and scans that file with Exim's
+    malware-scanning framework.  This is intended purely as a debugging aid
+    to ensure that Exim's scanning is working, not to replace other tools.
+    Note that the ACL framework is not invoked, so if av_scanner references
+    ACL variables without a fallback then this will fail.
+
+ 5. There is a new expansion operator, "reverse_ip", which will reverse IP
+    addresses; IPv4 into dotted quad, IPv6 into dotted nibble.  Examples:
+
+      ${reverse_ip:192.0.2.4}
+       -> 4.2.0.192
+      ${reverse_ip:2001:0db8:c42:9:1:abcd:192.0.2.3}
+       -> 3.0.2.0.0.0.0.c.d.c.b.a.1.0.0.0.9.0.0.0.2.4.c.0.8.b.d.0.1.0.0.2
+
+ 6. There is a new ACL control called "debug", to enable debug logging.
+    This allows selective logging of certain incoming transactions within
+    production environments, with some care.  It takes two options, "tag"
+    and "opts"; "tag" is included in the filename of the log and "opts"
+    is used as per the -d<options> command-line option.  Examples, which
+    don't all make sense in all contexts:
+
+      control = debug
+      control = debug/tag=.$sender_host_address
+      control = debug/opts=+expand+acl
+      control = debug/tag=.$message_exim_id/opts=+expand
+
+ 7. It has always been implicit in the design and the documentation that
+    "the Exim user" is not root.  src/EDITME said that using root was
+    "very strongly discouraged".  This is not enough to keep people from
+    shooting themselves in the foot in days when many don't configure Exim
+    themselves but via package build managers.  The security consequences of
+    running various bits of network code are severe if there should be bugs in
+    them.  As such, the Exim user may no longer be root.  If configured
+    statically, Exim will refuse to build.  If configured as ref:user then Exim
+    will exit shortly after start-up.  If you must shoot yourself in the foot,
+    then henceforth you will have to maintain your own local patches to strip
+    the safeties off.
+
+ 8. There is a new expansion condition, bool_lax{}.  Where bool{} uses the ACL
+    condition logic to determine truth/failure and will fail to expand many
+    strings, bool_lax{} uses the router condition logic, where most strings
+    do evaluate true.
+    Note: bool{00} is false, bool_lax{00} is true.
+
+ 9. Routers now support multiple "condition" tests.
+
+10. There is now a runtime configuration option "tcp_wrappers_daemon_name".
+    Setting this allows an admin to define which entry in the tcpwrappers
+    config file will be used to control access to the daemon.  This option
+    is only available when Exim is built with USE_TCP_WRAPPERS.  The
+    default value is set at build time using the TCP_WRAPPERS_DAEMON_NAME
+    build option.
+
+11. [POSSIBLE CONFIG BREAKAGE] The default value for system_filter_user is now
+    the Exim run-time user, instead of root.
+
+12. [POSSIBLE CONFIG BREAKAGE] ALT_CONFIG_ROOT_ONLY is no longer optional and
+    is forced on.  This is mitigated by the new build option
+    TRUSTED_CONFIG_LIST which defines a list of configuration files which
+    are trusted; one per line. If a config file is owned by root and matches
+    a pathname in the list, then it may be invoked by the Exim build-time
+    user without Exim relinquishing root privileges.
+
+13. [POSSIBLE CONFIG BREAKAGE] The Exim user is no longer automatically
+    trusted to supply -D<Macro[=Value]> overrides on the command-line.  Going
+    forward, we recommend using TRUSTED_CONFIG_LIST with shim configs that
+    include the main config.  As a transition mechanism, we are temporarily
+    providing a work-around: the new build option WHITELIST_D_MACROS provides
+    a colon-separated list of macro names which may be overridden by the Exim
+    run-time user.  The values of these macros are constrained to the regex
+    ^[A-Za-z0-9_/.-]*$ (which explicitly does allow for empty values).
+
+
+Version 4.72
+------------
+
+ 1. TWO SECURITY FIXES: one relating to mail-spools which are globally
+    writable, the other to locking of MBX folders (not mbox).
+
+ 2. MySQL stored procedures are now supported.
+
+ 3. The dkim_domain transport option is now a list, not a single string, and
+    messages will be signed for each element in the list (discarding
+    duplicates).
+
+ 4. The 4.70 release unexpectedly changed the behaviour of dnsdb TXT lookups
+    in the presence of multiple character strings within the RR. Prior to 4.70,
+    only the first string would be returned.  The dnsdb lookup now, by default,
+    preserves the pre-4.70 semantics, but also now takes an extended output
+    separator specification.  The separator can be followed by a semicolon, to
+    concatenate the individual text strings together with no join character,
+    or by a comma and a second separator character, in which case the text
+    strings within a TXT record are joined on that second character.
+    Administrators are reminded that DNS provides no ordering guarantees
+    between multiple records in an RRset.  For example:
+
+      foo.example.  IN TXT "a" "b" "c"
+      foo.example.  IN TXT "d" "e" "f"
+
+      ${lookup dnsdb{>/ txt=foo.example}}   -> "a/d"
+      ${lookup dnsdb{>/; txt=foo.example}}  -> "def/abc"
+      ${lookup dnsdb{>/,+ txt=foo.example}} -> "a+b+c/d+e+f"
+
+
+Version 4.70 / 4.71
+-------------------
+
+ 1. Native DKIM support without an external library.
+    (Note that if no action to prevent it is taken, a straight upgrade will
+    result in DKIM verification of all signed incoming emails.  See spec
+    for details on conditionally disabling)
+
+ 2. Experimental DCC support via dccifd (contributed by Wolfgang Breyha).
+
+ 3. There is now a bool{} expansion condition which maps certain strings to
+    true/false condition values (most likely of use in conjunction with the
+    and{} expansion operator).
+
+ 4. The $spam_score, $spam_bar and $spam_report variables are now available
+    at delivery time.
+
+ 5. exim -bP now supports "macros", "macro_list" or "macro MACRO_NAME" as
+    options, provided that Exim is invoked by an admin_user.
+
+ 6. There is a new option gnutls_compat_mode, when linked against GnuTLS,
+    which increases compatibility with older clients at the cost of decreased
+    security.  Don't set this unless you need to support such clients.
+
+ 7. There is a new expansion operator, ${randint:...} which will produce a
+    "random" number less than the supplied integer.  This randomness is
+    not guaranteed to be cryptographically strong, but depending upon how
+    Exim was built may be better than the most naive schemes.
+
+ 8. Exim now explicitly ensures that SHA256 is available when linked against
+    OpenSSL.
+
+ 9. The transport_filter_timeout option now applies to SMTP transports too.
+
+
+Version 4.69
+------------
+
+ 1. Preliminary DKIM support in Experimental.
+
+
+Version 4.68
+------------
+
+ 1. The body_linecount and body_zerocount C variables are now exported in the
+    local_scan API.
+
+ 2. When a dnslists lookup succeeds, the key that was looked up is now placed
+    in $dnslist_matched. When the key is an IP address, it is not reversed in
+    this variable (though it is, of course, in the actual lookup). In simple
+    cases, for example:
+
+      deny dnslists = spamhaus.example
+
+    the key is also available in another variable (in this case,
+    $sender_host_address). In more complicated cases, however, this is not
+    true. For example, using a data lookup might generate a dnslists lookup
+    like this:
+
+      deny dnslists = spamhaus.example/<|192.168.1.2|192.168.6.7|...
+
+    If this condition succeeds, the value in $dnslist_matched might be
+    192.168.6.7 (for example).
+
+ 3. Authenticators now have a client_condition option. When Exim is running as
+    a client, it skips an authenticator whose client_condition expansion yields
+    "0", "no", or "false". This can be used, for example, to skip plain text
+    authenticators when the connection is not encrypted by a setting such as:
+
+      client_condition = ${if !eq{$tls_cipher}{}}
+
+    Note that the 4.67 documentation states that $tls_cipher contains the
+    cipher used for incoming messages. In fact, during SMTP delivery, it
+    contains the cipher used for the delivery. The same is true for
+    $tls_peerdn.
+
+ 4. There is now a -Mvc <message-id> option, which outputs a copy of the
+    message to the standard output, in RFC 2822 format. The option can be used
+    only by an admin user.
+
+ 5. There is now a /noupdate option for the ratelimit ACL condition. It
+    computes the rate and checks the limit as normal, but it does not update
+    the saved data. This means that, in relevant ACLs, it is possible to lookup
+    the existence of a specified (or auto-generated) ratelimit key without
+    incrementing the ratelimit counter for that key.
+
+    In order for this to be useful, another ACL entry must set the rate
+    for the same key somewhere (otherwise it will always be zero).
+
+    Example:
+
+    acl_check_connect:
+      # Read the rate; if it doesn't exist or is below the maximum
+      # we update it below
+      deny ratelimit = 100 / 5m / strict / noupdate
+           log_message = RATE: $sender_rate / $sender_rate_period \
+                         (max $sender_rate_limit)
+
+      [... some other logic and tests...]
+
+      warn ratelimit = 100 / 5m / strict / per_cmd
+           log_message = RATE UPDATE: $sender_rate / $sender_rate_period \
+                         (max $sender_rate_limit)
+           condition = ${if le{$sender_rate}{$sender_rate_limit}}
+
+      accept
+
+ 6. The variable $max_received_linelength contains the number of bytes in the
+    longest line that was received as part of the message, not counting the
+    line termination character(s).
+
+ 7. Host lists can now include +ignore_defer and +include_defer, analogous to
+    +ignore_unknown and +include_unknown. These options should be used with
+    care, probably only in non-critical host lists such as whitelists.
+
+ 8. There's a new option called queue_only_load_latch, which defaults true.
+    If set false when queue_only_load is greater than zero, Exim re-evaluates
+    the load for each incoming message in an SMTP session. Otherwise, once one
+    message is queued, the remainder are also.
+
+ 9. There is a new ACL, specified by acl_smtp_notquit, which is run in most
+    cases when an SMTP session ends without sending QUIT. However, when Exim
+    itself is is bad trouble, such as being unable to write to its log files,
+    this ACL is not run, because it might try to do things (such as write to
+    log files) that make the situation even worse.
+
+    Like the QUIT ACL, this new ACL is provided to make it possible to gather
+    statistics. Whatever it returns (accept or deny) is immaterial. The "delay"
+    modifier is forbidden in this ACL.
+
+    When the NOTQUIT ACL is running, the variable $smtp_notquit_reason is set
+    to a string that indicates the reason for the termination of the SMTP
+    connection. The possible values are:
+
+      acl-drop                 Another ACL issued a "drop" command
+      bad-commands             Too many unknown or non-mail commands
+      command-timeout          Timeout while reading SMTP commands
+      connection-lost          The SMTP connection has been lost
+      data-timeout             Timeout while reading message data
+      local-scan-error         The local_scan() function crashed
+      local-scan-timeout       The local_scan() function timed out
+      signal-exit              SIGTERM or SIGINT
+      synchronization-error    SMTP synchronization error
+      tls-failed               TLS failed to start
+
+    In most cases when an SMTP connection is closed without having received
+    QUIT, Exim sends an SMTP response message before actually closing the
+    connection. With the exception of acl-drop, the default message can be
+    overridden by the "message" modifier in the NOTQUIT ACL. In the case of a
+    "drop" verb in another ACL, it is the message from the other ACL that is
+    used.
+
+10. For MySQL and PostgreSQL lookups, it is now possible to specify a list of
+    servers with individual queries. This is done by starting the query with
+    "servers=x:y:z;", where each item in the list may take one of two forms:
+
+    (1) If it is just a host name, the appropriate global option (mysql_servers
+        or pgsql_servers) is searched for a host of the same name, and the
+        remaining parameters (database, user, password) are taken from there.
+
+    (2) If it contains any slashes, it is taken as a complete parameter set.
+
+    The list of servers is used in exactly the same was as the global list.
+    Once a connection to a server has happened and a query has been
+    successfully executed, processing of the lookup ceases.
+
+    This feature is intended for use in master/slave situations where updates
+    are occurring, and one wants to update a master rather than a slave. If the
+    masters are in the list for reading, you might have:
+
+      mysql_servers = slave1/db/name/pw:slave2/db/name/pw:master/db/name/pw
+
+    In an updating lookup, you could then write
+
+      ${lookup mysql{servers=master; UPDATE ...}
+
+    If, on the other hand, the master is not to be used for reading lookups:
+
+      pgsql_servers = slave1/db/name/pw:slave2/db/name/pw
+
+    you can still update the master by
+
+      ${lookup pgsql{servers=master/db/name/pw; UPDATE ...}
+
+11. The message_body_newlines option (default FALSE, for backwards
+    compatibility) can be used to control whether newlines are present in
+    $message_body and $message_body_end. If it is FALSE, they are replaced by
+    spaces.
+
+
+Version 4.67
+------------
+
+ 1. There is a new log selector called smtp_no_mail, which is not included in
+    the default setting. When it is set, a line is written to the main log
+    whenever an accepted SMTP connection terminates without having issued a
+    MAIL command.
+
+ 2. When an item in a dnslists list is followed by = and & and a list of IP
+    addresses, the behaviour was not clear when the lookup returned more than
+    one IP address. This has been solved by the addition of == and =& for "all"
+    rather than the default "any" matching.
+
+ 3. Up till now, the only control over which cipher suites GnuTLS uses has been
+    for the cipher algorithms. New options have been added to allow some of the
+    other parameters to be varied.
+
+ 4. There is a new compile-time option called ENABLE_DISABLE_FSYNC. When it is
+    set, Exim compiles a runtime option called disable_fsync.
+
+ 5. There is a new variable called $smtp_count_at_connection_start.
+
+ 6. There's a new control called no_pipelining.
+
+ 7. There are two new variables called $sending_ip_address and $sending_port.
+    These are set whenever an SMTP connection to another host has been set up.
+
+ 8. The expansion of the helo_data option in the smtp transport now happens
+    after the connection to the server has been made.
+
+ 9. There is a new expansion operator ${rfc2047d: that decodes strings that
+    are encoded as per RFC 2047.
+
+10. There is a new log selector called "pid", which causes the current process
+    id to be added to every log line, in square brackets, immediately after the
+    time and date.
+
+11. Exim has been modified so that it flushes SMTP output before implementing
+    a delay in an ACL. It also flushes the output before performing a callout,
+    as this can take a substantial time. These behaviours can be disabled by
+    obeying control = no_delay_flush or control = no_callout_flush,
+    respectively, at some earlier stage of the connection.
+
+12. There are two new expansion conditions that iterate over a list. They are
+    called forany and forall.
+
+13. There's a new global option called dsn_from that can be used to vary the
+    contents of From: lines in bounces and other automatically generated
+    messages ("delivery status notifications" - hence the name of the option).
+
+14. The smtp transport has a new option called hosts_avoid_pipelining.
+
+15. By default, exigrep does case-insensitive matches. There is now a -I option
+    that makes it case-sensitive.
+
+16. A number of new features ("addresses", "map", "filter", and "reduce") have
+    been added to string expansions to make it easier to process lists of
+    items, typically addresses.
+
+17. There's a new ACL modifier called "continue". It does nothing of itself,
+    and processing of the ACL always continues with the next condition or
+    modifier. It is provided so that the side effects of expanding its argument
+    can be used.
+
+18. It is now possible to use newline and other control characters (those with
+    values less than 32, plus DEL) as separators in lists.
+
+19. The exigrep utility now has a -v option, which inverts the matching
+    condition.
+
+20. The host_find_failed option in the manualroute router can now be set to
+    "ignore".
+
+
+Version 4.66
+------------
+
+No new features were added to 4.66.
+
+
+Version 4.65
+------------
+
+No new features were added to 4.65.
+
+
+Version 4.64
+------------
+
+ 1. ACL variables can now be given arbitrary names, as long as they start with
+    "acl_c" or "acl_m" (for connection variables and message variables), are at
+    least six characters long, with the sixth character being either a digit or
+    an underscore.
+
+ 2. There is a new ACL modifier called log_reject_target. It makes it possible
+    to specify which logs are used for messages about ACL rejections.
+
+ 3. There is a new authenticator called "dovecot". This is an interface to the
+    authentication facility of the Dovecot POP/IMAP server, which can support a
+    number of authentication methods.
+
+ 4. The variable $message_headers_raw provides a concatenation of all the
+    messages's headers without any decoding. This is in contrast to
+    $message_headers, which does RFC2047 decoding on the header contents.
+
+ 5. In a DNS black list, if two domain names, comma-separated, are given, the
+    second is used first to do an initial check, making use of any IP value
+    restrictions that are set. If there is a match, the first domain is used,
+    without any IP value restrictions, to get the TXT record.
+
+ 6. All authenticators now have a server_condition option.
+
+ 7. There is a new command-line option called -Mset. It is useful only in
+    conjunction with -be (that is, when testing string expansions). It must be
+    followed by a message id; Exim loads the given message from its spool
+    before doing the expansions.
+
+ 8. Another similar new command-line option is called -bem. It operates like
+    -be except that it must be followed by the name of a file that contains a
+    message.
+
+ 9. When an address is delayed because of a 4xx response to a RCPT command, it
+    is now the combination of sender and recipient that is delayed in
+    subsequent queue runs until its retry time is reached.
+
+10. Unary negation and the bitwise logical operators and, or, xor, not, and
+    shift, have been added to the eval: and eval10: expansion items.
+
+11. The variables $interface_address and $interface_port have been renamed
+    as $received_ip_address and $received_port, to make it clear that they
+    relate to message reception rather than delivery. (The old names remain
+    available for compatibility.)
+
+12. The "message" modifier can now be used on "accept" and "discard" acl verbs
+    to vary the message that is sent when an SMTP command is accepted.
+
+
+Version 4.63
+------------
+
+1. There is a new Boolean option called filter_prepend_home for the redirect
+   router.
+
+2. There is a new acl, set by acl_not_smtp_start, which is run right at the
+   start of receiving a non-SMTP message, before any of the message has been
+   read.
+
+3. When an SMTP error message is specified in a "message" modifier in an ACL,
+   or in a :fail: or :defer: message in a redirect router, Exim now checks the
+   start of the message for an SMTP error code.
+
+4. There is a new parameter for LDAP lookups called "referrals", which takes
+   one of the settings "follow" (the default) or "nofollow".
+
+5. Version 20070721.2 of exipick now included, offering these new options:
+    --reverse
+        After all other sorting options have bee processed, reverse order
+        before displaying messages (-R is synonym).
+    --random
+        Randomize order of matching messages before displaying.
+    --size
+        Instead of displaying the matching messages, display the sum
+        of their sizes.
+    --sort <variable>[,<variable>...]
+        Before displaying matching messages, sort the messages according to
+        each messages value for each variable.
+    --not
+        Negate the value for every test (returns inverse output from the
+        same criteria without --not).
+
+
+Version 4.62
+------------
+
+1. The ${readsocket expansion item now supports Internet domain sockets as well
+   as Unix domain sockets. If the first argument begins "inet:", it must be of
+   the form "inet:host:port". The port is mandatory; it may be a number or the
+   name of a TCP port in /etc/services. The host may be a name, or it may be an
+   IP address. An ip address may optionally be enclosed in square brackets.
+   This is best for IPv6 addresses. For example:
+
+     ${readsocket{inet:[::1]:1234}{<request data>}...
+
+   Only a single host name may be given, but if looking it up yield more than
+   one IP address, they are each tried in turn until a connection is made. Once
+   a connection has been made, the behaviour is as for ${readsocket with a Unix
+   domain socket.
+
+2. If a redirect router sets up file or pipe deliveries for more than one
+   incoming address, and the relevant transport has batch_max set greater than
+   one, a batch delivery now occurs.
+
+3. The appendfile transport has a new option called maildirfolder_create_regex.
+   Its value is a regular expression. For a maildir delivery, this is matched
+   against the maildir directory; if it matches, Exim ensures that a
+   maildirfolder file is created alongside the new, cur, and tmp directories.
+
+
+Version 4.61
+------------
+
+The documentation is up-to-date for the 4.61 release. Major new features since
+the 4.60 release are:
+
+. An option called disable_ipv6, to disable the use of IPv6 completely.
+
+. An increase in the number of ACL variables to 20 of each type.
+
+. A change to use $auth1, $auth2, and $auth3 in authenticators instead of $1,
+  $2, $3, (though those are still set) because the numeric variables get used
+  for other things in complicated expansions.
+
+. The default for rfc1413_query_timeout has been changed from 30s to 5s.
+
+. It is possible to use setclassresources() on some BSD OS to control the
+  resources used in pipe deliveries.
+
+. A new ACL modifier called add_header, which can be used with any verb.
+
+. More errors are detectable in retry rules.
+
+There are a number of other additions too.
+
+
+Version 4.60
+------------
+
+The documentation is up-to-date for the 4.60 release. Major new features since
+the 4.50 release are:
+
+. Support for SQLite.
+
+. Support for IGNOREQUOTA in LMTP.
+
+. Extensions to the "submission mode" features.
+
+. Support for Client SMTP Authorization (CSA).
+
+. Support for ratelimiting hosts and users.
+
+. New expansion items to help with the BATV "prvs" scheme.
+
+. A "match_ip" condition, that matches an IP address against a list.
+
+There are many more minor changes.
+
+****

@@ -1,0 +1,91 @@
+/*
+ * ProFTPD: mod_wrap2 -- tcpwrappers-like access control
+ * Copyright (c) 2000-2016 TJ Saunders
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA.
+ *
+ * As a special exemption, TJ Saunders and other respective copyright holders
+ * give permission to link this program with OpenSSL, and distribute the
+ * resulting executable, without including the source code for OpenSSL in the
+ * source distribution.
+ */
+
+#ifndef MOD_WRAP2_H
+#define MOD_WRAP2_H
+
+#include "conf.h"
+#include "privs.h"
+
+#define MOD_WRAP2_VERSION 	"mod_wrap2/2.0.7"
+
+/* Make sure the version of proftpd is as necessary. */
+#if PROFTPD_VERSION_NUMBER < 0x0001030402
+# error "ProFTPD 1.3.4rc2 or later required"
+#endif
+
+/* Define if using tcpwrapper options.  */
+#undef WRAP2_USE_OPTIONS
+
+/* Define if using NIS/YP.  */
+#undef WRAP2_USE_NIS
+
+#define WRAP2_BUFFER_SIZE	256
+
+#define WRAP2_DEFAULT_SERVICE_NAME	"proftpd"
+
+/* mod_wrap2 option flags */
+#define WRAP_OPT_CHECK_ON_CONNECT		0x0001
+#define WRAP_OPT_CHECK_ALL_NAMES		0x0002
+
+/* Source abstraction object */
+typedef struct table_obj {
+
+  /* Memory pool for this object */
+  pool *tab_pool;
+
+  /* Table handle */
+  void *tab_handle;
+
+  /* Table name */
+  const char *tab_name;
+
+  /* Arbitrary data pointer */
+  void *tab_data;
+
+  /* Table I/O routines */
+  int (*tab_close)(struct table_obj *);
+  array_header *(*tab_fetch_clients)(struct table_obj *, const char *);
+  array_header *(*tab_fetch_daemons)(struct table_obj *, const char *);
+  array_header *(*tab_fetch_options)(struct table_obj *, const char *);
+
+} wrap2_table_t;
+
+/* Function prototypes necessary for wrap sub-modules */
+int wrap2_log(const char *, ...)
+#ifdef __GNUC__
+       __attribute__ ((format (printf, 1, 2)));
+#else
+       ;
+#endif
+
+int wrap2_register(const char *,
+  wrap2_table_t *(*tab_open)(pool *, const char *));
+int wrap2_unregister(const char *);
+
+char *wrap2_strsplit(char *, int);
+
+extern unsigned long wrap2_opts;
+
+#endif /* MOD_WRAP2_H */

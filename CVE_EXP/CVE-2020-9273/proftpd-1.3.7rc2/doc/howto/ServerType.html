@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: ServerType</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b><i>ServerType</i></b></h2></center>
+<hr>
+
+<p>
+The <a href="../modules/mod_core.html#ServerType"><code>ServerType</code></a>
+configuration directive for ProFTPD can cause confusion for those just starting
+with this server.  What is the purpose for this directive?  What are these
+&quot;inetd&quot; and &quot;standalone&quot; types, and why does one need to
+choose one or the other?
+
+<p>
+The purpose of this directive is to choose between the two operating modes for
+almost all Unix network servers: does the server listen on its port for
+client requests itself, or does the server let some other process do the
+listening, and call the server when needed?  Traditionally, that
+&quot;other process&quot; has been <code>inetd</code>, a
+&quot;super server&quot; that listens on all interfaces, all ports on a
+Unix machine, and calls the appropriate server based on the port contacted.
+A more modern replacement for <code>inetd</code> is found in the
+<code>xinetd</code> server; this server functions much the same way.  The
+other mode of operation is to have the server listen on the port(s) itself,
+and handle client requests accordingly.  The latter mode is the
+<em>standalone</em> <code>ServerType</code>, the former is the <em>inetd</em>
+mode (which covers both the <code>inetd</code> and <code>xinetd</code>
+processes).
+
+<p>
+This directive is mandatory, and must be set to one mode or the other.  The
+two modes are incompatible (two processes cannot be bound to the same
+interface/port combination simultaneously), and thus the <code>proftpd</code>
+must be told in which mode it is to operate.
+
+<p><a name="Inetd"></a>
+<b>Inetd Mode</b><br>
+In <em>inetd</em> mode, the <code>proftpd</code> server expects to be started
+by the <code>inetd</code> (or <code>xinetd</code>) servers.  It is these
+servers, <code>inetd/xinetd</code>, that listen on the FTP port (usually 21)
+for connection requests, then start <code>proftpd</code> and pass the
+connection off.  This mode is usually best suited for low traffic sites,
+for sites that do not handle many FTP sessions.
+
+<p>
+Example <code>/etc/inetd.conf</code> entry:
+<pre>
+  ftp    stream  tcp     nowait  root    /usr/sbin/tcpd  /usr/sbin/proftpd
+</pre>
+The <code>inetd.conf</code> man pages discuss these fields in greater detail.
+
+<p>
+An example <code>xinetd</code> configuration is:
+<pre>
+  service ftp
+  {
+        disable = no
+        flags			= REUSE
+        socket_type             = stream
+        wait                    = no
+        user                    = root
+        server                  = /usr/sbin/proftpd
+        server_args             = -c /etc/proftpd.conf
+  }
+</pre>
+The xinetd configuration is usually found in <code>/etc/xinetd.conf</code>
+or in the <code>/etc/xinetd.d/</code> directory.
+
+<p><a name="InetdIPv6"></a>
+<b>Note</b>: Solaris users may find that their <code>/etc/inetd.conf</code>
+file ships with an <code>ftp</code> entry that looks similar to the above,
+except that it has &quot;tcp6&quot; rather than &quot;tcp&quot;.  For
+<code>proftpd</code> to function properly in such cases, that &quot;tcp6&quot;
+will need to be changed to &quot;tcp&quot;.  Solaris uses the <code>tcp6</code>
+keyword to have its <code>inetd</code> pass IPv6 sockets to the called program;
+<code>proftpd</code> must have been configured with the
+<code>--enable-ipv6</code> option to handle such sockets.
+
+<p><a name="InetdPorts"></a>
+<b>Inetd Mode and Non-standard Ports</b><br>
+A note about using non-standard ports in your configuration via the
+<code>Port</code> configuration directive: making these work while in
+<code>inetd</code> mode and using <code>inetd</code> (as oppposed to
+<code>xinetd</code>) is problematic.  The first column of an
+<code>/etc/inetd.conf</code> entry lists a protocol name.  The port
+for that protocol is listed in the <code>/etc/services</code> file.  For
+services that run on non-standard ports, however,
+<code>/etc/services</code> has no entry, and <code>inetd</code> is programmed
+so as to always reference that file.  This means that if use of non-standard
+ports and use of <code>inetd</code> are required, the
+<code>/etc/services</code> file will need to be edited.  Avoid this situation
+if possible.
+
+<p>
+Compared to <code>inetd</code>, <code>xinetd</code>'s configuration format
+is more flexible: it can be configured to use non-standard ports using the
+<code>port</code> attribute:
+<pre>
+       port             determines  the  service  port.  If  this
+                        attribute  is  specified  for  a  service
+                        listed in /etc/services, it must be equal
+                        to the port number listed in that file.
+</pre>
+as described in the <code>xinetd.conf(5)</code> man page.
+
+<p>
+If your <code>proftpd</code> server is running in this mode, you do not need
+to worry about restarting any servers whenever changes are made to the
+<code>proftpd.conf</code> configuration file.  Since <code>proftpd</code>
+is started for each new FTP session by <code>inetd/xinetd</code>, and
+part of that startup process includes reading the configuration file, any
+changes will be seen by any new FTP sessions once the changes are made.
+
+<p>
+If you attempt to start a <code>proftpd</code> server configured with a
+<code>ServerType</code> of <em>standalone</em>, and already have
+<code>inetd/xinetd</code> also configured to handle FTP connections, this kind
+of error message will appear in your <code>proftpd</code> logs:
+<pre>
+  golem.castaglia.org - Failed binding to 127.0.0.1, port 21: Address already in use
+  golem.castaglia.org - Check the ServerType directive to ensure you are configured correctly.
+</pre>
+More information might be found by <a href="Debugging.html">debugging</a> your
+configuration.
+
+<p><a name="Standalone"></a>
+<b>Standalone Mode</b><br>
+In this mode, the <code>proftpd</code> listens for incoming FTP session
+requests itself, and forks off child processes to handle those requests.
+This mode is best suited for high traffic, popular sites; the overhead
+of having to parse the configuration file each time, as is done for
+<code>inetd</code>-handled sessions, is avoided in this mode.  Also,
+there is no need to change any other configuration files other than the
+<code>proftpd.conf</code>, for ports, virtual servers, or anything else.
+
+<p>
+When running in this mode, the server will need to be restarted whenever
+changes are made to the configuration file.  There is a
+<a href="Stopping.html">page</a> that describes how this can be done.
+
+<p>
+Many administrators are accustomed to using <code>tcpwrappers</code> to
+secure their network servers; indeed, this is a good practice to get into.
+However, the most common way this is done is through <code>inetd</code>.
+When running a <code>proftpd</code> server in <em>standalone</em> mode,
+then, it is not quite as straightforward; however, it is not hard, either.
+The <a href="../contrib/mod_wrap.html"><code>mod_wrap</code></a> module can be
+compiled into your <code>proftpd</code>.  This module allows a standalone
+<code>proftpd</code> server to use the normal <code>/etc/hosts.allow</code>,
+<code>/etc/hosts.deny</code> files, in addition to other files (something that
+normal <code>tcpwrappers</code> configurations cannot do).
+
+<p>
+If you try to start a <code>proftpd</code> server configured with a
+<code>ServerType</code> of <em>inetd</em> from the command line (or from
+some shell wrapper script), this kind of error message will appear in your
+<code>proftpd</code> logs:
+<pre>
+  golem.castaglia.org - Fatal: Socket operation on non-socket
+  golem.castaglia.org - (Running from command line? Use `ServerType standalone' in config file!)
+</pre>
+More information might be found by <a href="Debugging.html">debugging</a> your
+configuration.
+
+<p><a name="Switching">
+<b>Switching Modes</b><br>
+Changing from one <code>ServerType</code> mode to the other is a simple
+process, as long as the few steps involved are followed.
+
+<p>
+To change from <em>inetd</em> to <em>standalone</em>, make sure to remove any
+FTP configurations from <code>/etc/inetd.conf</code>,
+<code>/etc/xinetd.conf</code>, <code>/etc/xinetd.d/</code>, or wherever
+your superserver's configuration file(s) reside.  Once this is done,
+make sure those changes are seen by restarting <code>inetd/xinetd</code>.
+Then, make sure
+<pre>
+  ServerType standalone
+</pre>
+is in your <code>proftpd.conf</code>.  Start the <code>proftpd</code>
+server from the command line, to make sure all is working.  You can then
+easily start server from an <code>init.d</code> script such as the one
+mentioned <a href="Stopping.html">here</a>.
+
+<p>
+To change from <em>standalone</em> to <em>inetd</em>, make sure your
+<code>proftpd</code> is stopped completely.  Add a configuration entry
+for FTP into your <code>inetd/xinetd</code> configuration (mentioned
+above), then restart <code>inetd/xinetd</code> to have those configuration
+changes seen.  Check your <code>proftpd.conf</code> to see that
+<pre>
+  ServerType inetd
+</pre>
+is there.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<font color=red>Question</font>: I have configured:
+<pre>
+  IdentLookups off
+  ServerIdent off
+</pre>
+in my <code>proftpd.conf</code>, but my logins are still slow.  Why?<br>
+<font color=blue>Answer</font>:  Another source of slow logins can be
+<code>xinetd</code>, or <code>tcpwrappers</code> compiled for reverse DNS
+lookups (<i>i.e.</i> with the <code>-DPARANOID</code> option).
+
+<p>
+If you are using <code>ServerType inetd</code>, <i>and</i> you are using
+<code>xinetd</code> to run <code>proftpd</code>, then you should check your
+<code>/etc/xinetd.conf</code> (or <code>/etc/xinetd.d/proftpd</code> or
+similar) file for the <code>USERID</code> parameter, <i>e.g.</i>:
+<pre>
+  log_on_success          += DURATION USERID
+  log_on_failure          += USERID
+</pre>
+As per the <code>xinetd.conf</code> documentation, the use of
+<code>USERID</code> in your configuration causes <code>xinetd</code> to do
+an IDENTD lookup:
+<pre>
+        USERID      logs the user id of the remote user  using
+                    the   RFC  1413  identification  protocol.
+                    This option is available only  for  multi-
+                    threaded stream services.
+</pre>
+Removing <code>USERID</code> from your <code>xinetd</code> configuration
+for proftpd often suffices to fix the slow logins.
+
+<p>
+Another solution is simply to <a href="#Switching">switch</a> your
+<code>ServerType</code> to "standalone".
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

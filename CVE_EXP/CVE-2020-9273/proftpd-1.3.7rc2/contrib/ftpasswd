@@ -1,0 +1,1217 @@
+#!/usr/bin/env perl
+# ---------------------------------------------------------------------------
+# Copyright (C) 2000-2019 TJ Saunders <tj@castaglia.org>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin Street, Suite 500, Boston, MA 02110-1335, USA.
+#
+# Based on MacGuyver's genuser.pl script, this script generates password
+# files suitable for use with proftpd's AuthUserFile directive, in passwd(5)
+# format, or AuthGroupFile, in group(5) format.  The idea is somewhat similar
+# to Apache's htpasswd program.
+# ---------------------------------------------------------------------------
+
+use strict;
+
+use Fcntl qw(:flock);
+use File::Basename qw(basename);
+use Getopt::Long;
+
+# turn off auto abbreviation
+$Getopt::Long::auto_abbrev = 0;
+
+my $program = basename($0);
+my $default_passwd_file = "./ftpd.passwd";
+my $default_group_file = "./ftpd.group";
+my $shell_file = "/etc/shells";
+my $default_cracklib_dict = "/usr/lib/cracklib_dict";
+my $cracklib_dict;
+my $output_file;
+my $version = "1.3.0";
+
+my @data;
+
+my %opts = ();
+GetOptions(\%opts,
+  'add-member=s',
+  'change-home',
+  'change-password',
+  'delete-group',
+  'delete-member=s',
+  'delete-user',
+  'des',
+  'enable-group-passwd',
+  'file=s',
+  'F|force',
+  'gecos=s',
+  'gid=n',
+  'group',
+  'hash',
+  'h|help',
+  'home=s',
+  'l|lock',
+  'md5',
+  'm|member=s@',
+  'name=s',
+  'not-previous-password',
+  'not-system-password',
+  'passwd',
+  'sha256',
+  'sha512',
+  'shell=s',
+  'stdin',
+  'uid=n',
+  'u|unlock',
+  'use-cracklib:s',
+  'version',
+);
+
+usage() if (defined($opts{'h'}));
+
+version() if (defined($opts{'version'}));
+
+# Per Bug#4171, check if we are on a Linux system, AND it has the
+# /proc/sys/crypto/fips_enabled file, AND that entry says that FIPS mode is
+# enabled.  If these conditions are met, then neither DES or MD5 will work.
+#
+# If either --des or --md5 are specified, OR if no hash is specified, we
+# need to check.
+if ((defined($opts{'des'}) || defined($opts{'md5'})) ||
+     !defined($opts{'des'}) && !defined($opts{'md5'}) &&
+     !defined($opts{'sha256'}) && !defined($opts{'sha512'})) {
+  if (open(my $fh, "< /proc/sys/crypto/fips_enabled")) {
+    my $fips_enabled = <$fh>;
+    close($fh);
+
+    chomp($fips_enabled);
+    if ($fips_enabled) {
+      die "$program: FIPS mode enabled on your system (see /proc/sys/crypto/fips_enabled), thus --des and --md5 will not be supported.  Use --sha256 or --sha512.\n"
+    }
+  }
+}
+
+# check if "use-cracklib" was given as an option, and whether a path
+# to other dictionary files was given.
+if (defined($opts{'use-cracklib'})) {
+
+  # make sure that Crypt::Cracklib is installed before trying to use
+  # it later
+  eval { require Crypt::Cracklib };
+  die "$program: --use-cracklib requires Crypt::Cracklib to be installed\n" if $@;
+
+  if ($opts{'use-cracklib'} ne "") {
+    $cracklib_dict = $opts{'use-cracklib'};
+
+  } else {
+    $cracklib_dict = $default_cracklib_dict;
+  }
+}
+
+# Make sure that the given --home path exists, and is a directory.
+if (exists($opts{'home'})) {
+  my $path = $opts{'home'};
+  unless (-e $path) {
+    die "$program: --home $path does not exist\n";
+  }
+
+  unless (-d $path) {
+    die "$program: --home $path is not a directory\n";
+  }
+}
+
+# make sure that both passwd and group modes haven't been simultaneously
+# requested
+if ((exists($opts{'passwd'}) && exists($opts{'group'})) ||
+    (exists($opts{'passwd'}) && exists($opts{'hash'})) ||
+    (exists($opts{'group'}) && exists($opts{'hash'}))) {
+  die "$program: please use *one*: --passwd, --group, or --hash\n";
+
+} elsif (defined($opts{'passwd'})) {
+
+  # determine to which file to write the passwd entry
+  if (defined($opts{'file'})) {
+    $output_file = $opts{'file'}; 
+    print STDOUT "$program: using alternate file: $output_file\n"
+
+  } else {
+    $output_file = $default_passwd_file;
+  } 
+
+  # make sure that the required arguments are present
+  die "$program: --passwd: missing required argument: --name\n"
+    unless (defined($opts{'name'}));
+
+  # check for and handle the --delete-user option.
+  if (defined($opts{'delete-user'})) {
+    open_output_file();
+
+    my ($pass, $uid, $gid, $gecos, $home, $shell) = find_passwd_entry(name =>
+      $opts{'name'});
+
+    handle_passwd_entry(name => $opts{'name'}, uid => $uid, gid => $gid,
+      gecos => $gecos, home => $home, shell => $shell,
+      delete_user => $opts{'delete-user'});
+
+    close_output_file();
+
+    # done
+    exit 0;
+  }
+
+  # check for and handle the --lock option.
+  if (defined($opts{'l'})) {
+    open_output_file();
+
+    my ($pass, $uid, $gid, $gecos, $home, $shell) = find_passwd_entry(name =>
+      $opts{'name'});
+
+    my $new_passwd = $pass;
+
+    # If this password is already "locked", leave it alone
+    if ($new_passwd !~ /^!/) {
+      $new_passwd = '!' . $new_passwd;
+    }
+
+    handle_passwd_entry(name => $opts{'name'}, uid => $uid, gid => $gid,
+      gecos => $gecos, home => $home, shell => $shell,
+      new_passwd => $new_passwd);
+
+    close_output_file();
+
+    # done
+    exit 0;
+  }
+
+  # check for and handle the --unlock option.
+  if (defined($opts{'u'})) {
+    open_output_file();
+
+    my ($pass, $uid, $gid, $gecos, $home, $shell) = find_passwd_entry(name =>
+      $opts{'name'});
+
+    my $new_passwd = $pass;
+    $new_passwd =~ s/^!+//;
+
+    handle_passwd_entry(name => $opts{'name'}, uid => $uid, gid => $gid,
+      gecos => $gecos, home => $home, shell => $shell,
+      new_passwd => $new_passwd);
+
+    close_output_file();
+
+    # done
+    exit 0;
+  }
+
+  # now check for the --change-password option.  If present, lookup
+  # the given name in the password file, and reuse all the information
+  # except for the password
+  if (defined($opts{'change-password'})) {
+    open_output_file();
+
+    my ($pass, $uid, $gid, $gecos, $home, $shell) = find_passwd_entry(name =>
+      $opts{'name'});
+
+    handle_passwd_entry(name => $opts{'name'}, uid => $uid, gid => $gid,
+      gecos => $gecos, home => $home, shell => $shell);
+
+    close_output_file();
+
+    # done
+    exit 0;
+  }
+
+  # Now check for the --change-home option.  If present, lookup the given name
+  # in the password file, and reuse all the information except for the home.
+  if (defined($opts{'change-home'})) {
+    if (!defined($opts{'home'})) {
+      die "$program: --change-home requires use of --home\n";
+    }
+
+    open_output_file();
+
+    my ($pass, $uid, $gid, $gecos, $home, $shell) = find_passwd_entry(name =>
+      $opts{'name'});
+
+    # We trick this function into not prompting for a password by acting
+    # as if we are handling a new password.
+    handle_passwd_entry(name => $opts{'name'}, uid => $uid, gid => $gid,
+      gecos => $gecos, home => $opts{'home'}, shell => $shell,
+      new_passwd => $pass);
+
+    close_output_file();
+
+    # done
+    exit 0;
+  }
+
+  # check for the --not-system-password option.  If present, make sure that
+  # a) the script is running with root privs, and b) perl on the system is
+  # such that getpwnam() will return the system password
+  if (defined($opts{'not-system-password'})) {
+    die "$program: must be user root for system password check\n"
+      unless ($> == 0);
+  }
+
+  die "$program: --passwd: missing required argument: --home\n"
+    unless (defined($opts{'home'}));
+
+  die "$program: --passwd: missing required argument: --shell\n"
+    unless (defined($opts{'shell'}));
+
+  die "$program: --passwd: missing required argument: --uid\n"
+    unless (defined($opts{'uid'}));
+
+  # As per Flying Hamster's suggestion, have $opts{'gid'} default to --uid
+  # if none are specified on the command-line via --gid
+  unless (defined($opts{'gid'})) {
+    $opts{'gid'} = $opts{'uid'};
+    warn "$program: --passwd: missing --gid argument: default gid set to uid\n";
+  }
+
+  open_output_file();
+
+  handle_passwd_entry(name => $opts{'name'}, uid => $opts{'uid'},
+    gid => $opts{'gid'}, gecos => $opts{'gecos'}, home => $opts{'home'},
+    shell => $opts{'shell'}, delete_user => $opts{'delete-user'});
+
+  close_output_file();
+
+  # NOTE: if this process is not running as root, then the file generated
+  # is not owned by root.  Issue a warning reminding the user to make the
+  # generated file mode 0400, owned by root, before using it.
+
+} elsif (defined($opts{'group'})) {
+
+  # determine to which file to write the group entry
+  if (defined($opts{'file'})) {
+    $output_file = $opts{'file'};
+    print STDOUT "$program: using alternate file: $output_file\n";
+
+  } else {
+    $output_file = $default_group_file;
+  }
+
+  # check for and handle the --delete-group option.
+  if (defined($opts{'delete-group'})) {
+    open_output_file();
+
+    handle_group_entry(
+      name => $opts{'name'},
+      delete_group => $opts{'delete-group'}
+    );
+
+    close_output_file();
+
+    # done
+    exit 0;
+  }
+
+  # make sure the required options are present
+  if (!defined($opts{'add-member'}) &&
+      !defined($opts{'delete-member'})) {
+    die "$program: --group: missing required argument: --gid\n"
+      unless (defined($opts{'gid'}));
+  }
+
+  die "$program: --group: missing required argument: --name\n"
+    unless (defined($opts{'name'}));
+
+  open_output_file();
+
+  handle_group_entry(
+    gid => $opts{'gid'},
+    members => $opts{'m'},
+    name => $opts{'name'},
+    add_user => $opts{'add-member'},
+    delete_group => $opts{'delete-group'},
+    delete_user => $opts{'delete-member'}
+  );
+
+  close_output_file();
+
+} elsif (defined($opts{'hash'})) {
+  print STDOUT "$program: ", get_passwd(), "\n";
+
+} else {
+  die "$program: missing required --passwd or --group\n$program: use $program --help for details on usage\n\n";
+}
+
+# done
+exit 0;
+
+# ----------------------------------------------------------------------------
+sub check_shell {
+  my %args = @_;
+
+  my $shell = $args{'shell'};
+  my $result = 0;
+
+  # check the given shell against the list in /etc/shells.  If not present
+  # there, issue a message recognizing this, and suggesting that
+  # RequireValidShell be set to off, and that any necessary PAM modules be
+  # adjusted.
+
+  unless (open(SHELLS, "< $shell_file")) {
+    warn "$program: unable to open $shell_file: $!\n";
+    warn "$program: skipping check of $shell_file\n";
+    return;
+  }
+
+  while(my $line = <SHELLS>) {
+    chomp($line);
+
+    if ($line eq $shell) {
+      $result = 1;
+      last;
+    } 
+  }
+
+  close(SHELLS);
+
+  unless ($result) {
+    print STDOUT "\n$program: $shell is not among the valid system shells.  Use of\n";
+    print STDOUT "$program: \"RequireValidShell off\" may be required, and the PAM\n";
+    print STDOUT "$program: module configuration may need to be adjusted.\n\n";
+  }
+
+  return $result;
+}
+
+# ----------------------------------------------------------------------------
+sub close_output_file {
+  my %args = @_;
+
+  if (open(my $fh, "> $output_file")) {
+    if (flock($fh, LOCK_EX|LOCK_NB)) {
+      # flush the data to the file
+      foreach my $line (@data) {
+        print $fh "$line\n";
+      }
+
+      # set the permissions appropriately, ie 0440, before closing the file
+      unless (chmod(0440, $output_file)) {
+        flock($fh, LOCK_UN);
+        die("$program: unable to set permissions on $output_file: $!");
+      }
+
+      flock($fh, LOCK_UN);
+
+      unless (close($fh)) {
+        die("$program: unable to close $output_file: $!\n");
+      }
+
+    } else {
+      close($fh);
+      die("$program: unable to write $output_file: Locked (in use) by another process\n");
+    }
+
+  } else {
+    die("$program: unable to open $output_file: $!\n");
+  }
+}
+
+# ----------------------------------------------------------------------------
+sub find_passwd_entry {
+  my %args = @_;
+
+  my $name = $args{'name'};
+  my ($pass, $uid, $gid, $gecos, $home, $shell);
+  my $found = 0;
+
+  # given a name, find the corresponding entry in the passwd file
+  foreach my $line (@data) {
+    next unless $line =~ /^$name:/;
+
+    my @fields = split(':', $line);
+
+    $pass = $fields[1];
+    $uid = $fields[2];
+    $gid = $fields[3];
+    $gecos = $fields[4];
+    $home = $fields[5];
+    $shell = $fields[6];
+
+    $found = 1;
+
+    last;
+  }
+
+  unless ($found) {
+    print STDOUT "$program: error: no such user $name in $output_file\n";
+    exit 1;
+  }
+
+  return ($pass, $uid, $gid, $gecos, $home, $shell);
+}
+
+# ----------------------------------------------------------------------------
+sub get_salt {
+  my $salt;
+
+  # The determination of with encryption algorithm to use is done via
+  # the salt.  The format and nature of the salt is how crypt(3) knows
+  # how to do its thing.  By default, generate a salt that triggers MD5.
+
+  if (defined($opts{'des'})) {
+    # DES salt
+    $salt = join '', ('.', '/', 0..9, 'A'..'Z', 'a'..'z')[rand 64, rand 64];
+
+  } elsif (defined($opts{'sha256'})) {
+    # SHA-256 salt (16 characters)
+    $salt = join '', (0..9, 'A'..'Z', 'a'..'z')
+      [rand 62, rand 62, rand 62, rand 62,
+       rand 62, rand 62, rand 62, rand 62,
+       rand 62, rand 62, rand 62, rand 62,
+       rand 62, rand 62, rand 62, rand 62];
+    $salt = '$5$' . $salt;
+
+  } elsif (defined($opts{'sha512'})) {
+    # SHA-512 salt (16 characters)
+    $salt = join '', (0..9, 'A'..'Z', 'a'..'z')
+      [rand 62, rand 62, rand 62, rand 62,
+       rand 62, rand 62, rand 62, rand 62,
+       rand 62, rand 62, rand 62, rand 62,
+       rand 62, rand 62, rand 62, rand 62];
+    $salt = '$6$' . $salt;
+
+  } else {
+    # MD5 salt (16 characters)
+    $salt = join '', (0..9, 'A'..'Z', 'a'..'z')
+      [rand 62, rand 62, rand 62, rand 62,
+       rand 62, rand 62, rand 62, rand 62,
+       rand 62, rand 62, rand 62, rand 62,
+       rand 62, rand 62, rand 62, rand 62];
+    $salt = '$1$' . $salt;
+  }
+
+  return $salt;
+}
+
+# ----------------------------------------------------------------------------
+sub get_passwd {
+  my %args = @_;
+  my $name = $args{'name'};
+  my ($passwd, $passwd2);
+
+  # If using a DES salt, print an informative message about the 8 character
+  # limit of relevant password characters.
+
+  if (defined($opts{'des'}) && !defined($opts{'stdin'})) {
+    print STDOUT "\nPlease be aware that only the first 8 characters of a DES password are\nrelevant.  Use the --md5, --sha256, or --sha512 options as they do not have\nthis limitation.\n";
+  }
+
+  if (defined($opts{'stdin'})) {
+
+    # simply read in the password from stdin, as from a script
+    chomp($passwd = <STDIN>);
+
+  } else {
+
+    # Install a SIGINT handler, for cases where Ctrl-C may be used to abort
+    # the prompt.
+    $SIG{INT} = sub {
+      # Restore the file permissions.
+      unless (chmod(0440, $output_file)) {
+        print STDERR "$program: unable to set permissions on $output_file: $!";
+      }
+
+      # Restore the terminal echo behavior, too.
+      system "stty echo";
+
+      exit 1;
+    };
+
+    # Prompt for the password to be used
+    system "stty -echo";
+    print STDOUT "\nPassword: ";
+
+    # Open the tty for reading (is this portable?)
+    open(TTY, "/dev/tty") or die "$program: unable to open /dev/tty: $!\n";
+    chomp($passwd = <TTY>);
+    print STDOUT "\n";
+    system "stty echo";
+
+    # Prompt again, to make sure the user typed in the password correctly
+    system "stty -echo";
+    print STDOUT "Re-type password: ";
+    chomp($passwd2 = <TTY>);
+    print STDOUT "\n\n";
+    system "stty echo";
+    close(TTY);
+
+    # Restore default SIGINT handling
+    $SIG{INT} = 'DEFAULT';
+
+    if ($passwd2 ne $passwd) {
+      print STDOUT "Passwords do not match.  Please try again.\n";
+      return get_passwd(name => $name);
+    }
+  }
+
+  if (defined($name) && defined($opts{'change-password'})) {
+
+    # retrieve the user's current password from the file and compare
+    my ($curpasswd, @junk) = find_passwd_entry(name => $name);
+
+    my $hash = crypt($passwd, $curpasswd);
+
+    if ($hash eq $curpasswd) {
+
+      if (defined($opts{'stdin'})) {
+
+        # cannot prompt again if automated.  Simply print an error message
+        # and exit.
+        print STDOUT "$program: error: password matches current password\n";
+        exit 2;
+
+      } else {
+        print STDOUT "Please use a password that is different from your current password.\n";
+        return get_passwd(name => $name);
+      }
+    }
+  }
+
+  if (defined($name) && defined($opts{'not-previous-password'})) {
+    # retrieve the user's current passwd and compare
+    my ($currpasswd) = find_passwd_entry(name => $name);
+
+    my $hash = crypt($passwd, $currpasswd);
+
+    if (($hash && $currpasswd) && $hash eq $currpasswd) {
+      if (defined($opts{'stdin'})) {
+
+        # cannot prompt again if automated.  Simply print an error message
+        # and exit.
+        print STDOUT "$program: error: password matches previous password\n";
+        exit 4;
+
+      } else {
+        print STDOUT "Please use a password that is different from your previous password.\n";
+        return get_passwd(name => $name);
+      }
+    }
+  }
+
+  if (defined($name) && defined($opts{'not-system-password'})) {
+
+    # retrieve the user's system passwd (from /etc/shadow) and compare
+    my $syspasswd = get_syspasswd(user => $name);
+
+    my $hash = crypt($passwd, $syspasswd);
+
+    if (($hash && $syspasswd) && $hash eq $syspasswd) {
+
+      if (defined($opts{'stdin'})) {
+
+        # cannot prompt again if automated.  Simply print an error message
+        # and exit.
+        print STDOUT "$program: error: password matches system password\n";
+        exit 4;
+
+      } else {
+        print STDOUT "Please use a password that is different from your system password.\n";
+        return get_passwd(name => $name);
+      }
+    }
+  }
+
+  return "" if ($args{'allow_blank'} and $passwd eq "");
+
+  # check for BAD passwords, BLANK passwords, etc, if requested
+  if (defined($opts{'use-cracklib'})) {
+    require Crypt::Cracklib;
+    if (!Crypt::Cracklib::check($passwd, $cracklib_dict)) {
+      print STDOUT "Bad password: ", Crypt::Cracklib::fascist_check($passwd,
+        $cracklib_dict), "\n";
+      return get_passwd(name => $name);
+    }
+  }
+
+  my $salt = get_salt();
+
+  my $hash = crypt($passwd, $salt);
+
+  # Check that the crypt() implementation properly supports use of the MD5
+  # (or other non-DES algorithm), if specified.
+  if (!defined($opts{'des'})) {
+    if (defined($opts{'md5'})) {
+      # if the first three characters of the hash are not "$1$", the crypt()
+      # implementation doesn't support MD5.  Some crypt()s will happily use
+      # "$1" as a salt even though this is not a valid DES salt.  Humf.
+      #
+      # Perl doesn't treat strings as arrays of characters, so extracting the
+      # first three characters is a little more convoluted (I'm accustomed to
+      # C's strncmp(3) for this now).
+
+      my @string = split('', $hash);
+      my $prefix = $string[0] . $string[1] . $string[2];
+
+      if ($prefix ne '$1$') { 
+        print STDOUT "You requested MD5 passwords but your system does not support it.  Defaulting to DES passwords.\n\n";
+      }
+
+    } elsif (defined($opts{'sha256'})) {
+      # if the first three characters of the hash are not "$5$", the crypt()
+      # implementation doesn't support SHA-256.  Some crypt()s will happily use
+      # "$5" as a salt even though this is not a valid DES salt.  Humf.
+      #
+      # Perl doesn't treat strings as arrays of characters, so extracting the
+      # first three characters is a little more convoluted (I'm accustomed to
+      # C's strncmp(3) for this now).
+
+      my @string = split('', $hash);
+      my $prefix = $string[0] . $string[1] . $string[2];
+
+      if ($prefix ne '$5$') {
+        print STDOUT "You requested SHA-256 passwords but your system does not support it.  Defaulting to DES passwords.\n\n";
+      }
+
+    } elsif (defined($opts{'sha512'})) {
+      # if the first three characters of the hash are not "$6$", the crypt()
+      # implementation doesn't support SHA-512.  Some crypt()s will happily use
+      # "$6" as a salt even though this is not a valid DES salt.  Humf.
+      #
+      # Perl doesn't treat strings as arrays of characters, so extracting the
+      # first three characters is a little more convoluted (I'm accustomed to
+      # C's strncmp(3) for this now).
+
+      my @string = split('', $hash);
+      my $prefix = $string[0] . $string[1] . $string[2];
+
+      if ($prefix ne '$6$') {
+        print STDOUT "You requested SHA-512 passwords but your system does not support it.  Defaulting to DES passwords.\n\n";
+      }
+    }
+  }
+
+  return $hash;
+}
+
+# ----------------------------------------------------------------------------
+sub get_syspasswd {
+  my %args = @_;
+
+  my $user = $args{'user'};
+
+  # test the shadow password support on this system.  Some systems, such
+  # as the BSDs, use "transparent shadowing", where the real passwd will
+  # be returned via getpwnam() only if the process has root privs (effective
+  # UID of zero).  That check has already been performed.  However, other
+  # systems still may not return the password via getpwnam() (such as Linux).
+  # These other systems use a shadow password library of functions, and require
+  # other work to retrieve the password.  On these systems, the retrieved
+  # password will be "x".
+
+  my $syspasswd = (getpwnam($user))[1];
+
+  if ($syspasswd eq "" || $syspasswd eq "x")  {
+
+    # do the retrieval the hard way: open up /etc/shadow and iterate
+    # through each line.  Yuck.  *sigh*.  Thanks to Micah Anderson
+    # for working out this issue.
+
+    open(SHADOW, "< /etc/shadow") or
+      die "$program: unable to access shadow file: $!\n";
+
+    while (chomp(my $line = <SHADOW>)) {
+      next unless $line =~ /^$user/;
+      $syspasswd = (split(':', $line))[1];
+      last; 
+    }
+    close(SHADOW);
+
+    # if the password is still "x", you have problems 
+    if ($syspasswd eq "x") {
+      die "$program: unable to retrieve shadow password.\nContact your system
+administrator.\n";
+    }
+  } 
+
+  return $syspasswd;
+}
+
+# ----------------------------------------------------------------------------
+sub handle_group_entry {
+  my %args = @_;
+
+  my $gid = $args{'gid'};
+  my $name = $args{'name'};
+  my $delete_group = $args{'delete_group'};
+  my $delete_user = $args{'delete_user'};
+  my $add_user = $args{'add_user'};
+  my $passwd;
+
+  my $members = "";
+  $members = join(',', @{$args{'members'}}) if (defined($args{'members'}));
+
+  # check to see whether we should update the fields for this group (because
+  # it already exists), or to create a new entry
+
+  my $found = 0;
+  my $index = 0;
+  for ($index = 0; $index <= $#data; $index++) {
+    my @entry = split(':', $data[$index]);
+
+    if ($name eq $entry[0]) {
+      $found = 1;
+
+      # If we have not been given an explicit password, reuse the existing one.
+      $passwd = $entry[1] unless $passwd;
+
+      # If we have not been given an explicit GID, reuse the existing one.
+      $gid = $entry[2] unless $gid;
+
+      # If we have not been given explicit members, reuse the existing ones.
+      $members = $entry[3] if $members eq '';
+
+      last;
+    }
+  }
+
+  unless ($found) {
+    print STDOUT "$program: creating group entry for group $name\n";
+
+  } else {
+    print STDOUT "$program: updating group entry for group $name\n";
+  }
+
+  # if present, add the members given to the group.  If none, just leave that
+  # field blank
+
+  # prompt for the group password, if requested
+  if (defined($opts{'enable-group-passwd'})) {
+    $passwd = get_passwd(name => $name, allow_blank => 1);
+
+  } else {
+    $passwd = "x";
+  }
+
+  # remove the entry to be updated
+  splice(@data, $index, 1);
+
+  if ($delete_group) {
+    print STDOUT "$program: entry deleted\n";
+    return;
+  }
+
+  if ($delete_user) {
+    $members =~ s/$delete_user//g;
+    $members =~ s/,,/,/g;
+    $members =~ s/^,//g;
+    $members =~ s/,$//g;
+  }
+
+  if ($add_user) {
+    if (length($members) > 0) {
+      $members .= ",$add_user";
+
+    } else {
+      $members = $add_user;
+    }
+  }
+
+  # Ensure that we have a sorted list of unique members
+  my $uniq_members = { map { $_ => 1 } split(',', $members) };
+  my $names = join(',', sort { $a <=> $b } keys(%$uniq_members));
+
+  # format: $name:$passwd:$gid:$members
+  push(@data, "$name:$passwd:$gid:$names");
+
+  # always sort by GIDs before printing out the file
+  @data = map { $_->[0] }
+          sort {
+                $a->[3] <=> $b->[3]
+               }
+          map { [ $_, (split /:/)[0, 1, 2, 3] ] }
+          @data;
+
+  if ($delete_group) {
+    print STDOUT "$program: entry deleted\n";
+
+  } elsif ($found) {
+    print STDOUT "$program: entry updated\n";
+
+  } else {
+    print STDOUT "$program: entry created\n";
+  }
+}
+
+# ----------------------------------------------------------------------------
+sub handle_passwd_entry {
+  my %args = @_;
+
+  my $name = $args{'name'};
+  my $uid = $args{'uid'};
+  my $gid = $args{'gid'};
+  my $gecos = $args{'gecos'};
+  my $home = $args{'home'};
+  my $shell = $args{'shell'};
+  my $delete_user = $args{'delete_user'};
+  my $new_passwd = $args{'new_passwd'};
+
+  # Trim any trailing slashes in $home.
+  $home =~ s/(.*)\/$/$1/ if ($home =~ /\/$/);
+
+  # Make sure the given home directory is NOT a relative path (what a
+  # horrible idea).
+ 
+  unless ($home =~ /^\//) {
+    print STDOUT "$program: error: relative path given for home directory\n";
+    exit 8;
+  }
+  
+  # check to see whether we should update the fields for this user (because
+  # they already exist), or create a new entry
+
+  my $found = 0;
+  my $index = 0;
+  for ($index = 0; $index <= $#data; $index++) {
+    my @entry = split(':', $data[$index]);
+
+    if ($name eq $entry[0]) {
+      $found = 1;
+      last;
+    }
+  }
+
+  unless ($found) {
+    print STDOUT "$program: creating passwd entry for user $name\n";
+
+  } else {
+    print STDOUT "$program: updating passwd entry for user $name\n";
+  }
+
+  my $passwd;
+
+  if (!$delete_user) {
+    if (!$new_passwd) {
+      # check the requested shell against the list in /etc/shells
+      check_shell(shell => $shell);
+
+      # prompt the user for the password
+      $passwd = get_passwd(name => $name);
+
+    } else {
+      $passwd = $new_passwd;
+    }
+  }
+
+  # remove the entry to be updated
+  splice(@data, $index, 1);
+
+  if ($delete_user) {
+    print STDOUT "$program: entry deleted\n";
+    return;
+  }
+
+  # format: $name:$passwd:$uid:$gid:$gecos:$home:$shell
+  push(@data, "$name:$passwd:$uid:$gid:$gecos:$home:$shell");
+
+  # always sort by UIDs before printing out the file
+  @data = map { $_->[0] }
+          sort {
+                $a->[3] <=> $b->[3]
+               }
+          map { [ $_, (split /:/)[0, 1, 2, 3, 4, 5, 6] ] }
+          @data;
+
+  if ($delete_user) {
+    print STDOUT "$program: entry deleted\n";
+
+  } elsif ($found) {
+    print STDOUT "$program: entry updated\n";
+
+  } else {
+    print STDOUT "$program: entry created\n";
+  }
+}
+
+# ----------------------------------------------------------------------------
+sub open_output_file {
+  my %args = @_;
+
+  # open $output_file, paying attention to the --force command-line option
+  # If the file already exists, slurp up its contents for later updating.
+
+  if (-f $output_file) {
+    # make sure we can write/update the file first
+    unless (chmod(0644, $output_file)) {
+      die "$program: unable to set permissions on $output_file to 0644: $!\n";
+    }
+
+    if (open(my $fh, "< $output_file")) {
+      if (flock($fh, LOCK_SH|LOCK_NB)) {
+        chomp(@data = <$fh>);
+        flock($fh, LOCK_UN);
+        close($fh);
+
+      } else {
+        close($fh);
+        die("$program: unable to read $output_file: Locked (in use) by another process\n");
+      }
+
+
+    } else {
+      die("$program: unable to open $output_file: $!\n");
+    }
+  }
+
+  # if the --force option was given, just zero out any data that might have
+  # been read in, effectively erasing whatever contents there were.  A new
+  # file is generated, anyway -- it's just a question of what data goes into
+  # it
+
+  @data = () if (defined($opts{'F'}));
+}
+
+# ----------------------------------------------------------------------------
+sub usage {
+
+	print STDOUT <<END_OF_USAGE;
+
+usage: $program [--help] [--hash|--group|--passwd]
+
+  REQUIRED: --passwd, --group, or --hash.  These specify whether $program is to
+  operate on a passwd(5) format file, on a group(5) format file, or simply
+  to generate a password hash, respectively.
+
+  If used with --passwd, $program creates a file in the passwd(5) format,
+  suitable for use with proftpd's AuthUserFile configuration directive.
+  You will be prompted for the password to use of the user, which will be
+  encrypted, and written out as the encrypted string.  New entries are
+  appended to the file by default.
+ 
+  By default, using --passwd will write output to "$default_passwd_file".
+
+  Error exit values:
+
+  To make it easier for wrapper scripts to interact with $program, $program
+  will exit with the following error values for the reasons described:
+
+    1       no such user
+    2       password matches current password
+    4       password matches system password
+    8       relative path given for home directory
+
+  Options:
+
+    --file      Write output to specified file, rather than "$default_passwd_file".
+
+    -F          If the file to be used already exists, delete it and write a
+    --force     new one.  By default, new entries will be appended to the file.
+
+    --gecos     Descriptive string for the given user (usually the user's
+                full name).
+
+    --gid       Primary group ID for this user (optional, will default to
+                given --uid value if absent).
+
+    -h          Displays this message.
+    --help
+
+    --home      Home directory for the user (required).
+
+    --des       Use the DES algorithm for encrypting passwords.  The default
+                is the MD5 algorithm.
+
+    --md5       Use the MD5 algorithm for encrypting passwords.  This is the
+                default.
+
+    --name      Name of the user account (required).  If the name does not
+                exist in the specified output-file, an entry will be created
+                for her.  Otherwise, the given fields will be updated.
+
+    --shell     Shell for the user (required).  Recommended: /bin/false
+
+    --uid       Numerical user ID (required)
+
+    --change-home
+
+                Update only the home directory field for a user.  This option
+                requires that the --name and --passwd options be used, but no
+                others.
+
+    --change-password
+
+                Update only the password field for a user.  This option
+                requires that the --name and --passwd options be used, but
+                no others.  This also double-checks the given password against
+                the user's current password in the existing passwd file, and
+                requests that a new password be given if the entered password
+                is the same as the current password.
+
+    --delete-user
+ 
+                Remove the entry for the given user name from the file.
+
+    -l          Lock the password of the named account.  This option disables a
+    --lock      password by changing it to a value which matches no possible
+                encrypted value (it adds a '!' at the beginning of the
+                password).
+
+    --not-previous-password
+
+                Double-checks the given password against the previous password
+                for the user, and requests that a new password be given if
+                the entered password is the same as the previous password.
+
+    --not-system-password
+
+                Double-checks the given password against the system password
+                for the user, and requests that a new password be given if
+                the entered password is the same as the system password.  This
+                helps to enforce different passwords for different types of
+                access.
+
+    --sha256    Use the SHA-256 algorithm for encrypting passwords.
+
+    --sha512    Use the SHA-512 algorithm for encrypting passwords.
+
+    --stdin
+                Read the password directly from standard in rather than
+                prompting for it.  This is useful for writing scripts that
+                automate use of $program.
+
+    -u          Unlock the password of the named account.  This option
+    --unlock    re-enables a password by changing the password back to its
+                previous value (to the value before using the -l option).
+
+    --use-cracklib
+
+                Causes $program to use Alec Muffet's cracklib routines in
+                order to determine and prevent the use of bad or weak
+                passwords.  The optional path to this option specifies
+                the path to the dictionary files to use -- default path
+                is "$default_cracklib_dict".  This requires the Perl
+                Crypt::Cracklib module to be installed on your system.
+
+    --version
+                Displays the version of $program.
+
+  If used with --group, $program creates a file in the group(5) format,
+  suitable for use with proftpd's AuthGroupFile configuration directive.
+
+  By default, using --group will write output to "$default_group_file".
+
+  Options:
+
+    --add-member
+
+                Add the named member to the given group name from the file.
+                Example:
+
+        \$ ftpasswd --group --file=... --name=ftpd --add-member=bob
+
+    --delete-group
+
+                Remove the entry for the given group name from the file.
+
+    --enable-group-passwd
+
+                Prompt for a group password.  This is disabled by default,
+                as group passwords are not usually a good idea at all.
+
+    --file      Write output to specified file, rather than "$default_group_file".
+
+    -F          If the file be used already exists, delete it and write a new
+    --force     one.  By default, new entries will be appended to the file.
+
+    --gid       Numerical group ID (required).
+
+    -h
+    --help      Displays this message.
+
+    -m
+    --member    User name to be a member of the group.  This argument may be
+                used multiple times to specify the full list of users to be
+                members of this group.
+
+    --des       Use the DES algorithm for encrypting passwords.  The default
+                is the MD5 algorithm.
+
+    --md5       Use the MD5 algorithm for encrypting passwords.  This is the
+                default.
+
+    --name      Name of the group (required).  If the name does not exist in
+                the specified output-file, an entry will be created for them.
+                Otherwise, the given fields will be updated.
+
+    --sha256    Use the SHA-256 algorithm for encrypting passwords.
+
+    --sha512    Use the SHA-512 algorithm for encrypting passwords.
+
+    --stdin
+                Read the password directly from standard in rather than
+                prompting for it.  This is useful for writing scripts that
+                automate use of $program.
+
+    --use-cracklib
+
+                Causes $program to use Alec Muffet's cracklib routines in
+                order to determine and prevent the use of bad or weak
+                passwords.  The optional path to this option specifies
+                the path to the dictionary files to use -- default path
+                is "$default_cracklib_dict".  This requires the Perl
+                Crypt::Cracklib module to be installed on your system.
+
+    --version
+                Displays the version of $program.
+
+  If used with --hash, $program generates a hash of a password, as would
+  appear in an AuthUserFile.  The hash is written to standard out.
+  This hash is suitable for use with proftpd's UserPassword directive.
+
+  Options:
+
+    --des       Use the DES algorithm for encrypting passwords.  The default
+                is the MD5 algorithm.
+
+    --md5       Use the MD5 algorithm for encrypting passwords.  This is the
+                default.
+
+    --sha256    Use the SHA-256 algorithm for encrypting passwords.
+
+    --sha512    Use the SHA-512 algorithm for encrypting passwords.
+
+    --stdin
+                Read the password directly from standard in rather than
+                prompting for it.  This is useful for writing scripts that
+                automate use of $program.
+
+    --use-cracklib
+
+                Causes $program to use Alec Muffet's cracklib routines in
+                order to determine and prevent the use of bad or weak
+                passwords.  The optional path to this option specifies
+                the path to the dictionary files to use -- default path
+                is "$default_cracklib_dict".  This requires the Perl
+                Crypt::Cracklib module to be installed on your system.
+
+    --version
+                Displays the version of $program.
+
+END_OF_USAGE
+
+  exit 0;
+}
+
+# ---------------------------------------------------------------------------
+sub version {
+  print STDOUT "$version\n";
+
+  exit 0;
+}
+
+# ---------------------------------------------------------------------------
+

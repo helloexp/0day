@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<HTML><HEAD><TITLE>Man page of ftpscrub</TITLE>
+</HEAD><BODY>
+<HR>
+
+<H2>NAME</H2>
+
+ftpscrub - scrub the proftpd scoreboard file of stale entries
+
+<H2>SYNOPSIS</H2>
+
+<B>ftpscrub</B>
+
+<H2>DESCRIPTION</H2>
+
+The
+<B>ftpscrub</B>
+
+command provides a way to scrub the scoreboard file on demand, at times
+which suit the site best.  This should be run periodically on sites
+which run proftpd in
+<I>inetd</I>
+
+mode.
+
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-h,--help</B>
+
+<DD>
+Display a short usage description, including all available options.
+<DT><B>-f,--file</B><I> scoreboard-file</I>
+
+<DD>
+Specify the full path to proftpd's run-time scoreboard file (configured
+via the <B>ScoreboardFile</B> directive in
+<I>proftpd.conf</I>
+
+).  If proftpd's
+default directory has been changed via this directive, <B>ftpscrub</B>
+must either be recompiled, or this option must be used in order to find
+proftpd's scoreboard.
+<DT><B>-v,--verbose</B>
+
+<DD>
+Reports additional information while scrubbing the scoreboard.
+</DL>
+
+<H2>FILES</H2>
+
+<B>/usr/local/bin/ftpscrub</B>
+
+<BR>
+
+<B>/usr/local/var//proftpd.scoreboard</B>
+
+
+<H2>AUTHORS</H2>
+
+<P>
+
+ProFTPD is written and maintained by a number of people, full credits
+can be found on
+<B><A HREF="http://www.proftpd.org/credits.html">http://www.proftpd.org/credits.html</A></B>
+
+
+<H2>SEE ALSO</H2>
+inetd(8), ftp(1), proftpd(8), ftpwho(1), ftpcount(1)
+
+<P>
+
+Full documentation on ProFTPD, including configuration and FAQs, is available at
+<B><A HREF="http://www.proftpd.org/">http://www.proftpd.org/</A></B>
+
+<P>
+
+For help/support, try the ProFTPD mailing lists, detailed on
+<B><A HREF="http://www.proftpd.org/lists.html">http://www.proftpd.org/lists.html</A></B>
+
+<P>
+
+Report bugs at
+<B><A HREF="http://bugs.proftpd.org/">http://bugs.proftpd.org/</A></B>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</BODY>
+</HTML>

@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: KeepAlives</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: KeepAlives</b></h2></center>
+<hr>
+
+<p>
+<b>Overview of KeepAlive</b><br>
+Any discussion of so-called "keep-alive" functionality must start by answering
+the question: "What is does 'keep-alive' mean?"  As one specification
+succintly states:
+<pre>
+  A "keep-alive" mechanism periodically probes the other end of a connection
+  when the connection is otherwise idle, even when there is no data to be sent.
+</pre>
+Keepalive mechanisms appear in many different protocols, under various names.
+Protocols may be layered over the top of another protocol; for example, HTTPS
+consists of HTTP layered over SSL/TLS, itself layered over TCP/IP.  Each
+protocol layer may have its own form of such keepalive functionality.
+
+<p><a name="TCPKeepAlive"></a>
+<b>TCP KeepAlive</b><br>
+For TCP, the definitive specification for keepalive functionality is
+<a href="http://www.faqs.org/rfcs/rfc1122.html">RFC 1122</a>, Section
+4.2.3.6.  While RFC 1122 includes a good discussion of why TCP keepalives are
+meant to be off by default, in practice TCP keepalives <b>do</b> have value,
+especially when dealing with network equipment (such as routers, firewalls,
+NATs) between the client and the server; such equipment might terminate the
+connection when the connection has been idle for too long.  The use of TCP
+keepalives can help to prevent such network equipment from breaking the
+connection needlessly.
+
+<p>
+<b><i>How TCP KeepAlives Works</i></b><br>
+OK, so you want to use the TCP keepalive functionality in your program.  The
+question is "How exactly does the TCP keepalive feature work?"  Good question.
+Answering this requires three different numeric values: the <i>idle time</i>,
+the number of probes to send (the probe <i>count</i>), and the <i>interval
+time</i> between each probe.  Remember, though, that the
+<code>SO_KEEPALIVE</code> TCP socket option <b>must</b> be enabled on the socket
+in order for the TCP keepalive feature to be used.
+
+<p>
+First, let's assume that you have created a TCP connection, and have transferred
+data back and forth on that connection.  All of the data have been transferred,
+but you have not <i>closed</i> the connection, so now it is idle.  How long
+does that connection sit idle, with no data transferred <i>at the TCP layer</i>,
+before one end of the connection or the other starts to wonder whether the
+connection is still alive?  This amount of time where the connection sits idle
+is the TCP keepalive <i>idle time</i>; the default <i>idle time</i> is two
+hours (per RFC 1122).
+
+<p>
+Our TCP connection has been sitting idle now for amount of time given by the
+<i>idle time</i> value; what happens then?  At this point, the end of the TCP
+connection with TCP keepalive enabled sends out a "probe".  This probe is
+just a small TCP packet which requires a response from the other side.  Once
+the probe has been sent, the amount of time given by the <i>interval time</i>
+value passes.  If we hear nothing back from the remote peer within the
+<i>interval time</i>, we send another probe.  This process repeats until either
+<i>a)</i> we receive a response back from the peer, or <i>b)</i> the probe
+<i>count</i> value has been reached.
+
+<p>
+Let us assume that our TCP connection was idle for so long that TCP keepalive
+probes were sent, and still no response was received.  What happens then?  At
+this point, the connection is broken.  When the programs at either end of
+the connection next try to read or write data on that connection, the read/write
+attempts will fail.
+
+<p>
+<b><i>When To Use TCP KeepAlive</i></b><br>
+When the TCP client is connected directly to the TCP server, it usually does
+not matter whether one end or the other uses TCP keepalive.  As long as
+<i>one</i> of them does, a broken connection can be detected.
+<pre>
+    client <-------------------------------> server
+</pre>
+However, if the TCP client connects to the TCP server via
+proxies/routers/firewalls/NAT, the picture changes.  When this happens (and
+it is the common scenario), then <b>both</b> sides may need to use TCP
+keepalive to learn when their side of the proxied connection is broken:
+<pre>
+    client <-----------> NAT <-------------> server
+</pre>
+In this situation, there are actually <em>two</em> different TCP connections
+involved: between the client and the NAT, and between the NAT and the server.
+Each TCP connection may break independently of the other, which is why both
+ends of the connection (client and server) may need to use TCP keepalives.
+Use of TCP keepalives <i>also</i> helps here because when the
+router/firewall/NAT receives the TCP keepalive probe, it <i>may</i> (depending
+on the network equipment in question) cause the router to reset any timers that
+were about to close the TCP connections on either side.
+
+<p>
+<b><i>Why are TCP KeepAlives Useful for FTP?</i></b><br>
+"This is all very fascinating", you say, "but what does it have to do with
+<code>proftpd</code> and FTP?"  If you have ever had an FTP download (or upload)
+take a <i>very long time</i>, only to have that transfer timed out in the
+middle, then TCP keepalives may prevent the timeout.
+
+<p>
+Consider what happens for FTP transfers which take a long time (either due to
+very large file(s) being transferred, or a slow connection): you have one TCP
+connection for the control connection, and a <i>separate</i> TCP connection for
+the data transfer connection.  All of the bytes are being transferred over the
+data connection, so that data connection is certainly not idle -- but while the
+data transfer is occurring, the <i>control</i> connection is idle!  And let's
+assume that your FTP connections are going through some NAT device in between
+the client and the server.  That NAT may not be very smart; it may not know
+that the two different TCP connections of your FTP session are related to each
+other; it only sees one idle TCP connection, and one busy TCP connection.  If
+that FTP control connection is idle for too long, then the NAT may close it
+(in order to keep valuable space in its state tables available for TCP
+connections that actually need to transfer bytes).  (Some NATs have been known
+to close TCP connections that have been idle for only 5 minutes.)  The FTP
+server sees that the FTP control connection is closed, and aborts the data
+transfer.  What a mess!
+
+<p>
+If either the FTP server or the FTP client had used TCP keepalives on the
+control connection, then maybe that NAT would have seen the TCP keepalive
+probes, and <b>not</b> closed the idle control connection.  So how can we
+make sure that either the client or the server has TCP keepalives enabled?
+
+<p>
+In <code>proftpd-1.3.5rc1</code> and later, ProFTPD's <a href="../modules/mod_core.html#SocketOptions"><code>SocketOptions</code></a> directive supports a
+<em>keepalive</em> parameter for controlling whether the server uses TCP
+keepalives, <i>e.g.</i>:
+<pre>
+  # Disable use of TCP keepalives
+  SocketOptions keepalive off
+
+  # Enable use of TCP keepalives (this is the default)
+  SocketOptions keepalive on
+</pre>
+In addition, on some Unix platforms, the <code>SocketOptions</code>
+directive's <em>keepalive</em> parameter can do finer-grained tuning of the
+TCP keepalive values:
+<pre>
+  # Enable use of TCP keepalives, with the given idle/count/interval values
+  SocketOptions keepalive 7200:9:75
+</pre>
+In general, though, you should use the system-wide defaults unless you are
+running into data transfer timeout issues.  If you <b>are</b> seeing timeouts,
+try using the <em>keepalive</em> parameter of <code>SocketOptions</code> to
+gradually reduce the idle timeout by small increments (<i>e.g.</i> 10-15
+seconds), <i>then</i> if that does not help, increment the count by 1 at a
+time (remember that each probe is more extra data transfer), <i>then</i> if that
+still does not help, <b>increase</b> the interval time.  Do <b>not reduce the
+interval time</b>, since that is the amount of time that you should wait to
+see if the other end responds, before sending another probe.  Waiting less
+time before the other end responds means a greater chance of killing your TCP
+connection unnecessarily.
+
+<p>
+Not all TCP stacks let the application control the TCP keepalive timeout after
+which the first probe will be sent, or the total number of probes sent, or how
+much time between probes will be used.  That is, many TCP stacks <i>only</i>
+allow enabling/disabling of TCP keepalive.  If TCP keepalive <i>is</i> enabled,
+then the standard values of 2 hours for the idle timeout, a count of 9 probes,
+with 75 seconds between probes, will be used.
+
+<p>
+Since many platforms do not allow fine-grained tuning of TCP keepalive values,
+especially on a per-service basis, other means for checking whether the
+connection is still alive must be used.  And that leads us to application-level
+keepalive mechanisms.
+
+<p><a name="FTPKeepAlive">
+<b>FTP KeepAlive</b><br>
+If tuning TCP keepalives does not work to keep your long-lasting data transfers
+from timing out, what can be done?  Answer: use keepalive features at other
+layers in the protocol stack.  FTP has its own ideas for doing keepalive
+checks, but they are not as elegant as that of TCP.
+
+<p>
+The main issue with FTP keepalives is that they are all initiated by the client.
+FTP is a request/response model, and it does not allow for the FTP server to
+send arbitrary unrequested data to the FTP client via the control connection.
+Fortunately, there are many FTP clients which implement some sort of FTP
+keepalive feature.
+
+<p>
+<b><i>How FTP KeepAlive Works</i></b><br>
+Since the FTP server cannot do anything to test whether the FTP session is
+alive, the FTP client must do the tests.  The easiest way to test whether an
+FTP session is alive is to send an FTP command.  And fortunately,
+<a href="http://www.faqs.org/rfcs/rfc959.html">RFC 959</a>, Section 4.1.3
+defines the <code>NOOP</code> ("No Operation") command whose sole purpose is
+to elicit the "OK" response from the FTP server.  This makes the
+<code>NOOP</code> command the ideal way to test whether the FTP server is
+still alive and listening to the FTP client.
+
+<p>
+Some firewalls/routers know about this <code>NOOP</code> trick, though, and
+may filter out/drop that FTP command.  FTP clients, then, have been known to
+resort to a number of other FTP commands for use as FTP keepalives, including:
+<ul>
+  <li><code>NOOP</code>
+  <li><code>LIST</code>
+  <li><code>STAT</code>
+  <li><code>CWD</code>
+  <li><code>REST 0</code>
+  <li><code>PWD</code>
+  <li><code>TYPE A</code>
+</ul>
+Some FTP clients even choose a command at random from the above list, just to
+keep any interfering router/firewall/NAT guessing!
+
+<p>
+Sadly, some FTP servers cannot handle receiving an FTP command on the control
+connection while they are in the middle of transferring data on the data
+connection (<code>proftpd</code> <b>can</b> handle this).  But that may not
+matter, for the purposes of FTP keepalives; all that matters is that at the
+TCP level, the bytes were sent by the client and acknowledged by the server's
+TCP stack.
+
+<p>
+<b><i>FTP Client-Specific KeepAlive Settings</i></b><br>
+Not every FTP client supports the FTP keepalive functionality.  If you want
+to try out FTP clients which <i>do</i> support FTP keepalives, you might look
+into the <code>ftp:nop-interval</code> setting for
+<a href="http://lftp.yar.ru/lftp-man.html"><code>lftp</code></a>, or the
+<code>control-timeout</code> setting for
+<a href="http://www.ncftp.com/ncftp/doc/ncftp.html#sect5"><code>ncftp</code></a>.
+
+<p><a name="SSHKeepAlive">
+<b>SSH KeepAlive</b><br>
+The SSH2 protocol (and SFTP, which runs over SSH2) is more complex than FTP,
+and thus has <i>much</i> better support for application-level keepalive
+functionality.  Either end of an SSH2 connection can send messages at any time.
+
+<p>
+<b><i>How SSH KeepAlive Works</i></b><br>
+The usual mechanism used by SSH2 implementations for implementing an SSH2-level
+keepalive check is send either a <code>CHANNEL_REQUEST</code> or a
+<code>GLOBAL_REQUEST</code> message for a known unsupported command, and to
+request a response from the other side.  It does not matter that the requested
+command is unsupported; all that matters is that the response comes back,
+signifying that the other end is still alive and listening.  Both clients and
+servers use this technique.
+
+<p>
+In the case of ProFTPD's <code>mod_sftp</code> module, the way to configure
+SSH2 keepalives is the <a href="../contrib/mod_sftp.html#SFTPClientAlive"><code>SFTPClientAlive</code></a> directive.  When configured, the
+<code>mod_sftp</code> module sends <code>CHANNEL_REQUEST</code>/<code>GLOBAL_REQUEST</code> messages for "keepalive@proftpd.org" in order to solicit a response
+from the connected client.
+
+<p>
+<b>KeepAlive in Other Protocols</b><br>
+Many application protocols end up reinventing the keepalive feature in some
+way, usually as a "ping/pong" mechanism where a "ping" is sent every so often
+by one side, with a "pong" response expected from the other end of the
+connection.
+
+<p>
+<b><i>HTTP</i></b><br>
+Most HTTP connections have no need of a keepalive mechanism since HTTP
+connections are usually short-lived, and since there are usually data flowing
+in one direction or the other on the HTTP connection (thus an HTTP connection
+is usually not idle for long enough time to warrant a keepalive feature).
+HTTP long polling (<i>i.e.</i>
+<a href="http://www.faqs.org/rfcs/rfc6202.html">RFC 6202</a>) is an exception;
+and for HTTP long polling connections, use of TCP keepalives may be needed.
+But the HTTP protocol itself does not specifically define a way for either
+end to arbitrarily send data across the connection for the purpose of
+determining whether the connection is still alive.  (HTTP keepalive refers
+to a different concept, <i>i.e.</i> that of telling the server to <b>not</b>
+close the connection after sending its response so that the connection can
+be reused, thus "kept alive".)
+
+<p>
+<b><i>LDAP</i></b><br>
+For long-lived LDAP connections, keepalive functionality can be implemented
+by using the Abandon operation, as described
+<a href="http://stackoverflow.com/questions/313575/ldap-socket-keep-alive?rq=1">here</a>.  The idea is to have the client send a request that it knows the
+server will ignore/discard; the act of transmitting the request over the
+connection acts to keep any intermediaries on the network (router/NAT/firewall)
+from closing an "idle" connection prematurely.
+
+<p>
+<b><i>WebSocket</i></b><br>
+The WebSocket protocol, defined in
+<a href="http://www.faqs.org/rfcs/rfc6455.html">RFC 6455</a>, does have need
+of a keepalive mechanism, since it establishes a long-lived connection.
+Thus does the RFC define ping/pong messages; see Section 5.5.2
+(<code>PING</code>), and Section 5.5.3 (<code>PONG</code>).
+
+<p>
+<b>Additional Reading</b></br>
+<ul>
+  <li><a name="[1]"><a href="http://www.gnugk.org/keepalive.html">http://www.gnugk.org/keepalive.html</a>
+  <li><a name="[2]"><a href="http://www.starquest.com/Supportdocs/techStarLicense/SL002_TCPKeepAlive.shtml">http://www.starquest.com/Supportdocs/techStarLicense/SL002_TCPKeepAlive.shtml</a>
+  <li><a name="[3]"><a href="http://rolande.wordpress.com/2010/12/30/performance-tuning-the-network-stack-on-mac-osx-10-6/">http://rolande.wordpress.com/2010/12/30/performance-tuning-the-network-stack-on-mac-osx-10-6/</a>
+  <li><a name="[4]"><a href="http://stackoverflow.com/questions/1480236/does-a-tcp-socket-connection-have-a-keep-alive">http://stackoverflow.com/questions/1480236/does-a-tcp-socket-connection-have-a-keep-alive</a>
+  <li><a name="[5]"><a href="http://www.wftpserver.com/kb_keepalive.htm">http://www.wftpserver.com/kb_keepalive.htm</a>
+  <li><a name="[6]"><a href="http://serverfault.com/questions/84310/how-to-prevent-tcp-connection-timeout-when-ftping-large-file">http://serverfault.com/questions/84310/how-to-prevent-tcp-connection-timeout-when-ftping-large-file</a>
+  <li><a name="[7]"><a href="http://stackoverflow.com/questions/5533185/keeping-ftp-control-connection-alive">http://stackoverflow.com/questions/5533185/keeping-ftp-control-connection-alive</a>
+</ul>
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+<p>
+<font color=red>Question</font>: When should I use application-level keepalives like FTP or SSH2 keepalives instead of TCP keepalives?  Or can I use them all
+at the same time?<br>
+<font color=blue>Answer</font>: There is no issue with using the different
+types of keepalives at the same time; remember that each type of keepalive
+functions at a different protocol layer.
+
+<p>
+That said, if you have to choose, I would recommend using the application-level
+keepalive feature when you can, as opposed to TCP keepalives.  Why?  First,
+you probably have more control over when the application-level keepalive
+feature is used than if you used TCP keepalives (<i>e.g.</i> you can use the
+application-level keepalive check more frequently than the TCP keepalive
+feature would detect a dead connection).
+
+<p>
+Second, TCP keepalives may <b>not</b> cause a NAT to keep the TCP connection
+on each side open, but an application-level keepalive should do so, since
+the application-level keepalive data <b>must</b> traverse both connections:
+<pre>
+           <------------ SSH2 REQUEST ----------->
+           -------------- FTP NOOP -------------->
+    client <---------------> NAT <---------------> server
+           <-- TCP probe -->     <-- TCP probe -->
+</pre>
+
+<p>
+<font color=red>Question</font>: Why should I use <code>SocketOptions</code> to
+configure <code>proftpd</code>'s TCP keepalive settings, as opposed to
+changing some of the sysctls on my machine that apply to TCP KeepAlives?<br>
+<font color=blue>Answer</font>: Using the <code>SocketOptions</code> directive
+means that your TCP keepalive tunings will only affect the FTP/SFTP connections
+to <code>proftpd</code>, instead of applying to <b>all</b> TCP connections to
+your machine.  FTP/SFTP sessions, being long-lived, probably have different
+keepalive timing needs than from other TCP connections, so it is best to tune
+their settings separately, without impacting all connections to that machine.
+
+<p>
+<font color=red>Question</font>: If TCP keepalives are so useful, why not
+tune them to be quite short?  Why does RFC 1122 recommend a default of
+<em>two</em> hours before checking if the peer is still there?<br>
+<font color=blue>Answer</font>: There are a couple of reasons why you might
+<b>not</b> want to tune your TCP keepalive settings to be shorter.
+
+<p>
+First, keep in mind that TCP was designed to keep the TCP level connection
+"alive" even though various parts of the underlying hardware, such as
+routers, firewalls, etc might crash and be rebooted in the middle of things.
+This is why TCP retransmits lost packets, routes around unresponsive
+hops, etc.  If, then, your TCP keepalive settings are aggressively short,
+your TCP connection may be shut down (due to not responding to TCP keepalive
+probes in time) because of a crashed network component.  The recommended
+default of two hours allows for such network route changes <i>without losing
+the TCP connection</i>.
+
+<p>
+Second, every TCP keepalive probe counts as more data transferred over your
+network link.  Some links may have exorbitantly high rates for transferred
+bytes (think satellite links), so on such links, keeping the number of bytes
+transferred down amounts to cost savings.  Tuning TCP keepalive to use shorter
+times on such links means <i>more</i> data transferred, thus higher costs.
+On other links, where data transfer rates are cheap, the additional bytes
+transferred due to shorter TCP keepalive settings may be negligible.
+
+<p>
+Last, many people argue that use of TCP keepalives may consume unnecessary
+bandwidth.  The question becomes "If no one is using the connection, who
+cares if the connection is still good?"  (To be fair, this argument makes more
+sense when the connected peers are <b>not</b> separated by proxies, gateways,
+and NATs.)
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

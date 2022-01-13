@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_site</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_site</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+This module is contained in the <code>mod_site.c</code> file for
+ProFTPD 1.3.<i>x</i>, and is compiled by default.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_site</code> module is compiled by default.
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+
+<p>
+Example configurations:
+<pre>
+  # Block use of the SITE CHMOD command for changing file permissions
+  &lt;Limit SITE_CHMOD&gt;
+    DenyAll
+  &lt;/Limit&gt;
+
+  # Block use of the SITE CHGRP command for changing group ownership
+  &lt;Limit SITE_CHGRP&gt;
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2002-2011 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

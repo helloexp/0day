@@ -1,0 +1,297 @@
+SUDOREPLAY(1m)               System Manager's Manual              SUDOREPLAY(1m)
+
+NNAAMMEE
+     ssuuddoorreeppllaayy - replay sudo session logs
+
+SSYYNNOOPPSSIISS
+     ssuuddoorreeppllaayy [--hhnnRR] [--dd _d_i_r] [--ff _f_i_l_t_e_r] [--mm _n_u_m] [--ss _n_u_m] ID
+
+     ssuuddoorreeppllaayy [--hh] [--dd _d_i_r] --ll [search expression]
+
+DDEESSCCRRIIPPTTIIOONN
+     ssuuddoorreeppllaayy plays back or lists the output logs created by ssuuddoo.  When
+     replaying, ssuuddoorreeppllaayy can play the session back in real-time, or the
+     playback speed may be adjusted (faster or slower) based on the command
+     line options.
+
+     The _I_D should either be a six character sequence of digits and upper case
+     letters, e.g. 0100A5, or a pattern matching the _i_o_l_o_g___f_i_l_e option in the
+     _s_u_d_o_e_r_s file.  When a command is run via ssuuddoo with _l_o_g___o_u_t_p_u_t enabled in
+     the _s_u_d_o_e_r_s file, a TSID=ID string is logged via syslog or to the ssuuddoo
+     log file.  The _I_D may also be determined using ssuuddoorreeppllaayy's list mode.
+
+     In list mode, ssuuddoorreeppllaayy can be used to find the ID of a session based on
+     a number of criteria such as the user, tty or command run.
+
+     In replay mode, if the standard input and output are connected to a
+     terminal and the --nn option is not specified, ssuuddoorreeppllaayy will operate
+     interactively.  In interactive mode, ssuuddoorreeppllaayy will attempt to adjust
+     the terminal size to match that of the session and write directly to the
+     terminal (not all terminals support this).  Additionally, it will poll
+     the keyboard and act on the following keys:
+
+     `\n' or `\r'  Skip to the next replay event; useful for long pauses.
+
+     ` ' (space)   Pause output; press any key to resume.
+
+     `<'           Reduce the playback speed by one half.
+
+     `>'           Double the playback speed.
+
+     The session can be interrupted via control-C.  When the session has
+     finished, the terminal is restored to its original size if it was changed
+     during playback.
+
+     The options are as follows:
+
+     --dd _d_i_r, ----ddiirreeccttoorryy=_d_i_r
+                 Store session logs in _d_i_r instead of the default,
+                 _/_v_a_r_/_l_o_g_/_s_u_d_o_-_i_o.
+
+     --ff _f_i_l_t_e_r, ----ffiilltteerr=_f_i_l_t_e_r
+                 Select which I/O type(s) to display.  By default, ssuuddoorreeppllaayy
+                 will display the command's standard output, standard error
+                 and tty output.  The _f_i_l_t_e_r argument is a comma-separated
+                 list, consisting of one or more of following: _s_t_d_i_n, _s_t_d_o_u_t,
+                 _s_t_d_e_r_r, _t_t_y_i_n, and _t_t_y_o_u_t.
+
+     --hh, ----hheellpp  Display a short help message to the standard output and exit.
+
+     --ll, ----lliisstt [_s_e_a_r_c_h _e_x_p_r_e_s_s_i_o_n]
+                 Enable "list mode".  In this mode, ssuuddoorreeppllaayy will list
+                 available sessions in a format similar to the ssuuddoo log file
+                 format, sorted by file name (or sequence number).  If a
+                 _s_e_a_r_c_h _e_x_p_r_e_s_s_i_o_n is specified, it will be used to restrict
+                 the IDs that are displayed.  An expression is composed of the
+                 following predicates:
+
+                 command _p_a_t_t_e_r_n
+                         Evaluates to true if the command run matches the
+                         POSIX extended regular expression _p_a_t_t_e_r_n.
+
+                 cwd _d_i_r_e_c_t_o_r_y
+                         Evaluates to true if the command was run with the
+                         specified current working directory.
+
+                 fromdate _d_a_t_e
+                         Evaluates to true if the command was run on or after
+                         _d_a_t_e.  See _D_a_t_e _a_n_d _t_i_m_e _f_o_r_m_a_t for a description of
+                         supported date and time formats.
+
+                 group _r_u_n_a_s___g_r_o_u_p
+                         Evaluates to true if the command was run with the
+                         specified _r_u_n_a_s___g_r_o_u_p.  Note that unless a
+                         _r_u_n_a_s___g_r_o_u_p was explicitly specified when ssuuddoo was
+                         run this field will be empty in the log.
+
+                 runas _r_u_n_a_s___u_s_e_r
+                         Evaluates to true if the command was run as the
+                         specified _r_u_n_a_s___u_s_e_r.  Note that ssuuddoo runs commands
+                         as user _r_o_o_t by default.
+
+                 todate _d_a_t_e
+                         Evaluates to true if the command was run on or prior
+                         to _d_a_t_e.  See _D_a_t_e _a_n_d _t_i_m_e _f_o_r_m_a_t for a description
+                         of supported date and time formats.
+
+                 tty _t_t_y _n_a_m_e
+                         Evaluates to true if the command was run on the
+                         specified terminal device.  The _t_t_y _n_a_m_e should be
+                         specified without the _/_d_e_v_/ prefix, e.g. _t_t_y_0_1
+                         instead of _/_d_e_v_/_t_t_y_0_1.
+
+                 user _u_s_e_r _n_a_m_e
+                         Evaluates to true if the ID matches a command run by
+                         _u_s_e_r _n_a_m_e.
+
+                 Predicates may be abbreviated to the shortest unique string.
+
+                 Predicates may be combined using _a_n_d, _o_r and _! operators as
+                 well as `(' and `)' grouping (note that parentheses must
+                 generally be escaped from the shell).  The _a_n_d operator is
+                 optional, adjacent predicates have an implied _a_n_d unless
+                 separated by an _o_r.
+
+     --mm, ----mmaaxx--wwaaiitt _m_a_x___w_a_i_t
+                 Specify an upper bound on how long to wait between key
+                 presses or output data.  By default, ssuuddoorreeppllaayy will
+                 accurately reproduce the delays between key presses or
+                 program output.  However, this can be tedious when the
+                 session includes long pauses.  When the --mm option is
+                 specified, ssuuddoorreeppllaayy will limit these pauses to at most
+                 _m_a_x___w_a_i_t seconds.  The value may be specified as a floating
+                 point number, e.g. _2_._5.  A _m_a_x___w_a_i_t of zero or less will
+                 eliminate the pauses entirely.
+
+     --nn, ----nnoonn--iinntteerraaccttiivvee
+                 Do not prompt for user input or attempt to re-size the
+                 terminal.  The session is written to the standard output, not
+                 directly to the user's terminal.
+
+     --RR, ----nnoo--rreessiizzee
+                 Do not attempt to re-size the terminal to match the terminal
+                 size of the session.
+
+     --ss, ----ssppeeeedd _s_p_e_e_d___f_a_c_t_o_r
+                 This option causes ssuuddoorreeppllaayy to adjust the number of seconds
+                 it will wait between key presses or program output.  This can
+                 be used to slow down or speed up the display.  For example, a
+                 _s_p_e_e_d___f_a_c_t_o_r of _2 would make the output twice as fast whereas
+                 a _s_p_e_e_d___f_a_c_t_o_r of _._5 would make the output twice as slow.
+
+     --VV, ----vveerrssiioonn
+                 Print the ssuuddoorreeppllaayy versions version number and exit.
+
+   DDaattee aanndd ttiimmee ffoorrmmaatt
+     The time and date may be specified multiple ways, common formats include:
+
+     HH:MM:SS am MM/DD/CCYY timezone
+             24 hour time may be used in place of am/pm.
+
+     HH:MM:SS am Month, Day Year timezone
+             24 hour time may be used in place of am/pm, and month and day
+             names may be abbreviated.  Note that month and day of the week
+             names must be specified in English.
+
+     CCYY-MM-DD HH:MM:SS
+             ISO time format
+
+     DD Month CCYY HH:MM:SS
+             The month name may be abbreviated.
+
+     Either time or date may be omitted, the am/pm and timezone are optional.
+     If no date is specified, the current day is assumed; if no time is
+     specified, the first second of the specified date is used.  The less
+     significant parts of both time and date may also be omitted, in which
+     case zero is assumed.
+
+     The following are all valid time and date specifications:
+
+     now     The current time and date.
+
+     tomorrow
+             Exactly one day from now.
+
+     yesterday
+             24 hours ago.
+
+     2 hours ago
+             2 hours ago.
+
+     next Friday
+             The first second of the Friday in the next (upcoming) week.  Not
+             to be confused with "this Friday" which would match the Friday of
+             the current week.
+
+     last week
+             The current time but 7 days ago.  This is equivalent to "a week
+             ago".
+
+     a fortnight ago
+             The current time but 14 days ago.
+
+     10:01 am 9/17/2009
+             10:01 am, September 17, 2009.
+
+     10:01 am
+             10:01 am on the current day.
+
+     10      10:00 am on the current day.
+
+     9/17/2009
+             00:00 am, September 17, 2009.
+
+     10:01 am Sep 17, 2009
+             10:01 am, September 17, 2009.
+
+     Note that relative time specifications do not always work as expected.
+     For example, the "next" qualifier is intended to be used in conjunction
+     with a day such as "next Monday".  When used with units of weeks, months,
+     years, etc the result will be one more than expected.  For example, "next
+     week" will result in a time exactly two weeks from now, which is probably
+     not what was intended.  This will be addressed in a future version of
+     ssuuddoorreeppllaayy.
+
+   DDeebbuuggggiinngg ssuuddoorreeppllaayy
+     ssuuddoorreeppllaayy versions 1.8.4 and higher support a flexible debugging
+     framework that is configured via Debug lines in the sudo.conf(4) file.
+
+     For more information on configuring sudo.conf(4), please refer to its
+     manual.
+
+FFIILLEESS
+     _/_e_t_c_/_s_u_d_o_._c_o_n_f            Debugging framework configuration
+
+     _/_v_a_r_/_l_o_g_/_s_u_d_o_-_i_o          The default I/O log directory.
+
+     _/_v_a_r_/_l_o_g_/_s_u_d_o_-_i_o_/_0_0_/_0_0_/_0_1_/_l_o_g
+                               Example session log info.
+
+     _/_v_a_r_/_l_o_g_/_s_u_d_o_-_i_o_/_0_0_/_0_0_/_0_1_/_s_t_d_i_n
+                               Example session standard input log.
+
+     _/_v_a_r_/_l_o_g_/_s_u_d_o_-_i_o_/_0_0_/_0_0_/_0_1_/_s_t_d_o_u_t
+                               Example session standard output log.
+
+     _/_v_a_r_/_l_o_g_/_s_u_d_o_-_i_o_/_0_0_/_0_0_/_0_1_/_s_t_d_e_r_r
+                               Example session standard error log.
+
+     _/_v_a_r_/_l_o_g_/_s_u_d_o_-_i_o_/_0_0_/_0_0_/_0_1_/_t_t_y_i_n
+                               Example session tty input file.
+
+     _/_v_a_r_/_l_o_g_/_s_u_d_o_-_i_o_/_0_0_/_0_0_/_0_1_/_t_t_y_o_u_t
+                               Example session tty output file.
+
+     _/_v_a_r_/_l_o_g_/_s_u_d_o_-_i_o_/_0_0_/_0_0_/_0_1_/_t_i_m_i_n_g
+                               Example session timing file.
+
+     Note that the _s_t_d_i_n, _s_t_d_o_u_t and _s_t_d_e_r_r files will be empty unless ssuuddoo
+     was used as part of a pipeline for a particular command.
+
+EEXXAAMMPPLLEESS
+     List sessions run by user _m_i_l_l_e_r_t:
+
+           # sudoreplay -l user millert
+
+     List sessions run by user _b_o_b with a command containing the string vi:
+
+           # sudoreplay -l user bob command vi
+
+     List sessions run by user _j_e_f_f that match a regular expression:
+
+           # sudoreplay -l user jeff command '/bin/[a-z]*sh'
+
+     List sessions run by jeff or bob on the console:
+
+           # sudoreplay -l ( user jeff or user bob ) tty console
+
+SSEEEE AALLSSOO
+     script(1), sudo.conf(4), sudo(1m)
+
+AAUUTTHHOORRSS
+     Many people have worked on ssuuddoo over the years; this version consists of
+     code written primarily by:
+
+           Todd C. Miller
+
+     See the CONTRIBUTORS file in the ssuuddoo distribution
+     (https://www.sudo.ws/contributors.html) for an exhaustive list of people
+     who have contributed to ssuuddoo.
+
+BBUUGGSS
+     If you feel you have found a bug in ssuuddoorreeppllaayy, please submit a bug
+     report at https://bugzilla.sudo.ws/
+
+SSUUPPPPOORRTT
+     Limited free support is available via the sudo-users mailing list, see
+     https://www.sudo.ws/mailman/listinfo/sudo-users to subscribe or search
+     the archives.
+
+DDIISSCCLLAAIIMMEERR
+     ssuuddoorreeppllaayy is provided "AS IS" and any express or implied warranties,
+     including, but not limited to, the implied warranties of merchantability
+     and fitness for a particular purpose are disclaimed.  See the LICENSE
+     file distributed with ssuuddoo or https://www.sudo.ws/license.html for
+     complete details.
+
+Sudo 1.8.25                      March 8, 2018                     Sudo 1.8.25

@@ -1,0 +1,1525 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_sql</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_sql</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_sql</code> module is an authentication and logging module
+for ProFTPD.  It is comprised of a front end module (<code>mod_sql</code>)
+and backend database-specific modules (<code>mod_sql_mysql</code>,
+<code>mod_sql_postgres</code>, <code>mod_sql_sqlite</code>, <i>etc</i>).  The
+front end module leaves the specifics of handling database connections to the
+backend modules.
+
+<p>
+The <code>mod_sql</code> module is not compiled by default.  Installation
+instructions are discussed <a href="#Installation">here</a>.
+
+<p>
+This product includes software developed by the OpenSSL Project for use in the
+OpenSSL Toolkit (http://www.openssl.org/).
+
+<p>
+This product includes cryptographic software written by Eric Young
+(eay@cryptsoft.com).
+
+<p>
+The most current version of <code>mod_sql</code> is distributed with ProFTPD.
+
+<h2>Thanks</h2>
+<ul>
+  <li>Johnie Ingram &lt;johnie <i>at</i> netgod.net&gt; for the original
+    <code>mod_sqlpw</code>.
+  <li>TJ Saunders and Jesse Sipprell for dealing with my inane questions.
+  <li>John Morrissey for <code>mod_ldap</code>, which lit the way, here and
+     there.
+  <li>Zeev Suraski &lt;bourbon <i>at</i> bourbon.netvision.net.il&gt; for the
+    Apache <code>mod_auth_mysql</code> module, which informed the
+    <code>SQLAuthTypes</code> directive.
+  <li>Avalon from IRC for doc-fixes and suggestions.
+  <li>and many others who've suggested various enhancements or security fixes.
+</ul>
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#SQLAuthenticate">SQLAuthenticate</a>
+  <li><a href="#SQLAuthTypes">SQLAuthTypes</a>
+  <li><a href="#SQLBackend">SQLBackend</a>
+  <li><a href="#SQLConnectInfo">SQLConnectInfo</a>
+  <li><a href="#SQLDefaultGID">SQLDefaultGID</a>
+  <li><a href="#SQLDefaultHomedir">SQLDefaultHomedir</a>
+  <li><a href="#SQLDefaultUID">SQLDefaultUID</a>
+  <li><a href="#SQLEngine">SQLEngine</a>
+  <li><a href="#SQLGroupInfo">SQLGroupInfo</a>
+  <li><a href="#SQLGroupPrimaryKey">SQLGroupPrimaryKey</a>
+  <li><a href="#SQLGroupWhereClause">SQLGroupWhereClause</a>
+  <li><a href="#SQLLog">SQLLog</a>
+  <li><a href="#SQLLogFile">SQLLogFile</a>
+  <li><a href="#SQLMinID">SQLMinID</a>
+  <li><a href="#SQLMinUserGID">SQLMinUserGID</a>
+  <li><a href="#SQLMinUserUID">SQLMinUserUID</a>
+  <li><a href="#SQLNamedConnectInfo">SQLNamedConnectInfo</a>
+  <li><a href="#SQLNamedQuery">SQLNamedQuery</a>
+  <li><a href="#SQLNegativeCache">SQLNegativeCache</a>
+  <li><a href="#SQLOptions">SQLOptions</a>
+  <li><a href="#SQLRatios">SQLRatios</a>
+  <li><a href="#SQLRatioStats">SQLRatioStats</a>
+  <li><a href="#SQLShowInfo">SQLShowInfo</a>
+  <li><a href="#SQLUserInfo">SQLUserInfo</a>
+  <li><a href="#SQLUserPrimaryKey">SQLUserPrimaryKey</a>
+  <li><a href="#SQLUserWhereClause">SQLUserWhereClause</a>
+</ul>
+
+<hr>
+<h3><a name="SQLAuthenticate">SQLAuthenticate</a></h3>
+<strong>Syntax:</strong> SQLAuthenticate <em>on|off</em> <i>or</i><br>
+<strong>Syntax:</strong> SQLAuthenticate <em>[users] [groups] [userset[fast]] [groupset[fast]]</em><br>
+<strong>Default:</strong> on<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.5rc1 and later
+
+<p>
+The <code>SQLAuthenticate</code> directive configures <code>mod_sql</code>'s
+authentication behavior, controlling whether to provide user and/or group
+information during authentication, and how that provisioning is performed.
+The parameters may appear in any order.
+
+<p>
+The available parameter values are:
+<ul>
+  <li><b>on</b><br>
+    Shorthand for <code>SQLAuthenticate users groups userset groupset</code>.<br>
+  </li>
+  <br>
+
+  <li><b>off</b><br>
+    Disables all <code>mod_sql</code> authentication functions.<br>
+  </li>
+  <br>
+
+  <li><b>users</b><br>
+    If present, <code>mod_sql</code> will do user lookups.  If not present,
+    <code>mod_sql</code> will do <b>no</b> user lookups at all, including the
+    <code>{set|get|end}pwent()</code> calls (see below).<br>
+  </li>
+  <br>
+
+  <li><b>groups</b><br>
+    If present, <code>mod_sql</code> will do group lookups.  If not present,
+    <code>mod_sql</code> will do <b>no</b> group lookups at all, including the
+    <code>{set|get|end}grent()</code> calls (see below).<br>
+  </li>
+  <br>
+
+  <li><b>userset[fast]</b><br>
+    If present, <code>mod_sql</code> will process the potentially expensive
+    <code>{set|get|end}pwent()</code> calls.  If not present,
+    <code>mod_sql</code> will not process these calls.  Adding the suffix
+    &quot;fast&quot; tells <code>mod_sql</code> to process the users as a
+    single large query, rather than making a query per user.  This may
+    significantly reduce the number of queries against the database at the
+    expense of increased memory use.  This parameter will have no effect if
+    &quot;users&quot; is not specified.<br>
+  </li>
+  <br>
+
+  <li><b>groupset[fast]</b><br>
+    If present, <code>mod_sql</code> will process the potentially expensive
+    <code>{set|get|end}grent()</code> calls.  If not present,
+    <code>mod_sql</code> will not process these calls.  Adding the suffix
+    &quot;fast&quot; tells <code>mod_sql</code> to process the groups as a
+    single large query, rather than making a query per group.  This may
+    significantly reduce the number of queries against the database at the
+    expense of increased memory use. This parameter will have no effect if
+    &quot;groups&quot; is not specified.<br>
+  </li>
+  <br>
+</ul>
+
+<p>
+The <code>SQLLog</code> and <code>SQLShowInfo</code> directives will always be
+processed by <code>mod_sql</code>.  The <code>SQLAuthenticate</code> directive
+only affects the user and group lookup/authentication portions of the module.
+
+<p>
+Turning off (<i>i.e.</i> by not including) the <em>userset</em> or
+<em>groupset</em> parameters affects the functionality of <code>mod_sql</code>.
+Not allowing these lookups may remove the ability to control access or control
+functionality by group membership, depending on your other authentication
+handlers and the data available to them.  At the same time, choosing not to
+do these lookups may dramatically speed login for many large sites.
+
+<p>
+The &quot;fast&quot; suffix is not appropriate for every site.  Normally,
+<code>mod_sql</code> will retrieve a list of users and groups, and get
+information from the database on a per-user or per-group basis.  This is query
+intensive: it requires (<i>n</i>n + 1) queries, where <i>n</i> is the number
+of users or groups to lookup.  By choosing &quot;fast&quot; lookups,
+<code>mod_sql</code> will make a single <code>SELECT</code> query to get
+information from the database.
+
+<p>
+In exchange for the radical reduction in the number of queries, the single
+query will increase the memory consumption of the process; all group or user
+information will be read at once rather than in discrete chunks.
+
+<p>
+<b>Group Table Structure</b><br>
+Normally <b>mod_sql</b> allows multiple group members per row, and multiple
+rows per group.  If you use the &quot;fast&quot; option for <em>groupset</em>,
+you <b>must</b> use only one row per group.  For example, normally
+<code>mod_sql</code> treats the following three tables in exactly the same way:
+
+<pre>
+|--------------------------------------------------|
+|  GROUPNAME  |  GID  |  MEMBERS                   |
+|--------------------------------------------------|
+| group1      | 1000  | naomi                      |
+| group1      | 1000  | priscilla                  |
+| group1      | 1000  | gertrude                   |
+|--------------------------------------------------|
+
+|--------------------------------------------------|
+|  GROUPNAME  |  GID  |  MEMBERS                   |
+|--------------------------------------------------|
+| group1      | 1000  | naomi, priscilla           |
+| group1      | 1000  | gertrude                   |
+|--------------------------------------------------|
+
+|--------------------------------------------------|
+|  GROUPNAME  |  GID  |  MEMBERS                   |
+|--------------------------------------------------|
+| group1      | 1000  | naomi, priscilla, gertrude |
+|--------------------------------------------------|
+</pre>
+If you use the &quot;fast&quot; option, <code>mod_sql</code> assumes that all
+entries are structured like the last example.
+
+<p>
+<hr>
+<h3><a name="SQLAuthTypes">SQLAuthTypes</a></h3>
+<strong>Syntax:</strong> SQLAuthTypes <em>[&quot;Backend&quot;|&quot;Crypt&quot;|&quot;Empty&quot;|&quot;OpenSSL&quot;|&quot;Plaintext&quot;] ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.0 and later
+
+<p> 
+The <code>SQLAuthTypes</code> directive specifies which authentication method
+are to be allowed, and their order of use.  <b>You must specify at least one
+authentication method.</b>
+
+<p>
+The current supported authentication methods are:
+<ul>
+  <li><b>Backend</b><br>
+    Allows database-specific backend passwords.  Not all backend databases
+    support this option.  For example, MySQL datatabases use this option
+    to authenticate MySQL <code>'PASSWORD()'</code> encrypted passwords.
+    The Postgres backend, however, does nothing.  <b>Caveat</b>: if
+    your MySQL activity log is world-readable, the user password
+    <b>will be visible</b>.  You have been warned.<br>
+  </li>
+  <br>
+
+  <li><b>Crypt</b><br>
+    Allows passwords in the database to be of Unix <code>crypt(3)</code>
+    form.  <b>Note</b> that the traditional Unix <code>crypt(3)</code>
+    function only uses the first 8 characters of a password.  If you have
+    passwords longer than 8 characters, and some of those passwords have
+    the same first 8 characters, then those users may be able to log into
+    each others accounts.<br>
+  </li>
+  <br>
+
+  <li><b>Empty</b><br>
+    Allows empty passwords in the database, which match against <b>any</b>
+    password the user may give.  The database field must be a truly
+    empty string; <code>NULL</code> values are not acceptable as empty
+    passwords.  <b>Be very careful if using this authentication method.</b><br>
+  </li>
+  <br>
+
+  <li><b>OpenSSL</b><br>
+    Allows passwords in the database to be of the form
+    <code>'{digest-name}hashed-value'</code>, where <code>hashed-value</code>
+    is the base64-encoded digest of the passsword.  Only available if you
+    define <code>HAVE_OPENSSL</code> when you compile <code>proftpd</code>
+    and you link with OpenSSL's <code>libcrypto</code> library; the easiest
+    way to handle this is to use the <code>--enable-openssl</code> configure
+    option.<br>
+  </li>
+  <br>
+
+  <li><b>Plaintext</b><br>
+    Allows passwords in the database to be in plaintext.<br>
+  </li>
+  <br>
+</ul>
+
+<p>
+For example:
+<pre>
+  SQLAuthTypes Crypt Empty
+</pre>
+configures <code>mod_sql</code> to first attempt to verify the password
+using the Unix <code>crypt(3)</code> function, then, if that fails, determine
+if the password in the database is empty (thus matching <i>any</i> given
+password).  If all of the configured authentication methods fail,
+<code>mod_sql</code> will fail to authenticate the user.
+
+<p>
+Note that the <a href="mod_sql_passwd.html"><code>mod_sql_passwd</code></a>
+module also provides other <code>SQLAuthTypes</code> values.
+
+<p>
+<hr>
+<h3><a name="SQLBackend">SQLBackend</a></h3>
+<strong>Syntax:</strong> SQLBackend <em>backend</em><br>
+<strong>Default:</strong> Depends<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.3.0rc1 and later
+
+<p>
+In 1.3.0rc1, the <code>mod_sql</code> module gained the ability to be
+compiled with multiple backend modules supported, <i>e.g.</i> to have
+both <code>mod_sql_mysql</code> and <code>mod_sql_postgres</code>
+usable in the same <code>proftpd</code> daemon.   The <code>SQLBackend</code>
+directive configures which of these different database backends should
+be used.
+
+<p>
+If there is only one backend module compiled in, the <code>SQLBackend</code>
+directive is not needed.  If there are multiple backend modules compiled
+and no <code>SQLBackend</code> directive is specified, then
+<code>mod_sql</code> will default to using the first backend module listed.
+For instance, if you configured <code>proftpd</code> using a
+<code>configure</code> command such as:
+<pre>
+  ./configure --with-modules=mod_sql:mod_sql_postgres:mod_sql_mysql ...
+</pre>
+then <code>mod_sql</code> would default to using <code>mod_sql_postgres</code>
+as the backend module to use.
+
+<p>
+You might have multiple <code>&lt;VirtualHost&gt;</code> sections which use
+different SQL backends, <i>e.g.</i>:
+<pre>
+  &lt;VirtualHost 1.2.3.4&gt;
+    SQLBackend mysql
+    ...
+  &lt;/VirtualHost&gt;
+
+  &lt;VirtualHost 5.6.7.8&gt;
+    SQLBackend postgres
+    ...
+  &lt;/VirtualHost&gt;
+</pre>
+Use &quot;mysql&quot; for the <code>mod_sql_mysql</code> module, and
+&quot;postgres&quot; for the <code>mod_sql_postgres</code> module.
+
+<p>
+<hr>
+<h3><a name="SQLConnectInfo">SQLConnectInfo</a></h3>
+<strong>Syntax:</strong> SQLConnectInfo <em>connection-info [username] [password] [policy] [ssl-ca:&lt;path&gt;] [ssl-cert:&lt;path&gt;] [ssl-key:&gt;path&lt;] [ssl-ciphers:&lt;list&gt;]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.0 and later
+
+<p>
+The <code>SQLConnectInfo</code> directive configures the information necessary
+to connect to the backend database.  The <em>connection-info</em> parameter
+specifies the database, host, port, and other backend-specific information.
+The optional <em>username</em> and <em>password</em> parameters specify a
+username and password to use when connecting to the database.  Both default to
+<code>NULL</code>, which the backend will treat in some backend-specific
+manner. If you specify a password, you <b>must</b> specify a username.  If
+no <code>SQLConnectInfo</code> directive is specified, <code>mod_sql</code>
+will disable itself.
+
+<p>
+Any given database backend has the opportunity, though not necessarily the
+responsibility, to check for syntax errors in the <em>connection-info</em>
+field at server startup, but you should not expect semantic errors
+(<i>i.e.</i>, cannot connect to the database) to be caught until
+<code>mod_sql</code> attempts to connect for a given host.
+
+<p>
+A given database connection is governed by a connection policy that specifies
+when a connection should be opened and when it should be closed.  There are 
+three options:
+<ul>
+  <li><b>PERCONNECTION</b><br>
+    Open a database connection when the client connects to the server,
+    and close the database connection when the client disconnects.<br>
+  </li>
+  <br>
+
+  <li><b>PERSESSION</b><br>
+    Open a database connection on first use (<i>e.g.</i> during authentication)
+    and close the database connection at the end of the session.<br>
+  </li>
+  <br>
+
+  <li><i>number</i> (<b>"timed"</b>)<br>
+    Timed database connections that close themselves after <i>number</i>
+    seconds of inactivity.<br>
+  </li>
+  <br>
+</ul>
+If a connection policy is not specified, if the policy is not a number or is
+a number less than 1, or if the policy is the string &quot;PERSESSION&quot;,
+the <code>PERSESSION</code> policy will be used.
+
+<p>
+If the connection policy is any number greater than 0, it specifies the number
+of seconds that a connection will be held open without activity.  After that
+many seconds of database inactivity, the connection to the database will be
+closed. As soon as database activity starts again, the connection will be
+opened and the timer will restart.  
+
+<p>
+The MySQL and Postgres backends' <em>connection-info</em> is expected to be of
+the form:
+<pre>
+  database[@hostname][:port]
+</pre>
+hostname will default to a backend-specific hostname (which happens to
+be 'localhost' for both the MySQL and Postgres backends), and port will
+default to a backend-specific default port (3306 for the MySQL backend,
+5432 for the Postgres backend).
+
+<p>
+From the MySQL documentation:
+<blockquote>
+  the value of host may be either a hostname or an IP address. If host is NULL
+  or the string &quot;localhost&quot;, a connection to the local host is
+  assumed. If the OS supports sockets (Unix) or named pipes (Windows), they are
+  used instead of TCP/IP to connect to the server.
+</blockquote>
+(<i>Note</i>: In <code>proftpd-1.3.1rc1</code>, if <em>hostname</em> starts
+with a slash, it is interpreted as the Unix domain socket path by
+<code>mod_sql_mysql</code>, similar to how <code>mod_sql_postgres</code>
+handles the parameter.)
+
+From the PostgreSQL documentation:
+<blockquote>
+  If [the hostname] begins with a slash, it specifies Unix domain communication
+  rather than TCP/IP communication; the value is the name of the directory in
+  which the socket file is stored. The default is to connect to a Unix-domain
+  socket in <code>/tmp</code>.
+</blockquote>
+
+<p>
+If you plan to use the <code>"timed"</code> connection policy, consider the
+effect of directives such as <code>DefaultRoot</code> on local socket
+communication: once a user has been <code>chroot()</code>ed, the local socket
+file will probably not be available within the <code>chroot</code> directory
+tree, and attempts to reopen communication will fail.  One way around this may
+be to use hardlinks within the user's directory tree; another is to use
+network (<i>e.g.</i> TCP sockets, not Unix domain sockets) connections to
+connect to the database.  <code>PERSESSION</code> connections are not affected
+by this because the database will be opened prior to the <code>chroot()</code>
+call, and held open for the life of the session.  Network communications are
+not affected by this <code>chroot()</code> problem.  For example, while
+<code>localhost</code> would <i>not</i> work for MySQL since the MySQL client
+library will try to use Unix domain socket communications for that host,
+<code>127.0.0.1</code> will work (as long as your database is setup to accept
+these connections).
+
+<p>
+In <code>proftpd-1.3.6rc2</code> and later, it is possible to configure SSL/TLS
+parameters for a given connection, which tells <code>mod_sql</code> to try
+to open an SSL session with the database server.  Most of the time, all that
+is needed for the SSL session is the CA (Certificate Authority) to use, for
+verifying the certificate presented by the database server.  Thus:
+<pre>
+  SQLConnectInfo ... ssl-ca:/path/to/cacert.pem
+</pre>
+If your database server is configured to require SSL/TLS mutual authentication
+(also called "client auth"), you may need the <code>ssl-cert:</code> and
+<code>ssl-key:</code> parameters as well:
+<pre>
+  SQLConnectInfo ... ssl-ca:/path/to/cacert.pem \
+    ssl-cert:/path/to/client-cert.pem \
+    ssl-key:/path/to/client-key.pem
+</pre>
+Finally, some database clients (such as MySQL) allow you to configure the
+specific SSL/TLS ciphersuites that should be used; the <code>ssl-ciphers:</code>
+parameter can be used for this:
+<pre>
+  SQLConnectInfo ... ssl-ca:/path/to/cacert.pem \
+    ssl-cert:/path/to/client-cert.pem \
+    ssl-key:/path/to/client-key.pem \
+    ssl-ciphers:DEFAULT:!EXPORT:!DES
+</pre>
+
+<p>
+Examples:
+<pre>
+  # Connect to the database 'ftpusers' via the default port at host
+  # 'foo.com'.  Use a NULL username and NULL password when connecting.
+  # A connection policy of PERSESSION is used.
+  SQLConnectInfo ftpusers@foo.com
+
+  # Connect to the database 'ftpusers' via port 3000 at host 'localhost'.
+  # Use the username 'admin' and a NULL password when connecting.
+  # A connection policy of PERSESSION is used.
+  SQLConnectInfo ftpusers:3000 admin
+
+  # Connect to the database 'ftpusers' via port 3000 at host 'foo.com'.
+  # Use the username 'admin' and password 'mypassword' when connecting.
+  # A connection policy of PERSESSION is used.
+  SQLConnectInfo ftpusers@foo.com:3000 admin mypassword
+
+  # Connect to the database 'ftpusers' via port 3000 at host 'foo.com'.
+  # Use a username of 'admin' and a password of 'mypassword' when
+  # connecting.  A 30 second timer of connection inactivity is activated.
+  SQLConnectInfo ftpusers@foo.com:3000 admin mypassword 30
+
+  # Connect to the database 'ftpusers' via port 3000 at host 'foo.com'.
+  # Use a username of 'admin' and a password of 'mypassword' when
+  # connection.  A 30 second inactivity/idle timer is used.  In addition,
+  # use SSL for the connection.
+  SQLConnectInfo ftpusers@foo.com:3000 admin mypassword 30 ssl-ca:/path/to/cacert.pem
+</pre>
+Backends may require different information in the <em>connection-info</em>
+field; check your backend module for more detailed information.
+
+<p>
+<hr>
+<h3><a name="SQLDefaultGID">SQLDefaultGID</a></h3>
+<strong>Syntax:</strong> SQLDefaultGID <em>default-gid</em><br>
+<strong>Default:</strong> 65533<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.0 and later
+
+<p>
+The <code>SQLDefaultGID</code> directive configures the default GID for users.
+This value must be greater than any configured <code>SQLMinUserGID</code>.
+
+<p>
+See also: <a href="#SQLMinUserGID"><code>SQLMinUserGID</code></a>
+
+<p>
+<hr>
+<h3><a name="SQLDefaultHomedir">SQLDefaultHomedir</a></h3>
+<strong>Syntax:</strong> SQLDefaultHomedir <em>path</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.5rc1 and later
+
+<p>
+The <code>SQLDefaultHomedir</code> directive configures a default home
+directory for all users authenticated with this module.  If no home directory
+is set with either directive, authentication fails.  This directive does not
+change the data retrieved from the database: if you specify a home directory
+field to <code>SQLUserInfo</code>, that field's data will be returned as the
+user's home directory, whether that data is a legal directory, or an empty
+string, or <code>NULL</code>.
+
+<p>
+See also: <a href="#SQLUserInfo">SQLUserInfo</a>
+
+<p>
+<hr>
+<h3><a name="SQLDefaultUID">SQLDefaultUID</a></h3>
+<strong>Syntax:</strong> SQLDefaultUID <em>default-uid</em><br>
+<strong>Default:</strong> 65533<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.0 and later
+
+<p>
+The <code>SQLDefaultUID</code> directive configures the default UID for users.
+This value must be greater than any configured <code>SQLMinUserUID</code>.
+
+<p>
+See also: <a href="#SQLMinUserUID"><code>SQLMinUserUID</code></a>
+
+<p>
+<hr>
+<h3><a name="SQLEngine">SQLEngine</a></h3>
+<strong>Syntax:</strong> SQLEngine <em>on|off|auth|log</em><br>
+<strong>Default:</strong> SQLEngine on<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code>, <code>&lt;Anonymous&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.3.0rc1 and later
+
+<p>
+The <code>SQLEngine</code> directive is used to specify how
+<code>mod_sql</code> will operate.  By default, <code>SQLEngine</code> is
+<em>on</em>, and <code>mod_sql</code> will operate as normal.  Setting
+<code>SQLEngine</code> to <em>off</em> will effectively disable the module.
+
+<p>
+In addition to <em>on</em> and <em>off</em>, <code>SQLEngine</code> accepts
+two other values: <em>auth</em> and <em>log</em>.  If you wish to use
+<code>mod_sql</code> for authentication and not for logging (via
+<a href="#SQLLog"><code>SQLLog</code></a>), use <em>auth</em>.  Conversely,
+to do only <code>SQLLog</code>-type logging, and no authentication, use
+<em>log</em>.
+
+<p>
+This directive can be used to have <code>&lt;Anonymous&gt;</code> sections
+that do not use <code>mod_sql</code>, <i>e.g.</i>:
+<pre>
+  &lt;Anonymous ~ftp&gt;
+    ...
+    SQLEngine off
+    ...
+  &lt;/Anonymous&gt;
+</pre>
+
+<p>
+<hr>
+<h3><a name="SQLGroupInfo">SQLGroupInfo</a></h3>
+<strong>Syntax:</strong> SQLGroupInfo <em>group-table group-name gid members</em><br>
+<strong>Default:</strong> &quot;groups groupname gid members&quot;<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.5rc1 and later
+
+<p>
+The <code>SQLGroupInfo</code> directive configures the group table and fields
+that hold group information.  The parameters for this directive are
+described below:
+<ul>
+  <li><b>grouptable</b><br>
+    Specifies the name of the table that holds group information.<br>
+  </li>
+  <br>
+
+  <li><b>groupname</b><br>
+    Specifies the field in the group table that holds the group name.<br>
+  </li>
+  <br>
+
+  <li><b>gid</b><br>
+    Specifies the field in the group table that holds the group's GID.<br>
+  </li>
+  <br>
+
+  <li><b>members</b><br>
+    Specifies the field in the group table that holds the group members.<br>
+  </li>
+  <br>
+</ul>
+If you need to change <b>any</b> of these field names from the default, you
+need to specify <b>all</b> of them.
+
+<p>
+<b>Custom Queries</b><br>
+As of <code>1.3.3rc1</code>, the <code>SQLGroupInfo</code> directive accepts
+an alternate syntax:
+<pre>
+  SQLGroupInfo custom:/<i>get-group-by-name</i>/<i>get-group-by-id</i>/<i>get-group-by-member</i>
+</pre>
+where <i>get-group-by-name</i> refers to a configured SELECT
+<code>SQLNamedQuery</code>.  This named query <b>must</b> return one row, and
+return the following columns, in this order: <code>groupname, gid,
+members</code>.  The configured query may make use of the variables mentioned
+in the <code>SQLLog</code> description.  The <code>%{0}</code> variable will
+be populated with the group name for which info is being retrieved.  The
+<i>get-group-by-id</i> here refers to a <code>SQLNamedQuery</code> which is
+<i>just</i> like the lookup given a group name, only the <i>get-group-by-id</i>
+query needs to return group information given a GID.  For the
+<i>get-group-by-id</i> query, the <code>%{0}</code> variable is populated with
+the GID in question.  Last, the <i>get-group-by-member</i> query returns group
+information given a user member; again, the <code>%{0}</code> will contain
+the member/user name by which to look up the group information.
+
+<p>
+<b><i>If</i></b> your custom <em>get-group-by-name</em> query references a table
+other than the default groups table, then you <b>must</b> also supply a
+custom <em>get-group-by-id</em> query as well.  Otherwise, <code>mod_sql</code>
+will fail with a "Table not found" error, and disconnect the client, whenever
+the client asks for a directory listing.
+
+<p>
+<b>Note</b>, however, that if you use the <em>groupset</em> or
+<em>groupsetfast</em> <a href="#SQLAuthenticate"><code>SQLAuthenticate</code></a>
+options, you will need to supply some additional <code>SQLNamedQuery</code>
+names in your custom <code>SQLGroupInfo</code> directive.  The
+<code>SQLGroupInfo</code> directive supports:
+<pre>
+  SQLGroupInfo custom:/<i>lookup-by-name</i>/<i>lookup-by-id</i>/<i>lookup-by-member</i>/[/<i>groupset-lookup</i>[/<i>groupsetfast-lookup</i>]]
+</pre>
+where <em>groupset-lookup</em> is the name of a SELECT
+<code>SQLNamedQuery</code> that returns the names (and <i>only the names</i>)
+of all groups, and the <em>groupsetfast-lookup</em> refers to a SELECT
+<code>SQLNamedQuery</code> that returns all the fields (<i>i.e.</i>
+<code>groupname, gid, members</code> in that order) for all groups.
+
+<p>
+To provide a concrete example:
+<pre>
+  SQLAuthenticate users groups groupsetfast
+  SQLGroupInfo custom:/get-group-by-name/get-group-by-id/get-group-by-member/get-all-groupnames/get-all-groups
+  SQLNamedQuery get-group-by-name SELECT "groupname, gid, members FROM ftpgroups WHERE groupname = '%{0}'"
+  SQLNamedQuery get-group-by-id SELECT "groupname, gid, members FROM ftpgroups WHERE gid = %{0}"
+  SQLNamedQuery get-group-by-member SELECT "groupname, gid, members FROM ftpgroups WHERE (members LIKE '%%,%{0},%%' OR members LIKE '%{0},%%' OR members LIKE '%%,%{0}')"
+  SQLNamedQuery get-all-groupnames SELECT "groupname FROM ftpgroups"
+  SQLNamedQuery get-all-groups SELECT "groupname, gid, members FROM ftpgroups"
+</pre>
+With a configuration similar to these, using either of the <em>groupset</em> or
+<em>groupsetfast</em> in your <code>SQLAuthenticate</code> directive will
+work as expected.
+
+<p>
+Another consideration when using custom <code>SQLGroupInfo</code> queries
+is their relationship to the "useNormalizedGroupSchema" <code>SQLOption</code>.
+<i>I.e.</i> does using the "useNormalizedGroupSchema" option affect how
+the results of custom <code>SQLGroupInfo</code> queries are handled?  No.
+If custom <code>SQLGroupInfo</code> queries are used, <code>mod_sql</code>
+<i>automatically</i> assumes that the custom group members query will return
+<i>N</i> rows, where each row contains 3 columns: group name, group ID,
+and member name.  That is, the custom <code>SQLGroupInfo</code> queries act as
+if "useNormalizedGroupSchema" is always in effect.  (When support for custom
+<code>SQLGroupInfo</code> queries was added, there was no good reason for
+supporting the old, inefficient comma-delimited format for the members column.)
+
+<p>
+<b>See Also</b>:
+  <a href="#SQLAuthenticate"><code>SQLAuthenticate</code></a>,
+  <a href="#SQLLog"><code>SQLLog</code></a>,
+  <a href="#SQLNamedQuery"><code>SQLNamedQuery</code></a>,
+  <a href="#SQLUserInfo"><code>SQLUserInfo</code></a>
+
+<p>
+<hr>
+<h3><a name="SQLGroupPrimaryKey">SQLGroupPrimaryKey</a></h3>
+<strong>Syntax:</strong> SQLGroupPrimaryKey <em>column | &quot;custom:/&quot;named-query</em><br>
+<strong>Default:</strong> gid<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.3.5rc3 and later
+
+<p>
+The <code>SQLGroupPrimaryKey</code> directive configures the column name
+that is used as the "primary key" for group data; this primary key can
+then be used in other SQL tables via foreign key constraints.  The
+<a href="../howto/SQL.html#SQLPrimaryKeys">SQL howto</a> covers using this
+directive in more details.
+
+<p>
+See also: <a href="#SQLUserPrimaryKey"><code>SQLUserPrimaryKey</code></a>
+
+<p>
+<hr>
+<h3><a name="SQLGroupWhereClause">SQLGroupWhereClause</a></h3>
+<strong>Syntax:</strong> SQLGroupWhereClause <em>where-clause</em><br>
+<strong>Default:</strong> off<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.5rc1 and later
+
+<p>
+The directive is used to configure a WHERE clause that is added to every group 
+query.  The WHERE clause <b>must</b> contain all relevant punctuation, and
+<b>must not</b> contain a leading &quot;and&quot;.
+
+<p>
+As an example of a possible use for this directive, imagine if your group table
+included a &quot;LoginAllowed&quot; field:
+<pre>
+  SQLGroupWhereClause "LoginAllowed = 'true'"
+</pre>
+would be appended to every group-related query as the string:
+<pre>
+  " WHERE (LoginAllowed = 'true')"
+</pre>
+
+<p>
+<b>Note</b> that if custom group <code>SQLNamedQuery</code> are configured,
+those custom queries will be used <i>as is</i>; any configured
+<code>SQLGroupWhereClause</code> will <b>not</b> be appended.  Custom queries
+can be of any format/syntax, and thus simply appending a
+<code>SQLGroupWhereClause</code> to a custom query may be syntactically invalid.
+
+<p>
+As of ProFTPD 1.3.1rc2, the configured <code>SQLGroupWhereClause</code>
+parameter can use the same set of variables as supported by the
+<a href="#SQLNamedQuery"><code>SQLNamedQuery</code></a> directive.
+
+<p>
+<hr>
+<h3><a name="SQLLog">SQLLog</a></h3>
+<strong>Syntax:</strong> SQLLog <em>cmd-set query-name [&quot;IGNORE_ERRORS&quot;]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.1 and later
+
+<p>
+This directive is used to log information to a database table. Multiple
+<code>SQLLog</code> directives can be in effect for any command; for example,
+a user changing directories can trigger multiple logging statements.
+<b>Note</b> that this logging occurs <em>at the end of command processing</em>.
+
+<p>
+The first parameter to <code>SQLLog</code>, the <em>cmd-set</em>, is a
+comma-separated (<b>no spaces</b>) list of FTP commands for which this log
+command will trigger.  The list of commands is too long to list in entirety;
+commands include <code>CWD, DELE, HELP, LIST, MKD, MODE, NLST, PASS, PASV,
+PORT</code> and many more.  For the complete list check the FTP RFCs.
+Normally <code>mod_sql</code> will log events after they have completed
+successfully; in the case of the <code>QUIT</code> command,
+<code>mod_sql</code> logs prior to the server's processing of the command.
+(Note, however, that the client <i>may not</i> issue a <code>QUIT</code>
+before logging out; in this case, use a command of <code>EXIT</code> rather
+than <code>QUIT</code>.  <code>EXIT</code> is not a real FTP command, but
+it is used here to provide a means for having <code>SQLLog</code> work
+whenever a session ends.)
+
+<p>
+FTP commands in the command set will only be logged if they complete
+successfully.  Prefixing any command with &quot;ERR_&quot; will cause logging
+to occur only if there was an error in the command's processing.  To log both
+errors and successful completion of a given command <i>X</i>, therefore,
+you'll need both &quot;<i>X</i>&quot; and &quot;ERR_<i>X</i>&quot; in your
+<em>cmd-set</em>.
+
+<p>
+The special command &quot;*&quot; matches all FTP commands, while
+&quot;ERR_*&quot; matches all errors.
+
+<p>
+The second parameter is the name of a query defined by a
+<code>SQLNamedQuery</code> directive.  The query must be an
+<code>UPDATE</code>, <code>INSERT</code>, or <code>FREEFORM</code> type
+query; explicit <code>SELECT</code> queries will not be processed.
+
+<p>
+The third parameter is optional.  If you add &quot;IGNORE_ERRORS&quot; as the
+third parameter, <code>SQLLog</code> <b><i>will not</i></b> check for errors
+in the processing of the named query.  Any value for this parameter other than
+the string &quot;IGNORE_ERRORS&quot; (case-insensitive) will not cause errors
+to be ignored.
+
+<p>
+Normally, <code>SQLLog</code> directives are considered important enough that
+errors in their processing will cause <code>mod_sql</code> to abort the client
+session.  References to non-existent named queries will <b>not</b> abort the
+client session, but may result in database corruption (in the sense that the
+expected database <code>UPDATE</code> or <code>INSERT</code> will not occur).
+Check your directives carefully.
+
+<p>
+Examples:
+<pre>
+  SQLLog PASS updatecount
+  SQLNamedQuery updatecount UPDATE "count=count+1 WHERE userid='%u'" users
+</pre>
+If the current user was &quot;joe&quot;, this would translate into the query
+&quot;UPDATE users SET count=count+1 WHERE userid='joe'&quot;.  This query
+would run whenever a user was first authenticated.
+
+<pre>
+  SQLLog CWD updatedir
+  SQLNamedQuery updatedir UPDATE "cwd='%d' where userid='%u'" users
+</pre>
+If the current user was &quot;joe&quot; and the current working directory were
+<code>/tmp</code>, this would translate into the query &quot;UPDATE users SET cwd='/tmp' WHERE userid='joe'&quot;.  This query would run whenever a user
+changed directories.
+
+<pre>
+  SQLLog RETR,STOR insertfileinfo
+  SQLNamedQuery insertfileinfo INSERT "'%f', %b, '%u@%v', now()" filehistory
+</pre>
+would log the name of any file stored or retrieved, the number of bytes
+transferred, the user and host doing the transfer, and the time of transfer
+(at least in MySQL).  This would translate into a query like:
+&quot;INSERT INTO filehistory VALUES ('somefile', 12345, 'joe@joe.org', '21-05-2001 20:01:00')&quot;
+
+<p>
+<hr>
+<h3><a name="SQLLogFile">SQLLogFile</a></h3>
+<strong>Syntax:</strong> SQLLogFile <em>file</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.8rc2 and later
+
+<p>
+The <code>SQLLogFile</code> directive is used to specify a log file for
+<code>mod_sql</code> reporting and debugging, and can be done a per-server
+basis.  The <em>file</em> parameter must be the full path to the file to use for
+logging.  Note that this path must <b>not</b> be to a world-writeable
+directory and, unless <code>AllowLogSymlinks</code> is explicitly set to
+<em>on</em> (generally a bad idea), the path must <b>not</b> be a symbolic
+link.
+
+<p>
+If <em>file</em> is &quot;none&quot;, no logging will be done at all; this
+setting can be used to override a <code>SQLLogFile</code> setting inherited from
+a <code>&lt;Global&gt;</code> context.
+
+<p>
+<hr>
+<h3><a name="SQLMinID">SQLMinID</a></h3>
+<strong>Syntax:</strong> SQLMinID <em>minimum-id</em><br>
+<strong>Default:</strong> 999<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.0 and later
+
+<p>
+<code>SQLMinID</code> is a quick way of setting both <code>SQLMinUserGID</code>
+and <code>SQLMinUserUID</code>.  These values are checked whenever retrieving
+a user's GID or UID.
+
+<p>
+See also: <a href="#SQLMinUserGID"><code>SQLMinUserGID</code></a>,
+  <a href="#SQLMinUserUID"><code>SQLMinUserUID</code></a>
+
+<p>
+<hr>
+<h3><a name="SQLMinUserGID">SQLMinUserGID</a></h3>
+<strong>Syntax:</strong> SQLMinUserGID <em>minimum-gid</em><br>
+<strong>Default:</strong> 999<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.0 and later
+
+<p>
+<code>SQLMinUserGID</code> is checked whenever retrieving a user's GID.  If the
+retrieved value for GID is less than the value of <code>SQLMinUserGID</code>,
+it is reported as the value of <code>SQLDefaultGID</code>.
+
+<p>
+See also: <a href="#SQLDefaultGID"><code>SQLDefaultGID</code></a>
+
+<p>
+<hr>
+<h3><a name="SQLMinUserUID">SQLMinUserUID</a></h3>
+<strong>Syntax:</strong> SQLMinUserUID <em>minimum-uid</em><br>
+<strong>Default:</strong> 999<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.0 and later
+
+<p>
+<code>SQLMinUserUID</code> is checked whenever retrieving a user's UID.  If the
+retrieved value for UID is less than the value of <code>SQLMinUserUID</code>,
+it is reported as the value of <code>SQLDefaultUID</code>.
+
+<p>
+See also: <a href="#SQLDefaultUID"><code>SQLDefaultUID</code></a>
+
+<p>
+<hr>
+<h3><a name="SQLNamedConnectInfo">SQLNamedConnectInfo</a></h3>
+<strong>Syntax:</strong> SQLConnectInfo <em>connection-name</em> <em>sql-backend</em> <em>connection-info [username] [password] [policy] [ssl-ca:&lt;path&gt;] [ssl-cert:&lt;path&gt;] [ssl-key:&gt;path&lt;] [ssl-ciphers:&lt;list&gt;]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.3.4rc2 and later
+
+<p>
+The <code>SQLNamedConnectInfo</code> directive configures the information
+necessary to connect to the backend database.  This connection will be given
+the name <em>connection-name</em>; this named connection can then be referenced
+by that name in <i>e.g.</i> a <code>SQLNamedQuery</code>.  The
+<em>sql-backend</em> name configures the backend SQL module to use for this
+connection; see <a href="#SQLBackend"><code>SQLBackend</code></a>.  The
+<em>connection-info</em> parameter specifies the database, host, port, and
+other backend-specific information.  The optional <em>username</em> and
+<em>password</em> parameters specify a username and password to use when
+connecting to the database.  Both default to <code>NULL</code>, which the
+backend will treat in some backend-specific manner. If you specify a password,
+you <b>must</b> specify a username.  Multiple <code>SQLNamedConnectInfo</code>
+directives may be configured.
+
+<p>
+<b>Note</b> that <code>SQLNamedConnectInfo</code> directives <b>will only be
+honored</b> if a <a href="#SQLConnectInfo"><code>SQLConnectInfo</code></a>
+directive is configured.
+
+<p>
+See also: <a href="#SQLBackend"><code>SQLBackend</code></a>,
+<a href="#SQLConnectInfo"><code>SQLConnectInfo</code></a>
+
+<p>
+<hr>
+<h3><a name="SQLNamedQuery">SQLNamedQuery</a></h3>
+<strong>Syntax:</strong> SQLNamedQuery <em>name type query-string [table] [connection-name]</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.4 and later
+
+<p>
+SQLNamedQuery specifies a query and an identifier (name) for later use by
+<code>SQLShowInfo</code> and <code>SQLLog</code>.
+
+<p>
+It is <b><i>strongly recommended</i></b> that you read documentation on the
+<code>LogFormat</code> and <code>ExtendedLog</code> directives, as the
+meta-sequences available to <code>SQLNamedQuery</code> are largely equivalent.
+
+<p>
+The first parameter, <em>name</em>, should be unique across all named queries
+and must not contain spaces.  The result of re-using a name is undefined.
+
+<p>
+The second parameter, <em>type</em>, is the type of query, either
+&quot;SELECT&quot;, &quot;UPDATE&quot;, &quot;INSERT&quot;, or
+&quot;FREEFORM&quot;.  See the note below for information on FREEFORM type
+queries.
+
+<p>
+The third parameter is the substance of the database query itself; this should
+match the form of the second parameter.  The meta-sequences accepted are
+exactly equivalent to the <code>LogFormat</code> directive <b><i>except</i></b>
+the following <b><i>are not</i></b> accepted:
+<ul>
+  <li><code>%{FOOBAR}e</code><br>
+    For <code>LogFormat</code>, this logs the content of environment variable
+    &quot;FOOBAR&quot;.  In a <code>SQLNamedQuery</code> SQL statement,
+    however, environment variables can be referenced using <code>%{env:FOOBAR}</code>.
+  </li>
+  <br>
+
+  <li><code>%{format}t</code> and <code>%t</code><br>
+    These two meta-sequences logged the local server time; they
+    <b><i>are not</i></b> available in <code>mod_sql</code>.  Your database
+    undoubtedly provides another way to get the time; for example, MySQL
+    provides the <code>now()</code> function.<br>
+
+    <p>
+    However, a <code>%{time:<em>format</em>}</code> meta-sequence <i>is</i>
+    supported.  This sequence allows for formatting time strings according
+    to the rules of the <code>strftime(3)</code> function.
+  </li>
+  <br>
+</ul>
+and the following <b><i>is in addition to</i></b> the <code>LogFormat</code>
+meta-sequences:
+<ul>
+  <li><code>%d</code><br>
+    The current working directory or &quot;-&quot; if none.<br>
+  </li>
+  <br>
+
+  <li><code>%{n}</code><br>
+    This meta-sequence is used internally by <code>mod_sql</code> and other
+    third-party modules and patches to pass information to the database.
+    Using this meta-sequence in anything other than an <code>INSERT</code> or
+    <code>UPDATE</code> query is an error, and using this meta-sequence unless
+    directed to by a third-party module or patch is also an error.<br>
+  </li>
+  <br>
+</ul>
+The correct form of a query will be built from the directive arguments, except
+in the case of <code>FREEFORM</code> queries which will be sent directly to the
+database.  The examples below show the way queries are built from the
+arguments.
+
+<p>
+The fourth parameter, <em>table</em>, is only necessary for
+<code>UPDATE</code> or <code>INSERT</code> type queries, but is
+<b><i>required</i></b> for those types.
+
+<p>
+The last parameter, <em>connection-name</em>, is only necessary for telling
+<code>mod_sql</code> to use the specified connection name (from
+<a href="#SQLNamedConnectInfo"><code>SQLNamedConnectInfo</code></a>), rather
+than the default connection, for executing the query/statement.
+
+<p>
+<i>Note</i>: <code>FREEFORM</code> queries are a necessary evil; the
+simplistic query semantics of the <code>UPDATE</code>, <code>INSERT</code>,
+and <code>SELECT</code> type queries do not sufficiently expose the
+capabilities of most backend databases.  At the same time, using a
+<code>FREEFORM</code> query makes it impossible for <code>mod_sql</code> to
+check whether the query type is appropriate, making sure that a
+<code>SELECT</code> query is not used in a <code>SQLLog</code> directive, for
+instance.  Wherever possible, it is recommended that a specific query type be
+used.
+
+<p>
+Examples:
+<pre>
+  SQLNamedQuery count SELECT "count from users where userid='%u'"
+</pre>
+creates a query named &quot;count&quot; which could be used by
+<code>SQLShowInfo</code> to inform a user of their login count.  The actual
+query would look something like &quot;SELECT count FROM users WHERE
+userid='matilda'&quot; for user &quot;matilda&quot;.
+
+<pre>
+  SQLNamedQuery updatecount UPDATE "count=count+1 WHERE userid='%u'" users
+</pre>
+creates a query named &quot;updatecount&quot; which could be used by
+<code>SQLLog</code> to update a user login counter in the table
+<code>users</code>.  The actual query would look something like &quot;UPDATE
+users SET count=count+1 WHERE userid='persephone'&quot; for user
+&quot;persephone&quot;.
+
+<pre>
+  SQLNamedQuery accesslog INSERT "now(), '%u'" accesslog
+</pre>
+creates a query named &quot;accesslog&quot; which could be used by
+<code>SQLLog</code> to track access times by clients.  The actual query would
+look something like &quot;INSERT INTO accesslog VALUES (now(), 'pandora')&quot;
+for user &quot;pandora&quot;.  Note that this may be too simplistic for your
+table structure, since most databases require data for all columns to be
+provided in an <code>INSERT</code> statement of this form.  See the following
+<code>FREEFORM</code> query for an example of something which may suit your
+needs better.
+
+<pre>
+  SQLNamedQuery accesslog FREEFORM "INSERT INTO accesslog(date, user) VALUES (now(), '%u')"
+</pre>
+creates a query named &quot;accesslog&quot; which could be used by
+<code>SQLLog</code> to track access times by clients.  The actual query would
+look something like
+&quot;INSERT INTO accesslog(date, user) VALUES (now(), 'tilda')&quot; for
+user &quot;tilda&quot;.
+
+<p>
+<hr>
+<h3><a name="SQLNegativeCache">SQLNegativeCache</a></h3>
+<strong>Syntax:</strong> SQLNegativeCache <em>on|off</em><br>
+<strong>Default:</strong> off<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.7rc1 and later
+
+<p>
+<code>SQLNegativeCache</code> specifies whether or not to cache negative
+responses from SQL lookups when using SQL for UID/GID lookups.  Depending on
+your SQL tables, there can be a significant delay when a directory listing is
+performed as the UIDs not in the SQL database are repeatedly looked up in an
+attempt to present usernames instead of UIDs in directory listings. With
+<code>SQLNegativeCache</code> set to <em>on</em>, negative
+(&quot;not found&quot;) responses from SQL queries will be cached and speed
+will improve on directory listings that contain many users not present in the
+SQL database.
+
+<p>
+<hr>
+<h3><a name="SQLOptions">SQLOptions</a></h3>
+<strong>Syntax:</strong> SQLOptions <em>opt1 ...</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.3.1rc1 and later
+
+<p>
+The <code>SQLOptions</code> directive is used to tweak various optional
+behavior of <code>mod_sql</code>.
+
+<p>
+Example:
+<pre>
+  SQLOptions NoDisconnectOnError
+</pre>
+
+<p>
+The currently implemented options are:
+<ul>
+  <li><code>IgnoreConfigfile</code><br>
+    <p>
+    If the database client library in use has its own configuration file
+    (<i>e.g.</i> <code>my.cnf</code> for the MySQL client library), then
+    the <code>mod_sql</code> sub-module will read that file.  There are some
+    cases, however, where access to that config file is restricted.  For
+    such cases, use "IgnoreConfigFile" to tell <code>mod_sql</code> to not
+    attempt to read that client library configuration file.
+
+    <p>
+    <b>Note</b> that this option first appeared in
+    <code>proftpd-1.3.5rc4</code>.
+  </li>
+
+  <p>
+  <li><code>NoDisconnectOnError</code><br>
+    <p>
+    By default, <code>mod_sql</code> will automatically disconnect the client
+    whenever there is a database error.  If this option is enabled,
+    <code>mod_sql</code> will attempt to continue functioning despite
+    database errors.
+
+  <p>
+  <li><code>NoReconnect</code><br>
+    <p>
+    If supported by the database client library, <code>mod_sql</code> will
+    try to automatically reconnect <i>once</i>, if it determines that the
+    connection to the database server was lost.  Use "NoReconnect" to disable
+    this auto-reconnection attempt.
+
+  <p>
+  <li><code>UseNormalizedGroupSchema</code><br>
+    <p>
+    If this option is enabled, then <code>mod_sql</code>, when retrieving all
+    of the groups for a user, will use a SQL statement like:
+<pre>
+  SELECT groupname, groupid, member FROM grouptable WHERE member = $userName
+</pre>
+    rather than the statement it uses by default, which is:
+<pre>
+  SELECT groupname, groupid, member FROM grouptable WHERE member = $userName OR
+    member LIKE '%,$userName' OR member LIKE '$username,%' OR
+    member LIKE '%,$userName,%'
+</pre>
+    To put it another way, when this <code>SQLOption</code> is used,
+    <code>mod_sql</code> will not treat the <i>member</i> column of the group
+    table as a comma-delimited list of user names, but rather as a single
+    user name.  Thus, to have a user belong in multiple groups with this
+    normalized schema, the group table would have individual rows for each
+    user/group pair.
+</ul>
+
+<p>
+<hr>
+<h3><a name="SQLRatios">SQLRatios</a></h3>
+<strong>Syntax:</strong>  <em> </em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> <br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong>
+
+<p>
+<hr>
+<h3><a name="SQLRatioStats">SQLRatioStats</a></h3>
+<strong>Syntax:</strong>  <em> </em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> <br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong>
+
+<p>
+<hr>
+<h3><a name="SQLShowInfo">SQLShowInfo</a></h3>
+<strong>Syntax:</strong> SQLShowInfo <em>cmd-set numeric query-string</em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.5rc1 and later
+
+<p>
+This directive creates a message to be sent to the user after any successful
+command.
+
+<p>
+The first parameter, the <em>cmd-set</em>, is a comma separated (<b><i>no
+spaces</i></b>) list of FTP commands for which this log command will trigger.
+The list of commands is too long to list in entirety; commands include:
+<code>CWD, DELE, HELP, LIST, MKD, MODE, NLST, PASS, PASV, PORT</code> and many
+more.  For the complete list check the FTP RFCs.
+
+<p>
+FTP commands in the command set will only be triggered if they complete
+successfully.  Prefixing any command with &quot;ERR_&quot; will show
+information only if there was an error in command processing.  To send a
+message on both errors and successful completion of a given command <i>X</i>,
+therefore, you'll need both &quot;<i>X</i>&quot; and &quot;ERR_<i>X</i>&quot;
+in your <em>cmd-set</em>.
+
+<p>
+The special command &quot;*&quot; matches all FTP commands, while
+&quot;ERR_*&quot; matches all errors.
+
+<p>
+The second parameter, <em>numeric</em>, specifies the numeric value of the
+message returned to the FTP client.  <b><i>Do not</i></b> choose a number
+blindly: message numbers may be parsed by clients.  In most cases you will
+want to use <code>214</code>, the &quot;Help message&quot; numeric.  It
+specifies that the information is only meant to be human readable.  Note
+that FTP clients can be <i>very</i> picky about these response codes; choosing
+the wrong code can cause clients not to work.  Section 5.4 of <a href="http://www.faqs.org/rfcs/rfc959.html">RFC959</a> defines the acceptable response codes
+for each FTP command.
+
+<p>
+The third parameter, <em>query-string</em>, is exactly equivalent to the
+<em>query-string</em> parameter to the <code>SQLLog</code> directive, with one
+addition:
+<ul>
+  <li><code>%{name}</code><br>
+    The <b>first</b> return value from the <code>SQLNamedQuery</code>
+    identified by &quot;name&quot;.  There is currently no way to retrieve more
+    than one value from the database at a time.<br>
+  </li>
+  <br>
+</ul>
+Any references to non-existent named queries, non-<code>SELECT</code> or
+-<code>FREEFORM</code> type queries, or references to queries which return a
+NULL first value, will be replaced with the string &quot;{null}&quot;.
+For example:
+<pre>
+  SQLNamedQuery count SELECT "count from users where userid='%u'"
+  SQLShowInfo PASS 230 "You've logged on %{count} times, %u"
+</pre>
+As long as the information is in the database, these two directives specify
+that the user will be greeted with their login count each time they
+successfully login.  Note the use of the &quot;230&quot; numeric, which means
+&quot;User logged in, proceed&quot;. &quot;230&quot; is appropriate in this
+case because the message will be sent immediately after their password has
+been accepted and the session has started.
+
+<p>
+<hr>
+<h3><a name="SQLUserInfo">SQLUserInfo</a></h3>
+<strong>Syntax:</strong> SQLUserInfo <em>user-table user-name passwd uid gid home-dir shell</em><br>
+<strong>Default:</strong> &quot;users userid passwd uid gid homedir shell&quot;<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.5rc1 and later
+
+<p>
+The <code>SQLUserInfo</code> directive configures the user table and fields
+that hold user information.  If you need to change <b><i>any</i></b> of these
+field names from the default, you must specify <b><i>all</i></b> of them,
+whether NULL or not.  The parameters are described below:
+<ul>
+  <li><b>usertable</b><br>
+    Specifies the name of the table that holds user information.<br>
+  </li>
+  <br>
+
+  <li><b>username</b><br>
+    Specifies the field in the user table that holds the username.<br>
+  </li>
+  <br>
+
+  <li><b>passwd</b><br>
+    Specifies the field in the user table that holds the user's password.<br>
+  </li>
+  <br>
+
+  <li><b>uid</b><br>
+    Specifies the field in the user table that holds the user's UID.  When a
+    UID is retrieved from the database it is checked against the value of
+    <code>SQLMinUserUID</code>.  If the field name is specified as
+    &quot;NULL&quot; the database will not be queried for this value and the
+    user's UID will be set to the value of <code>SQLDefaultUID</code>.<br>
+  </li>
+  <br>
+
+  <li><b>gid</b><br>
+    Specifies the field in the user table that holds the user's GID.  When a
+    GID is retrieved from the database it is checked against the value of
+    <code>SQLMinUserGID</code>.  If the field name is specified as
+    &quot;NULL&quot; the database will not be queried for this value and the
+    user's GID will be set to the value of <code>SQLDefaultGID</code>.<br>
+  </li>
+  <br>
+
+  <li><b>homedir</b><br>
+    Specifies the field in the user table that holds the user's home directory.
+    If the fieldname is specified as &quot;NULL&quot; the database will not be
+    queried for this value and the user's home directory will be set to the
+    value of <code>SQLDefaultHomedir</code>.  If no home directory is set with
+    either directive, user authentication will be automatically turned off.<br>
+  </li>
+  <br>
+
+  <li><b>shell</b><br>
+    Specifies the field in the user table that holds the user's shell.  If the
+    fieldname is specified as &quot;NULL&quot; the database will not be
+    queried and the shell will be reported as an empty string
+    (&quot;&quot;).<br>
+  </li>
+  <br>
+</ul>
+
+<p>
+<b>Custom Queries</b><br>
+As of <code>1.2.9rc1</code>, the <code>SQLUserInfo</code> directive accepts
+an alternate syntax:
+<pre>
+  SQLUserInfo custom:/<i>name</i>
+</pre>
+where <i>name</i> refers to a configured SELECT <code>SQLNamedQuery</code>.
+This named query <b>must</b> return one row, and return the following columns,
+in this order: <code>username, passwd, uid, gid, homedir, shell</code>.  The
+configured query may make use of the variables mentioned in the
+<code>SQLLog</code> description.  This syntax allows the administrator
+a flexible way of constructing queries as needed.  Note that if you want
+use the given <code>USER</code> name, you should use the <code>%U</code>
+variable, not <code>%u</code>; the latter requires the locally authenticated
+user name, which is exactly what <code>SQLUserInfo</code> is meant to 
+provide.
+
+<p>
+Starting with <code>1.3.3rc1</code>, you can supply other queries as well.
+You can supply a SELECT <code>SQLNamedQuery</code> for returning the
+same information as above, only this query is given a <i>UID</i> instead of
+a user name.  For example:
+<pre>
+  SQLNamedQuery get-user-by-name SELECT "userid, passwd, uid, gid, homedir, shell FROM ftpusers WHERE userid = '%U'"
+  SQLNamedQuery get-user-by-id SELECT "userid, passwd, uid, gid, homedir, shell FROM ftpusers WHERE uid = %{0}"
+
+  SQLUserInfo custom:/get-user-by-name/get-user-by-id
+</pre>
+<b><i>If</i></b> your custom <em>get-user-by-name</em> query references a table
+other than the default users table, then you <b>must</b> also supply a
+custom <em>get-user-by-id</em> query as well.  Otherwise, <code>mod_sql</code>
+will fail with a "Table not found" error, and disconnect the client, whenever
+the client asks for a directory listing.
+
+<p>
+<b>Note</b>, however, that if you use the <em>userset</em> or
+<em>usersetfast</em> <a href="#SQLAuthenticate"><code>SQLAuthenticate</code></a>
+options, you will need to supply some additional <code>SQLNamedQuery</code>
+names in your custom <code>SQLUserInfo</code> directive.  The
+<code>SQLUserInfo</code> directive supports:
+<pre>
+  SQLUserInfo custom:/<i>lookup-by-name</i>[/<i>lookup-by-id</i>[/<i>userset-lookup</i>[/<i>usersetfast-lookup</i>]]]
+</pre>
+where <em>userset-lookup</em> is the name of a SELECT <code>SQLNamedQuery</code>
+that returns the names (and <i>only the names</i>) of all users, and the
+<em>usersetfast-lookup</em> refers to a SELECT <code>SQLNamedQuery</code>
+that returns all the fields (<i>i.e.</i> <code>username, passwd, uid, gid,
+homedir, shell</code> in that order) for all users.
+
+<p>
+To provide a concrete example:
+<pre>
+  SQLAuthenticate users groups usersetfast
+  SQLUserInfo custom:/get-user-by-name/get-user-by-id/get-user-names/get-all-users
+  SQLNamedQuery get-user-by-name SELECT "userid, passwd, uid, gid, homedir, shell FROM users WHERE userid = '%U'"
+  SQLNamedQuery get-user-by-id SELECT "userid, passwd, uid, gid, homedir, shell FROM users WHERE uid = %{0}"
+  SQLNamedQuery get-user-names SELECT "userid FROM users"
+  SQLNamedQuery get-all-users SELECT "userid, passwd, uid, gid, homedir, shell FROM users"
+</pre>
+With a configuration similar to these, using either of the <em>userset</em> or
+<em>usersetfast</em> in your <code>SQLAuthenticate</code> directive will
+work as expected.
+
+<p>
+<b>See Also</b>:
+  <a href="#SQLAuthenticate"><code>SQLAuthenticate</code></a>,
+  <a href="#SQLGroupInfo"><code>SQLGroupInfo</code></a>, 
+  <a href="#SQLLog"><code>SQLLog</code></a>, 
+  <a href="#SQLNamedQuery"><code>SQLNamedQuery</code></a>
+
+<p>
+<hr>
+<h3><a name="SQLUserPrimaryKey">SQLUserPrimaryKey</a></h3>
+<strong>Syntax:</strong> SQLUserPrimaryKey <em>column | &quot;custom:/&quot;named-query</em><br>
+<strong>Default:</strong> uid<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.3.5rc3 and later
+
+<p>
+The <code>SQLUserPrimaryKey</code> directive configures the column name
+that is used as the "primary key" for user data; this primary key can
+then be used in other SQL tables via foreign key constraints.  The
+<a href="../howto/SQL.html#SQLPrimaryKeys">SQL howto</a> covers using this
+directive in more details.
+
+<p>
+See also: <a href="#SQLGroupPrimaryKey"><code>SQLGroupPrimaryKey</code></a>
+
+<p>
+<hr>
+<h3><a name="SQLUserWhereClause">SQLUserWhereClause</a></h3>
+<strong>Syntax:</strong> SQLUserWhereClause <em>where-clause </em><br>
+<strong>Default:</strong> None<br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_sql<br>
+<strong>Compatibility:</strong> 1.2.5rc1 and later
+
+<p>
+The directive is used to configure a WHERE clause that is added to every user
+query.  The WHERE clause <b>must</b> contain all relevant punctuation, and
+<b>must not</b> contain a leading &quot;and&quot;.
+
+<p>
+As an example of a possible use for this directive, imagine if your user table
+included a &quot;LoginAllowed&quot; field:
+<pre>
+  SQLUserWhereClause "LoginAllowed = 'true'"
+</pre>
+would be appended to every user-related query as the string:
+<pre>
+  " WHERE (LoginAllowed = 'true')"
+</pre>
+
+<p>
+<b>Note</b> that if custom user <code>SQLNamedQuery</code> are configured,
+those custom queries will be used <i>as is</i>; any configured
+<code>SQLUserWhereClause</code> will <b>not</b> be appended.  Custom queries
+can be of any format/syntax, and thus simply appending a
+<code>SQLUserWhereClause</code> to a custom query may be syntactically invalid.
+
+<p>
+As of ProFTPD 1.3.1rc2, the configured <code>SQLUserWhereClause</code>
+parameter can use the same set of variables as supported by the
+<a href="#SQLNamedQuery"><code>SQLNamedQuery</code></a> directive.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_sql</code> module is distributed with ProFTPD.  Simply
+follow the normal steps for using third-party modules in ProFTPD:
+<pre>
+  $ ./configure --with-modules=<i>sql-module-opts</i>
+</pre>
+where the specific <i>sql-module-opts</i> depend on your database needs.  For
+example, if using MySQL, <i>sql-module-opts</i> would be
+&quot;mod_sql:mod_sql_mysql&quot;.  <code>mod_sql</code> is the main
+SQL-processing engine, and <code>mod_sql_mysql</code> is the backend
+sub-module that handles MySQL-specific details.  If Postgres is your
+database of choice, <i>sql-module-opts</i> would be
+&quot;mod_sql:mod_sql_postgres&quot;.
+
+<p>
+You will also need to tell <code>configure</code> how to find the
+database-specific libraries and header files:
+<pre>
+  $ ./configure --with-modules=<i>sql-module-opts</i> \
+    --with-includes=<i>/path/to/db/header/file/dir</i> \
+    --with-libraries=<i>/path/to/db/library/file/dir</i>
+</pre>
+
+<p>
+Complete the build with the following standard commands:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+<b>Logging</b><br>
+The <code>mod_sql</code> module supports <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>sql
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace sql:20
+</pre>
+This trace logging can generate large files; it is intended for debugging use
+only, and should be removed from any production configuration.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2000-2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

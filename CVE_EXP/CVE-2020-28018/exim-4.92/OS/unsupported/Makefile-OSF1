@@ -1,0 +1,10 @@
+# Exim: OS-specific make file for OSF1
+
+CFLAGS=-O
+LIBS=-liconv -lm
+HAVE_CRYPT16=yes
+HAVE_ICONV=yes
+HOSTNAME_COMMAND=/usr/bin/hostname
+EXIWHAT_EGREP_ARG='/exim( |$$)'
+
+# End

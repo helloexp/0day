@@ -1,0 +1,65 @@
+Exim Documentation
+------------------
+
+This directory should contain the following files:
+
+  ChangeLog        most recent log of all changes to Exim
+  NewStuff         features that haven't made it to the manual yet,
+                   and/or a list of newly-added functionality
+  OptionLists.txt  lists of all Exim's options
+  README           this document
+  README.SIEVE     notes on the Sieve support
+  Exim3.upgrade    information about upgrading from release 2.12 to 3.00
+  Exim4.upgrade    information about upgrading from release 3.33 to 4.00
+  dbm.discuss.txt  discussion of DBM libraries
+  filter.txt       specification of filter file contents
+  spec.txt         main specification of Exim
+  experimental-spec.txt  specification of experimental features
+
+
+PostScript
+----------
+
+The Exim specifications are also available in PostScript. This is not included
+in the main distribution because not everyone wants it. Wherever you got this
+distribution from should also have carried another file called
+exim-postscript-<version>.tar.gz which contains the PostScript documentation.
+When de-tarred it creates a directory called exim-postscript-<version> into
+which it places the files doc/filter.ps and doc/spec.ps.
+
+
+HTML
+----
+
+A conversion from the original sources into HTML is done to create the online
+documentation at http://www.exim.org. This set of files is also available for
+installation on other servers. Wherever you got this distribution from should
+also have carried another file called exim-html-<version>.tar.gz which contains
+the HTML documentation. When de-tarred it creates a directory called
+exim-html-<version> into which it places a directory called doc/html containing
+the set of HTML files. The kick off point is the traditional index.html.
+
+
+PDF
+---
+
+The Exim specifications are available in Portable Document Format. Wherever you
+got this distribution from should also have carried another file called
+exim-pdf-<version>.tar.gz which contains the PDF documentation. When de-tarred
+it creates a directory called exim-pdf-<version> into which it places the files
+doc/filter.pdf and doc/spec.pdf.
+
+
+TeXinfo
+-------
+
+A version of the documentation that has been converted to TeXinfo format is
+available in the distribution file exim-texinfo-<version>.gz. When de-tarred it
+creates a directory called exim-texinfo-<version> into which it places the
+files doc/filter.texinfo and doc/spec.texinfo.
+
+The conversion process is automatic, so the result isn't as nice as
+hand-maintained TeXinfo files would be, and some information is lost; for
+example, TeXinfo does not support the use of change bars.
+
+-- End --

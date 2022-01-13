@@ -1,0 +1,28 @@
+# Exim: OS-specific make file for AIX
+# Written by Nick Waterman (nick@cimio.co.uk)
+# Modified by PH following a message from Mike Meredith
+
+# Note that the output of uname -m is probably not what Philip expected,
+# so you might end up with more build-AIX-random_number directories than
+# you expected if you have too many AIX boxes, but it seems to work... I
+# blame IBM.
+
+# Note that nowadays you have to pay extra for a cc compiler with AIX!
+
+CC=gcc
+
+# This needs to be in here rather than os.h-AIX because of regexp stuff.
+# basically strchr is a #define, which means "extern char *strchr()"
+# ruins things. __STR31__ seems to get around this by magic. The AIX
+# include files are quite a confusing maze.
+# Mike M says this is not necessary any more; possibly this is related to
+# using gcc. Commented out by PH.
+#CFLAGS = -D__STR31__
+
+CFLAGS = -mcpu=power4 -maix64 -O3
+
+# Needed for vfork() and vfork() only?
+
+LIBS = -lbsd -lm
+
+# End

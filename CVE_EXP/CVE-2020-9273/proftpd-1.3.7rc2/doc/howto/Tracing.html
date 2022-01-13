@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD: Tracing</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center><h2><b>ProFTPD: Tracing</b></h2></center>
+<hr>
+
+<p>
+<b>What is Tracing?</b><br>
+"Tracing" is a new form of logging, introduced in the 1.3.1 ProFTPD release
+series.
+
+<p>
+Trace logging has the concept of multiple logging <i>channels</i>, each of
+which has its own log <i>level</i>.  Layers and APIs within the ProFTPD source
+will tend to use their own channels.  There is no limit to the number of
+different log channels that can be supported.
+
+<p>
+Within a channel, the assumption is that lower log levels indicate higher
+priority or importance.  Or to look at it another way, the higher the log
+level for channel, the more noisy that log channel might be.  The lowest log
+level is 1; there is no upper log level limit.
+
+<p>
+Why have this new form of logging, in addition to all the other kinds of logs
+(<i>e.g.</i> <code>SystemLog</code>, <code>ExtendedLog</code>, <i>etc</i>)
+that a <code>proftpd</code> daemon can currently produce?  The usual
+<code>SystemLog</code> of proftpd debug logging, at a high
+<code>DebugLevel</code>, was becoming unreadable; it is difficult to find the
+tidbits of knowledge amidst the other messages in that file.  By separating
+log messages into channels and levels, tracing gives the administrator a much
+finer-grained control over the logging, given them a way of focusing the
+logging more narrowly, so only the area of code of interest is logged.
+
+<p>
+Support for tracing is enabled by default.  Use the
+<code>--disable-trace</code> configure option, when compiling ProFTPD, to
+disable all tracing support.  I recommend that high-traffic production sites,
+which have no need for debug logging at this granularity, use the
+<code>--disable-trace</code> option.
+
+<p>
+<b>Configuration Directives</b><br>
+There are two new configuration directives for tracing: <code>TraceLog</code>
+and <code>Trace</code>.  Note that for tracing to be effective, these
+two directives, if used, <i>must</i> appear at the start of your
+<code>proftpd.conf</code> file, before any other directives.
+
+<p>
+The <code>TraceLog</code> directive specifies a filename to which to write
+the tracing log messages.  For example:
+<pre>
+  TraceLog /var/ftpd/trace.log
+</pre>
+Without this directive, no trace logging will occur.
+
+<p>
+Once you have configured your <code>TraceLog</code>, you will use the
+<code>Trace</code> directive to control the verbosity of that log:
+<pre>
+  Trace <i>channel1</i>:<i>level1</i> <i>channel2</i>:<i>level2</i> ...
+</pre>
+This directive lets you set each log channel and its level differently,
+<i>e.g.</i>:
+<pre>
+  Trace command:5 response:8 timer:2 config:9
+</pre>
+There is also support for a special "DEFAULT" keyword:
+<pre>
+  Trace DEFAULT:10
+</pre>
+The following is the list of channels which are covered by the "DEFAULT"
+keyword:
+<ul>
+  <li>auth
+  <li>binding
+  <li>command
+  <li>config
+  <li>ctrls
+  <li>data
+  <li>delay
+  <li>dns
+  <li>dso
+  <li>encode
+  <li>error
+  <li>event
+  <li>facl
+  <li>fsio
+  <li>ident
+  <li>inet
+  <li>lock
+  <li>log
+  <li>module
+  <li>netacl
+  <li>netio
+  <li>pam
+  <li>pool
+  <li>regexp
+  <li>response
+  <li>scoreboard
+  <li>signal
+  <li>site
+  <li>timer
+  <li>var
+</ul>
+This means that if you use the following in your <code>proftpd.conf</code>
+file, at the very top:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace DEFAULT:10
+</pre>
+Then <b>all</b> of the above channels, up to log level 10, will have their
+messages logged.
+
+<p>
+If you want to look at the default trace channels <i>except</i> for a
+particular channel, use level 0 to effectively disable that channel.
+For example, to exclude the "fsio" channel but see the rest of the default
+channels, you would use:
+<pre>
+  Trace DEFAULT:10 fsio:0
+</pre>
+
+<p>
+Note that there are trace channel names that are <b>not</b> part of the
+"DEFAULT" channel name list (<i>e.g.</i> "class"); any custom channel names,
+such as might be used by a third-party module, are also not covered in the
+"DEFAULT" list.  For example, the <code>mod_tls</code> module may log to a
+"tls" channel.  Any messages to that "tls" channel would not appear in the
+<code>TraceLog</code> file, using the above configuration.  Instead,
+you would need to explicitly mention the "tls" channel, <i>i.e.</i>:
+<pre>
+  TraceLog /path/to/ftpd/trace.log
+  Trace DEFAULT:10 tls:10
+</pre>
+
+<p>
+<b>Optional Trace Log Channels</b><br>
+In addition to the default trace log channels listed above, there are
+optional trace log channels:
+<ul>
+  <li><code>directory</code>
+    <p>
+    The "directory" log channel is used when the core engine attempts
+    to find the closest matching <code>&lt;Directory&gt;</code> section
+    for a path.
+  </li>
+
+  <p>
+  <li><code>fileperms</code>
+    <p>
+    The "fileperms" log channel is used whenever a user action involving
+    the filesystem (<i>e.g.</i> opening/closing/writing/renaming/deleting
+    files or directories) fails.  This channel will log the relevant FTP
+    command, user name, UID/GID, filesystem path, and the error.
+  </li>
+</ul>
+
+<p>
+<b>Trace Log Format</b><br>
+Every log message in a <code>TraceLog</code> uses the following format:
+<pre>
+  <i>timestamp [process ID] &lt;channel:level&gt;: message</i>
+</pre>
+For example:
+<pre>
+  Jan 16 17:15:58 [30583] &lt;auth:6&gt;: dispatching auth request "endgrent" to module mod_auth_unix
+</pre>
+This shows process ID 30583 logging to the "auth" channel, log level 6, a
+message about handling the "endgrent" Auth API request.
+
+<p><a name="RuntimeTuning">
+<b>Runtime Tracing</b><br>
+If Controls support is enabled in your <code>proftpd</code>, <i>and</i>
+you are using the <code>mod_ctrls_admin</code> module, then you can also use the
+<code>ftpdctl</code> command to adjust the trace logging settings in the
+running <code>proftpd</code>, without needing to change your
+<code>proftpd.conf</code> file.  See:
+<pre>
+  <a href="../contrib/mod_ctrls_admin.html#trace">doc/contrib/mod_ctrls_admin.html#trace</a>
+</pre>
+for more information on the <code>ftpdctl trace</code> action.
+
+<p>
+Here's a concrete example of how tuning the trace logging at runtime can be
+useful.  You may need the extra information logged via trace logging in order
+to track down/debug some issue, <b>but</b> you do not want to enable trace
+logging all of the time in your environment.  Fortunately, it is possible
+to make it possible to get the trace logging information you need, when
+you need to get it, and then turn the trace logging off <i>all without
+restarting proftpd</i>.
+
+<p>
+First, you need to configure your <code>proftpd.conf</code> like so:
+<pre>
+  TraceLog /path/to/proftpd/trace.log
+  Trace DEFAULT:0
+</pre>
+This configuration tells proftpd to direct all trace logging to that
+<code>TraceLog</code> file, <i>but</i> to not actually write anything to the
+file; the log level zero (0) filters out all trace logging messages.  Start
+proftpd with the updated <code>proftpd.conf</code>.  Later, while proftpd is
+running, you can tune the tracing using the
+<a href="Controls.html"><code>ftpdctl</code></a> utility, like this:
+<pre>
+  $ ftpdctl trace lock:10 scoreboard:5
+</pre>
+which dynamically changes the 'lock' trace channel level to 10, and the
+'scoreboard' trace channel level to 5.  Once you have gathered the necessary
+information in the <code>TraceLog</code> file, you then use <code>ftpdctl</code>
+again and restore the trace levels back to zero, effectively turning off
+trace logging once more:
+<pre>
+  $ ftpdctl trace DEFAULT:0
+</pre>
+Note that the changed settings will only apply to <b>new</b> sessions; this
+does <b>not</b> change the trace logging for <i>existing</i> sessions.
+
+<p>
+<b>Use Only When Needed</b><br>
+Remember that tracing is a <i>verbose</i> (and thus expensive) form of logging,
+and thus makes the <code>proftpd</code> daemon run slower.  Tracing should only
+ever be used for debugging and development purposes; once your
+<code>proftpd</code> is up and running the way you need, you should remove all
+<code>Trace</code> and <code>TraceLog</code> directives from your
+<code>proftpd.conf</code>.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b><br>
+
+<p>
+<font color=red>Question</font>: Can I configure <code>Trace</code> on a
+per-user basis, using <code>mod_ifsession</code>'s <code>&lt;IfUser&gt;</code>?<br>
+<font color=blue>Answer</font>: You can indeed use <code>mod_ifsession</code>
+for <code>Trace</code> configurations, starting in ProFTPD 1.3.4rc1.  To
+do this, you need to use the optional "session" keyword in your
+<code>Trace</code> configuration, <i>e.g.</i>:
+<pre>
+  &lt;IfUser <i>traced-user</i>&gt;
+    Trace session DEFAULT:10
+  &lt;/IfUser&gt;
+</pre>
+This goes for <code>&lt;IfClass&gt;</code> and <code>&lt;IfGroup&gt;</code>
+sections as well.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2017 The ProFTPD Project<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

@@ -1,0 +1,1353 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>ProFTPD module mod_snmp</title>
+</head>
+
+<body bgcolor=white>
+
+<hr>
+<center>
+<h2><b>ProFTPD module <code>mod_snmp</code></b></h2>
+</center>
+<hr><br>
+
+<p>
+The <code>mod_snmp</code> module implements SNMPv1 and SNMPv2, for monitoring
+of <code>proftpd</code> statistics via SNMP.
+
+<p>
+The <code>mod_snmp</code> module does <b>not</b> currently support:
+<ul>
+  <li>SNMPv3
+  <li>AgentX
+  <li>SNMP <code>Set</code> requests
+</ul>
+
+<p>
+The <code>mod_snmp</code> module is contained in the <code>mod_snmp/</code>
+directory, is intended for ProFTPD 1.3.4rc3 and later, and is not compiled by
+default.  Installation instructions are discussed
+<a href="#Installation">here</a>.
+
+<p>
+The most current version of <code>mod_sftp</code> is distributed with the
+ProFTPD source code.
+
+<h2>Author</h2>
+<p>
+Please contact TJ Saunders &lt;tj <i>at</i> castaglia.org&gt; with any
+questions, concerns, or suggestions regarding this module.
+
+<h2>Thanks</h2>
+<p>
+<i>2013-01-09</i>: Thanks to &lt;cliles <i>at</i> capario.com&gt; for testing
+out most of the <code>mod_snmp</code> features, requesting additional useful
+functionality, and providing OpenNMS support/examples.
+
+<h2>Directives</h2>
+<ul>
+  <li><a href="#SNMPAgent">SNMPAgent</a>
+  <li><a href="#SNMPCommunity">SNMPCommunity</a>
+  <li><a href="#SNMPEngine">SNMPEngine</a>
+  <li><a href="#SNMPLog">SNMPLog</a>
+  <li><a href="#SNMPMaxVariables">SNMPMaxVariables</a>
+  <li><a href="#SNMPNotify">SNMPNotify</a>
+  <li><a href="#SNMPOptions">SNMPOptions</a>
+  <li><a href="#SNMPTables">SNMPTables</a>
+</ul>
+
+<p>
+<hr>
+<h3><a name="SNMPAgent">SNMPAgent</a></h3>
+<strong>Syntax:</strong> SNMPAgent master|agentx <em>address[:port] ...</em><br>
+<strong>Default:</strong> <em>None</em><br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_snmp<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>SNMPAgent</code> directive configures the <code>mod_snmp</code>
+module to act as a "master" SNMP agent/entity, or as an AgentX sub-agent.
+(<b>Note</b> that the AgentX capability is not currently implemented.)
+
+<p>
+The <em>address</em> parameter can be an IP address or a DNS name; this
+parameter configures the address/port on which <code>mod_snmp</code> will listen
+for UDP SNMP packets.  By default, a port of 161 is assumed, use
+<em>address:port</em> to specify an alternate port, <i>e.g.</i>:
+<pre>
+  SNMPAgent master localhost:1161
+</pre>
+Note that IPv6 addresses should be enclosed in square brackets, as they can
+contain colons as well, <i>e.g.</i>:
+<pre>
+  SNMPAgent master [::1]:1161
+</pre>
+
+<p>
+Multiple addresses can be supplied, allowing <code>mod_snmp</code> to listen
+on multiple addresses/ports simultaneously:
+<pre>
+  SNMPAgent master 1.2.3.4:1161 [a::f]:2262
+</pre>
+
+<p>
+Note that the <code>SNMPAgent</code> directive is <b>required</b>.
+
+<p>
+<hr>
+<h3><a name="SNMPCommunity">SNMPCommunity</a></h3>
+<strong>Syntax:</strong> SNMPCommunity <em>community</em><br>
+<strong>Default:</strong> <em>None</em><br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_snmp<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>SNMPCommunity</code> directive configures the <em>community</em>
+string (effectively a passphrase) used for authenticating SNMPv1 and SNMPv2
+messages.
+
+<p>
+Note that the <code>SNMPCommunity</code> directive is <b>required</b>.
+
+<p>
+<hr>
+<h3><a name="SNMPEngine">SNMPEngine</a></h3>
+<strong>Syntax:</strong> SNMPEngine <em>on|off</em><br>
+<strong>Default:</strong> <em>off</em><br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_snmp<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>SNMPEngine</code> directive controls whether the <code>mod_snmp</code>
+will run as an SNMP agent, and handle SNMP messages.
+
+<p>
+<hr>
+<h3><a name="SNMPLog">SNMPLog</a></h3>
+<strong>Syntax:</strong> SNMPLog <em>file|"none"</em><br>
+<strong>Default:</strong> <em>None</em><br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_snmp<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>SNMPLog</code> directive is used to specify a log file for
+<code>mod_snmp</code>'s reporting.  The <em>file</em> parameter given must be
+the full path to the file to use for logging.
+
+<p>
+Note that this path must <b>not</b> be to a world-writable directory and,
+unless <code>AllowLogSymlinks</code> is explicitly set to <em>on</em>
+(generally a bad idea), the path must <b>not</b> be a symbolic link.
+
+<p>
+<hr>
+<h3><a name="SNMPNotify">SNMPNotify</a></h3>
+<strong>Syntax:</strong> SNMPNotify <em>address[:port]</em><br>
+<strong>Default:</strong> <em>None</em><br>
+<strong>Context:</strong> server config, <code>&lt;VirtualHost&gt;</code>, <code>&lt;Global&gt;</code><br>
+<strong>Module:</strong> mod_snmp<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>SNMPNotify</code> directive is used to specify the <em>address</em>
+of any SNMP manager that should receive <b>any</b> notification (<i>i.e.</i>
+SNMPv2 trap) that <code>mod_snmp</code> can generated.  Read <a href="#Notifications">here</a> for more details on the types of notifications that
+<code>mod_snmp</code> supports.
+
+<p>
+The <em>address</em> parameter can be an IP address or DNS name.  By default,
+a port number of 162 is assumed.  To specify the port number, use:
+<pre>
+  SNMPNotify <em>address</em>:<em>port</em>
+</pre>
+
+<p>
+Multiple <code>SNMPNotify</code> directives can be configured;
+<code>mod_snmp</code> will send notifications to <i>all</i> of them.
+
+<p>
+<hr>
+<h3><a name="SNMPOptions">SNMPOptions</a></h3>
+<strong>Syntax:</strong> SNMPOptions <em>opt1 ...</em><br>
+<strong>Default:</strong> <em>None</em><br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_snmp<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>SNMPOptions</code> directive is used to configure various optional
+behaviors of <code>mod_snmp</code>.
+
+<p>
+Example:
+<pre>
+  SNMPOptions RestartClearsCounters
+</pre>
+
+<p>
+The currently implemented options are:
+<ul>
+  <li><code>RestartClearsCounters</code><br>
+    <p>
+    This option will cause <code>mod_snmp</code> to clear/reset every
+    counter (<i>except</i> for the <code>daemon.restartCount</code> counter)
+    whenever <code>proftpd</code> is restarted via the SIGHUP signal.
+</ul>
+
+<p>
+<hr>
+<h3><a name="SNMPTables">SNMPTables</a></h3>
+<strong>Syntax:</strong> SNMPTables <em>path</em><br>
+<strong>Default:</strong> <em>None</em><br>
+<strong>Context:</strong> server config<br>
+<strong>Module:</strong> mod_snmp<br>
+<strong>Compatibility:</strong> 1.3.4rc3 and later
+
+<p>
+The <code>SNMPTables</code> directive is used to specify a directory that
+<code>mod_snmp</code> will use for storing its database files; these files
+are used for tracking the various statistics reported via SNMP.
+
+<p>
+<hr>
+<h2><a name="Installation">Installation</a></h2>
+The <code>mod_snmp</code> module is distributed with ProFTPD.  For including
+<code>mod_snmp</code> as a statically linked module, use:
+<pre>
+  $ ./configure --with-modules=mod_snmp ...
+</pre>
+Alternatively, <code>mod_snmp</code> can be built as a DSO module:
+<pre>
+  $ ./configure --enable-dso --with-shared=mod_snmp ...
+</pre>
+Then follow the usual steps:
+<pre>
+  $ make
+  $ make install
+</pre>
+
+<p>
+<hr>
+<h2><a name="Usage">Usage</a></h2>
+
+<p>
+<b>Important Security Considerations</b><br>
+Do <b>not</b> configure <code>mod_snmp</code> to listen on a public Internet
+address.  The information provided via <code>mod_snmp</code> can be used
+by attackers to gain more information about your running <code>proftpd</code>,
+including being able to determine whether their logins fail due to a wrong
+password (in which case, they know that that user name is valid) or not.  It
+is <b>highly recommended</b> that you configure <code>mod_snmp</code> to only
+listen on internal/LAN addresses.  Furthermore, you should employ a firewall
+rule that <b>rejects</b> any UDP packets from the public Internet to your
+<code>proftpd</code> instance.
+
+<p>
+<b>SNMP Listening Process</b><br>
+When <code>proftpd</code> starts up with <code>mod_snmp</code> enabled, the
+<code>mod_snmp</code> module will fork a new process that acts as the SNMP
+agent, receiving and responding to all SNMP requests.  This SNMP listening
+process automatically switches to the privileges configured by the
+<code>User</code> and <code>Group</code> directives, and will also automatically
+<b>chroot</b> itself to a subdirectory of the <code>SNMPTables</code> directory,
+after which all root privileges are permanently dropped.
+
+<p>
+<b>Example Configuration</b><br>
+The <code>mod_snmp</code> module uses a UDP socket for listening for SNMP
+requests.  Thus it does not require any separate
+<code>&lt;VirtualHost&gt;</code> sections, and does not interfere with the
+normal FTP operations.
+
+<p>
+Here is an example configuration for <code>mod_snmp</code>:
+<pre>
+  &lt;IfModule mod_snmp.c&gt;
+    SNMPEngine on
+    SNMPLog /etc/proftpd/snmp/snmp.log
+
+    # Configure the agent to listen on 1.2.3.4, port 161
+    SNMPAgent master 1.2.3.4 161
+
+    # Configure the SNMP community string
+    SNMPCommunity MySnmpCommunity
+
+    # Configure the directory that mod_snmp will use for its database files
+    SNMPTables /var/proftpd/snmp
+  &lt;/IfModule&gt;
+</pre>
+
+<p>
+<b>Access Controls for SNMP Messages</b><br>
+Since the SNMPv1/SNMPv2 does not have authentication of "users" as such,
+the normal user/group-based ACLs that can be configured in <code>proftpd</code>
+have no effect on SNMP messages.
+
+<p>
+In order to provide IP-based access control, then, the <code>mod_snmp</code>
+module supports a <code>&lt;Limit SNMP&gt;</code> section, like the following:
+<p>
+Example:
+<pre>
+  &lt;Limit SNMP&gt;
+    # Allow SNMP packets from 10.x.x.x and 127.0.0.1 addresses
+    Allow from 10., 127.0.0.1
+    DenyAll
+  &lt;/Limit&gt;
+</pre>
+It is easy to spoof the source address for UDP packets, however.  So it is
+far better (and more secure) to use a firewall to restrict which UDP packets
+can reach the <code>mod_snmp</code> address/port.
+
+<p>
+<b>Logging</b><br>
+The <code>mod_snmp</code> module supports different forms of logging.  The
+main module logging is done via the <code>SNMPLog</code> directive.  For
+debugging purposes, the module also uses <a href="../howto/Tracing.html">trace logging</a>, via the module-specific log channels:
+<ul>
+  <li>snmp
+  <li>snmp.asn1
+  <li>snmp.db
+  <li>snmp.mib
+  <li>snmp.msg
+  <li>snmp.notify
+  <li>snmp.pdu
+  <li>snmp.smi
+</ul>
+Thus for trace logging, to aid in debugging, you would use the following in
+your <code>proftpd.conf</code>:
+<pre>
+  TraceLog /path/to/snmp-trace.log
+  Trace snmp:20
+</pre>
+This trace logging can generate large files; it is intended for debugging
+use only, and should be removed from any production configuration.
+
+<p>
+<b><code>mod_snmp</code> OIDs</b><br>
+<b>Note</b> that all <code>mod_snmp</code> OIDs begin with
+1.3.6.1.4.1.17852.2.2.  The <code>ProFTPD</code> column in the table below
+contains the ProFTPD versions where the OID is present.
+
+<p>
+<table border=1 summary="ProFTPD SNMP OIDs">
+  <tr>
+    <td>&nbsp;<b>OID</b>&nbsp;</td>
+    <td>&nbsp;<b>Name</b>&nbsp;</td>
+    <td>&nbsp;<b>Type</b>&nbsp;</td>
+    <td>&nbsp;<b><code>ProFTPD</code></b>&nbsp;</td>
+    <td>&nbsp;<b>Description</b>&nbsp;</td>
+  </tr>
+
+  <!-- daemon arc -->
+  <tr>
+    <td>&nbsp;*.1.1.0&nbsp;</td>
+    <td>&nbsp;daemon.software&nbsp;</td>
+    <td>&nbsp;STRING&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Always &quot;proftpd&quot;&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.1.2.0&nbsp;</td>
+    <td>&nbsp;daemon.version&nbsp;</td>
+    <td>&nbsp;STRING&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Version of <code>proftpd</code>&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.1.3.0&nbsp;</td>
+    <td>&nbsp;daemon.admin&nbsp;</td>
+    <td>&nbsp;STRING&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Administrative contact, <i>i.e.</i> the <code>ServerAdmin</code>&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.1.4.0&nbsp;</td>
+    <td>&nbsp;daemon.uptime&nbsp;</td>
+    <td>&nbsp;TimeTicks&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Uptime of the <code>proftpd</code> daemon&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.1.5.0&nbsp;</td>
+    <td>&nbsp;daemon.vhostCount&nbsp;</td>
+    <td>&nbsp;INTEGER&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of vhosts (including "server config") configured&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.1.6.0&nbsp;</td>
+    <td>&nbsp;daemon.connectionCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of current connections&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.1.7.0&nbsp;</td>
+    <td>&nbsp;daemon.connectionTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of connections since daemon started&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.1.8.0&nbsp;</td>
+    <td>&nbsp;daemon.connectionRefusedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of connections <b>refused</b>&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.1.9.0&nbsp;</td>
+    <td>&nbsp;daemon.restartCount&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of times daemon has been restarted&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.1.10.0&nbsp;</td>
+    <td>&nbsp;daemon.segfaultCount&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of <code>SIGSEGV</code> occurrences&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.1.11.0&nbsp;</td>
+    <td>&nbsp;daemon.maxInstancesLimitCount&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of times <code>MaxInstances</code> reached&nbsp;</td>
+  </tr>
+
+  <!-- timeouts arc -->
+  <tr>
+    <td>&nbsp;*.2.1.0&nbsp;</td>
+    <td>&nbsp;timeouts.idleTimeoutTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of times <code>TimeoutIdle</code> was reached&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.2.2.0&nbsp;</td>
+    <td>&nbsp;timeouts.loginTimeoutTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of times <code>TimeoutLogin</code> was reached&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.2.3.0&nbsp;</td>
+    <td>&nbsp;timeouts.noTransferTimeoutTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of times <code>TimeoutNoTransfer</code> was reached&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.2.4.0&nbsp;</td>
+    <td>&nbsp;timeouts.stalledTimeoutTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of times <code>TimeoutStalled</code> was reached&nbsp;</td>
+  </tr>
+
+  <!-- ftp.sessions arc -->
+  <tr>
+    <td>&nbsp;*.3.1.1.0&nbsp;</td>
+    <td>&nbsp;ftp.sessions.sessionCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of current FTP sessions&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.1.2.0&nbsp;</td>
+    <td>&nbsp;ftp.sessions.sessionTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of FTP sessions handled&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.1.3.0&nbsp;</td>
+    <td>&nbsp;ftp.sessions.commandInvalidTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of invalid FTP commands received&nbsp;</td>
+  </tr>
+
+  <!-- ftp.logins arc -->
+  <tr>
+    <td>&nbsp;*.3.2.1.0&nbsp;</td>
+    <td>&nbsp;ftp.logins.loginTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of successful FTP logins&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.2.2.0&nbsp;</td>
+    <td>&nbsp;ftp.logins.loginFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of <b>failed</b> FTP logins&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.2.3.0&nbsp;</td>
+    <td>&nbsp;ftp.logins.loginBadUserTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of failed FTP logins due to bad/wrong user name&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.2.4.0&nbsp;</td>
+    <td>&nbsp;ftp.logins.loginBadPasswordTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of failed FTP logins due to bad password&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.2.5.0&nbsp;</td>
+    <td>&nbsp;ftp.logins.loginGeneralErrorTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of failed FTP logins due to config/other issues&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.2.6.0&nbsp;</td>
+    <td>&nbsp;ftp.logins.anonLoginCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of current anonymous FTP logins&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.2.7.0&nbsp;</td>
+    <td>&nbsp;ftp.logins.anonLoginTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of anonymous FTP logins&nbsp;</td>
+  </tr>
+
+  <!-- ftp.dataTransfers arc -->
+  <tr>
+    <td>&nbsp;*.3.3.1.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.dirListCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of directories currently being listed via FTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.3.2.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.dirListTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of directories listed via FTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.3.3.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.dirListFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of directory list failures via FTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.3.4.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.fileUploadCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of files currently being uploaded via FTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.3.5.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.fileUploadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of files uploaded via FTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.3.6.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.fileUploadFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of file upload failures via FTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.3.7.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.fileDownloadCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of files currently being downloaded via FTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.3.8.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.fileDownloadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of files downloaded via FTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.3.9.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.fileDownloadFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of file download failures via FTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.3.10.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.kbUploadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of KB uploaded via FTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.3.3.11.0&nbsp;</td>
+    <td>&nbsp;ftp.dataTransfers.kbDownloadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of KB downloaded via FTP&nbsp;</td>
+  </tr>
+
+  <!-- snmp arc -->
+  <tr>
+    <td>&nbsp;*.4.1.0&nbsp;</td>
+    <td>&nbsp;snmp.packetsReceivedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of SNMP packets received&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.4.2.0&nbsp;</td>
+    <td>&nbsp;snmp.packetsSentTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of SNMP packets sent&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.4.3.0&nbsp;</td>
+    <td>&nbsp;snmp.trapsSentTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of SNMP traps/notifications sent&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.4.4.0&nbsp;</td>
+    <td>&nbsp;snmp.packetsAuthFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of SNMP packets failing authentication check&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.4.5.0&nbsp;</td>
+    <td>&nbsp;snmp.packetsDroppedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of SNMP packets dropped&nbsp;</td>
+  </tr>
+
+  <!-- ftps.tlsSessions arc -->
+  <tr>
+    <td>&nbsp;*.5.1.1.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsSessions.sessionCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of current FTPS sessions&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.1.2.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsSessions.sessionTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of FTPS sessions handled&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.1.3.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsSessions.ctrlHandshakeFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc1+&nbsp;</td>
+    <td>&nbsp;Total number of failed control connection SSL/TLS handshakes&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.1.4.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsSessions.dataHandshakeFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc1+&nbsp;</td>
+    <td>&nbsp;Total number of failed data connection SSL/TLS handshakes&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.1.5.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsSessions.clearCommandChannelTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of successful CCC (Clear Command Channel) FTP commands&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.1.6.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsSessions.clearCommandChannelFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of failed CCC (Clear Command Channel) FTP commands&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.1.7.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsSessions.verifyClientTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of successful client cert verifications&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.1.8.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsSessions.verifyClientFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of failed client cert verifications&nbsp;</td>
+  </tr>
+
+  <!-- ftps.tlsLogins -->
+  <tr>
+    <td>&nbsp;*.5.2.1.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsLogins.loginTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of successful FTPS logins&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.2.2.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsLogins.loginFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of <b>failed</b> FTPS logins&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.2.3.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsLogins.loginBadUserTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of failed FTPS logins due to bad/wrong user name&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.2.4.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsLogins.loginBadPasswordTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of failed FTPS logins due to bad password&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.2.5.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsLogins.loginGeneralErrorTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of failed FTPS logins due to config/other issues&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.2.6.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsLogins.loginCertTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of FTPS logins succeeding due to the client cert (<i>e.g.</i> AllowDotLogin <code>TLSOption</code>, <code>TLSUserName</code>, <i>etc</i>)&nbsp;</td>
+  </tr>
+
+  <!-- ftps.tlsDataTransfers -->
+  <tr>
+    <td>&nbsp;*.5.3.1.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.dirListCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of directories currently being listed via FTPS&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.3.2.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.dirListTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of directories listed via FTPS&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.3.3.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.dirListFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of directory list failures via FTPS&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.3.4.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.fileUploadCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of files currently being uploaded via FTPS&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.3.5.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.fileUploadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of files uploaded via FTPS&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.3.6.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.fileUploadFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of file upload failures via FTPS&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.3.7.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.fileDownloadCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of files currently being downloaded via FTPS&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.3.8.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.fileDownloadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of files downloaded via FTPS&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.3.9.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.fileDownloadFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of file download failures via FTPS&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.3.10.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.kbUploadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of KB uploaded via FTPS&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.5.3.11.0&nbsp;</td>
+    <td>&nbsp;ftps.tlsDataTransfers.kbDownloadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of KB downloaded via FTPS&nbsp;</td>
+  </tr>
+
+  <!-- ssh.sshSessions arc -->
+  <tr>
+    <td>&nbsp;*.6.1.1.0&nbsp;</td>
+    <td>&nbsp;ssh.sshSessions.keyExchangeFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of SSH2 key exchange failures&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.6.1.2.0&nbsp;</td>
+    <td>&nbsp;ssh.sshSessions.clientCompressionTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of SSH2 sessions using client-to-server compression&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.6.1.3.0&nbsp;</td>
+    <td>&nbsp;ssh.sshSessions.serverCompressionTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of SSH2 sessions using server-to-client compression&nbsp;</td>
+  </tr>
+
+  <!-- ssh.sshLogins arc -->
+  <tr>
+    <td>&nbsp;*.6.2.1.0&nbsp;</td>
+    <td>&nbsp;ssh.sshLogins.hostbasedAuthTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of SSH2 hostbased authentications&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.6.2.2.0&nbsp;</td>
+    <td>&nbsp;ssh.sshLogins.hostbasedAuthFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of <b>failed</b> SSH2 hostbased authentications&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.6.2.3.0&nbsp;</td>
+    <td>&nbsp;ssh.sshLogins.keyboardInteractiveAuthTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of SSH2 keyboard-interactive authentications&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.6.2.4.0&nbsp;</td>
+    <td>&nbsp;ssh.sshLogins.keyboardInteractiveAuthFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of <b>failed</b> SSH2 keyboard-interactive authentications&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.6.2.5.0&nbsp;</td>
+    <td>&nbsp;ssh.sshLogins.passwordAuthTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of SSH2 password authentications&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.6.2.6.0&nbsp;</td>
+    <td>&nbsp;ssh.sshLogins.passwordAuthFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of <b>failed</b> SSH2 password authentications&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.6.2.7.0&nbsp;</td>
+    <td>&nbsp;ssh.sshLogins.publickeyAuthTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of SSH2 publickey authentications&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.6.2.8.0&nbsp;</td>
+    <td>&nbsp;ssh.sshLogins.publickeyAuthFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of <b>failed</b> SSH2 publickey authentications&nbsp;</td>
+  </tr>
+
+  <!-- sftp.sftpSessions arc -->
+  <tr>
+    <td>&nbsp;*.7.1.1.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpSessions.sessionCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Number of current SFTP sessions&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.1.2.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpSessions.sessionTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of SFTP sessions handled&nbsp;</td>
+  </tr>
+
+  <!-- sftp.sftpDataTransfers arc -->
+  <tr>
+    <td>&nbsp;*.7.2.1.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.dirListCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of directories currently being listed via SFTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.2.2.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.dirListTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of directories listed via SFTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.2.3.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.dirListFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of directory list failures via SFTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.2.4.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.fileUploadCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of files currently being uploaded via SFTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.2.5.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.fileUploadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of files uploaded via SFTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.2.6.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.fileUploadFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of file upload failures via SFTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.2.7.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.fileDownloadCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of files currently being downloaded via SFTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.2.8.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.fileDownloadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of files downloaded via SFTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.2.9.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.fileDownloadFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of file download failures via SFTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.2.10.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.kbUploadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of KB uploaded via SFTP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.7.2.11.0&nbsp;</td>
+    <td>&nbsp;sftp.sftpDataTransfers.kbDownloadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of KB downloaded via SFTP&nbsp;</td>
+  </tr>
+
+  <!-- scp.scpSessions arc -->
+  <tr>
+    <td>&nbsp;*.8.1.1.0&nbsp;</td>
+    <td>&nbsp;scp.scpSessions.sessionCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Number of current SCP sessions&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.8.1.2.0&nbsp;</td>
+    <td>&nbsp;scp.scpSessions.sessionTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4c+&nbsp;</td>
+    <td>&nbsp;Total number of SCP sessions handled&nbsp;</td>
+  </tr>
+
+  <!-- scp.scpDataTransfers arc -->
+  <tr>
+    <td>&nbsp;*.8.2.1.0&nbsp;</td>
+    <td>&nbsp;scp.scpDataTransfers.fileUploadCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of files currently being uploaded via SCP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.8.2.2.0&nbsp;</td>
+    <td>&nbsp;scp.scpDataTransfers.fileUploadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of files uploaded via SCP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.8.2.3.0&nbsp;</td>
+    <td>&nbsp;scp.scpDataTransfers.fileUploadFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of file upload failures via SCP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.8.2.4.0&nbsp;</td>
+    <td>&nbsp;scp.scpDataTransfers.fileDownloadCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Number of files currently being downloaded via SCP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.8.2.5.0&nbsp;</td>
+    <td>&nbsp;scp.scpDataTransfers.fileDownloadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of files downloaded via SCP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.8.2.6.0&nbsp;</td>
+    <td>&nbsp;scp.scpDataTransfers.fileDownloadFailedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of file download failures via SCP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.8.2.7.0&nbsp;</td>
+    <td>&nbsp;scp.scpDataTransfers.kbUploadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of KB uploaded via SCP&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.8.2.8.0&nbsp;</td>
+    <td>&nbsp;scp.scpDataTransfers.kbDownloadTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.4rc3+&nbsp;</td>
+    <td>&nbsp;Total number of KB downloaded via SCP&nbsp;</td>
+  </tr>
+
+  <!-- ban.connections arc -->
+  <tr>
+    <td>&nbsp;*.9.1.1.0&nbsp;</td>
+    <td>&nbsp;ban.connections.connectionBannedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of connections rejected by bans&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.9.1.2.0&nbsp;</td>
+    <td>&nbsp;ban.connections.userBannedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of connections rejected by user-specific bans&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.9.1.3.0&nbsp;</td>
+    <td>&nbsp;ban.connections.hostBannedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of connections rejected by host-specific bans&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.9.1.4.0&nbsp;</td>
+    <td>&nbsp;ban.connections.classBannedTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of connections rejected by class-specific bans&nbsp;</td>
+  </tr>
+
+  <!-- ban.bans arc -->
+  <tr>
+    <td>&nbsp;*.9.2.1.0&nbsp;</td>
+    <td>&nbsp;ban.bans.banCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of bans currently in effect&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.9.2.2.0&nbsp;</td>
+    <td>&nbsp;ban.bans.banTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of bans that were ever in effect&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.9.2.3.0&nbsp;</td>
+    <td>&nbsp;ban.bans.userBanCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of user-specific bans currently in effect&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.9.2.4.0&nbsp;</td>
+    <td>&nbsp;ban.bans.userBanTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of user-specific bans that were ever in effect&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.9.2.5.0&nbsp;</td>
+    <td>&nbsp;ban.bans.hostBanCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of host-specific bans currently in effect&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.9.2.6.0&nbsp;</td>
+    <td>&nbsp;ban.bans.hostBanTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of host-specific bans that were ever in effect&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.9.2.7.0&nbsp;</td>
+    <td>&nbsp;ban.bans.classBanCount&nbsp;</td>
+    <td>&nbsp;Gauge32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of class-specific bans currently in effect&nbsp;</td>
+  </tr>
+
+  <tr>
+    <td>&nbsp;*.9.2.8.0&nbsp;</td>
+    <td>&nbsp;ban.bans.classBanTotal&nbsp;</td>
+    <td>&nbsp;Counter32&nbsp;</td>
+    <td>&nbsp;1.3.5rc2+&nbsp;</td>
+    <td>&nbsp;Total number of class-specific bans that were ever in effect&nbsp;</td>
+  </tr>
+
+</table>
+
+<p>
+<b>SNMP MIB</b><br>
+The MIB provided for <code>proftpd</code> is distributed with the
+<code>mod_snmp</code> module source code, and will be installed by default.
+It is contained in the &quot;PROFTPD-MIB.txt&quot; file, and uses SMIv2.
+
+<p>
+<b>Suggested Future Features</b><br>
+The following lists the features I hope to add to <code>mod_snmp</code>,
+according to need, demand, inclination, and time:
+<ul>
+  <li>AgentX support
+  <li>SNMPv3 support
+  <li>Controls support (<i>e.g.</i> for "ftpdctl snmp" action)
+</ul>
+
+<p><a name="Notifications"></a>
+<b>Notifications</b><br>
+The <code>mod_snmp</code> module supports sending notifications (via SNMP
+<i>traps</i>) whenever certain events occur or conditions are met.  Note
+that only SNMPv2 traps are generated; there is currently no support for
+SNMPv1 traps.
+
+<p>
+Currently supported notifications:
+<ul>
+  <li><code>MaxInstances</code> limit exceeded
+  <li>Failed FTP login due to bad/wrong password
+  <li>Failed FTP login due to bad/unknown user name
+</ul>
+
+<p>
+To enable notifications, simply configure the address of an SNMP manager
+that should be notified via the
+<a href="#SNMPNotify"><code>SNMPNotify</code></a> directive.
+
+<p><a name="FAQ">
+<b>Frequently Asked Questions</b></a><br>
+<font color=red>Question</font>: How can I query the <code>mod_snmp</code>
+Agent process?<br>
+<font color=blue>Answer</font>: You can test if your <code>proftpd</code>
+supports SNMP with the <code>snmpwalk</code> program (<code>snmpwalk</code> is
+a part of the
+<a href="http://net-snmp.sourceforge.net"><code>Net-SNMP</code></a> project).
+Note that you have to specify the SNMP port, which in <code>mod_snmp</code> is
+configured via the <a href="#SNMPAgent"><code>SNMPAgent</code></a> directive.
+
+<p>
+For example, you might try:
+<pre>
+  # snmpwalk -m /path/to/PROFTPD-MIB.txt -v2c -Cc -c communitystring hostname:161 .1.3.6.1.4.1.17852.2.2
+</pre>
+If it gives output like:
+<pre>
+  enterprises.proftpd.modules.snmp.daemon.software = proftpd
+  enterprises.proftpd.modules.snmp.daemon.softwareVersion = ProFTPD Version 1.3.4rc4 (built at Sat Oct 22 2011 11:50:38 PDT)
+  enterprises.proftpd.modules.snmp.daemon.admin = root@127.0.0.1
+</pre>
+or
+<pre>
+  PROFTPD-MIB::software.0 = String: proftpd
+  PROFTPD-MIB::softwareVersion.0 = STRING: ProFTPD Version 1.3.4rc4 (built at Sat Oct 22 2011 11:50:38 PDT)
+  PROFTPD-MIB::admin.0 = STRING: root@127.0.0.1
+</pre>
+or
+<pre>
+  SNMPv2-SMI::enterprises.17852.2.2.1.1.0 = STRING: "proftpd"
+  SNMPv2-SMI::enterprises.17852.2.2.1.2.0 = STRING: "ProFTPD Version 1.3.4rc4 (built at Sat Oct 22 2011 11:50:38 PDT)"
+  SNMPv2-SMI::enterprises.17852.2.2.1.3.0 = STRING: "root@127.0.0.1"
+</pre>
+then your <code>proftpd</code> was compiled with the <code>mod_snmp</code>
+module and it is working properly; you should be able to make nice statistics
+out of it.
+
+<p>
+<font color=red>Question</font>: Why doesn't the
+<code>scp.scpDataTransfers</code> arc have any directory listing
+counters/gauges, such as the <code>ftp.dataTransfers</code> and
+<code>sftp.sftpDataTransfers</code> arcs do?<br>
+<font color=blue>Answer</font>: The SCP protocol does not have the ability
+to get <i>just</i> a directory listing; the protocol only transfers files.
+
+<p>
+<hr>
+<font size=2><b><i>
+&copy; Copyright 2011-2017 TJ Saunders<br>
+ All Rights Reserved<br>
+</i></b></font>
+<hr>
+
+</body>
+</html>

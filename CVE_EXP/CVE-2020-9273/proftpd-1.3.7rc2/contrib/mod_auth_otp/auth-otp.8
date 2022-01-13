@@ -1,0 +1,34 @@
+.TH auth-otp 8 "January 2016"
+.\" Process with
+.\" groff -man -Tascii auth-otp.8 
+.\"
+.SH NAME
+auth\-otp \- generate HOTP/TOTP secrets for mod_auth_otp ProFTPD module
+.SH SYNOPSIS
+.B auth\-otp
+.SH DESCRIPTION
+The
+.BI auth\-otp
+command provides a way to generate the initial HOTP or TOTP secrets for
+use by the mod_auth_otp ProFTPD module.
+.SH OPTIONS
+.TP 12
+.B \-h,\--help
+Display a short usage description, including all available options.
+.TP 12
+.B \-q,\--quiet
+Display only the generated secret, not anything else.
+.TP
+.B \-v,\--verbose
+Reports additional information while generating secrets.
+.SH FILES
+.PD 0
+.B /usr/local/sbin/auth\-otp
+.PD
+.SH AUTHORS
+.PP
+ProFTPD is written and maintained by a number of people, full credits
+can be found on
+.BR http://www.proftpd.org/credits.html
+.PD
+.PP
