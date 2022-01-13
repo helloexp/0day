@@ -1,0 +1,10 @@
+discuz X25 某功能存在 xss漏洞
+
+
+简要描述：
+
+discuz X25 某功能存在 xss漏洞 html 脚本未过滤
+
+详细说明：
+
+discuz X25 广播回复存在 xss漏洞 html、脚本未过滤

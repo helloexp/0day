@@ -1,0 +1,5 @@
+Discuz X2.5最新版爆路径0day漏洞
+
+漏洞证明：http://www.erdare.com/source/plugin/myrepeats/table/table_myrepeats.php
+ 
+修复方案：加!defined(‘IN_UC’) && exit(‘Access Denied’);就好了 

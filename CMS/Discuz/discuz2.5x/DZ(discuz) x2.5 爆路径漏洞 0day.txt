@@ -1,0 +1,13 @@
+DZ(discuz) x2.5 爆路径漏洞 0day
+
+
+/* just for search
+DZ x2.5 爆路径 绝对路径  dzx2.5爆路径 dz2.5爆路径 dz x.25 Dz x.25 DZ 2.5
+*/
+白肚 & 股沟 没找到dzx2.5的爆路径的漏洞 遂拿自己写的那个白盒测试挖洞辅助工具
+果断秒杀之 发出来共享之
+爆路径文件如下:
+
+/uc_server/control/admin/db.php
+/source/plugin/myrepeats/table/table_myrepeats.php
+/install/include/install_lang.php

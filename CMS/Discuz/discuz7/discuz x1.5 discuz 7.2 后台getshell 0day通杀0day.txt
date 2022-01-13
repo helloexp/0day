@@ -1,0 +1,12 @@
+discuz x1.5 discuz 7.2 后台getshell 0day通杀0day
+
+
+discuz x1.5 discuz 7.2 后台getshell 0day通杀版
+
+方法为：
+后台：插件--添加插件--请选择导入方式:上传本帖附件中的XML文件 并同时勾选上 允许导入不同版本 Discuz! 的插件(易产生错误!!)
+然后确认
+shell地址就为：data/plugindata/shell.lang.php  (discuz x1.5 )
+shell地址就为：forumdata/plugins/shell.lang.php (discuz 7.2)
+
+http://www.st999.cn/blog/tools/discuzshell.rar

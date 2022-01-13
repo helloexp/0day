@@ -1,0 +1,64 @@
+Discuz! 7.2/X1 心情墙插件SQL注入及持久型XSS漏洞
+
+[Discuz! 7.2/X1 心情墙插件SQL注入及持久型XSS漏洞 全文]
+简要描述：
+Discuz! 7.2/X1 心情墙插件SQL注入及持久型XSS漏洞。
+SQL注入比较鸡肋，要求GPC为off（目前这样的网站几乎绝版了）
+XSS因为是持久型的，只要管理员打开此应用即会触发。利用XSS怎么操作就见仁见智了。
+
+详细说明：
+由Discuz！认证的（http://addons.discuz.com/workroom.php）第三方开发团队“潮流少年工作室 Teen Studio”出品的心情墙插件（http://www.discuz.net/forum.php?mod=viewthread&tid=1632898），因变量未初始化及过滤不严导致SQL注入及跨站脚本漏洞。
+
+
+moodwall.inc.php
+SQL注入,除下面代码这一处外，本文件还有很多处这样的或是$_POST得到后直接用的情况。惨不忍睹。
+elseif($action == ''edit_mood'' && moodid) {
+
+          //moodid未初始化，直接代入sql查询
+
+   $check = $db->result_first("SELECT * FROM {$tablepre}moodwall WHERE id=''$moodid'' AND uid=''$discuz_uid''");
+
+   if(!$check || !$moodid) {
+
+    showmessage(''moodwall:moodwall_inc_php_2'', ''plugin.php?id=moodwall&action=user_mood'');
+
+   }
+
+   $sql = "SELECT * FROM {$tablepre}moodwall WHERE id=''$moodid''";
+
+   $query = $db->query($sql);
+
+   $moodlist_edit = array();
+
+   while($mood_edit = $db->fetch_array($query)) {
+
+    $moodlist_edit[] = $mood_edit;
+
+   }
+
+
+XSS
+$uid=$_POST[uid];
+
+$username=$_POST[username];
+
+$bgpic=$_POST[bgpic];
+
+$mood=$_POST[mood];
+
+$message=$_POST[message];
+
+$dateline=time();
+
+          //$_POST得到数据直接入库，前端出库代码也没有做过滤，这里就不贴了。
+
+$db->query("INSERT INTO {$tablepre}moodwall (uid,username, bgpic, mood, message, dateline) VALUES (''$uid'', ''$username'', ''$bgpic'', ''$mood'', ''$message'', ''$dateline'')");
+
+
+漏洞证明：
+随意找一个安装此应用的网站：
+/plugin.php?id=moodwall&action=edit_mood&moodid=2''
+
+
+发表心情处直接插入html代码
+"><script>alert(/xss/)</script>

