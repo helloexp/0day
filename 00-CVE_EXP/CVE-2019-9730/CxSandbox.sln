@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27703.2042
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CxUtilSvcExploit", "CxUtilSvcExploit\CxUtilSvcExploit.csproj", "{EC9C70CD-8876-429A-B2B6-0673740F60DC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EC9C70CD-8876-429A-B2B6-0673740F60DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EC9C70CD-8876-429A-B2B6-0673740F60DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EC9C70CD-8876-429A-B2B6-0673740F60DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EC9C70CD-8876-429A-B2B6-0673740F60DC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DD33AA9F-F9EF-4923-8195-C0AEE8D9183B}
+	EndGlobalSection
+EndGlobal
