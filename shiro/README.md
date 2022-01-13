@@ -1,5 +1,7 @@
 # shiro_rce
 
+> 利用工具下载 [https://github.com/helloexp/0day/releases/tag/v1.0_shiro](https://github.com/helloexp/0day/releases/tag/v1.0_shiro)
+
 ```
 
 > java -jar shiro_tool.jar
