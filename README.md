@@ -1,8 +1,7 @@
 # 0day
 [![GitHub forks](https://img.shields.io/github/forks/helloexp/0day)](https://github.com/helloexp/0day/network)  [![GitHub issues](https://img.shields.io/github/issues/helloexp/0day)](https://github.com/helloexp/0day/issues)  
   
-各种开源CMS 各种版本的漏洞以及EXP 该项目将不断更新
-
+各种CMS、各种平台、各种系统、各种软件漏洞的EXP、POC 该项目将不断更新
 1. Fastjson RCE [https://github.com/dbgee/fastjson-rce](https://github.com/dbgee/fastjson-rce)
 2. Log4j RCE [https://github.com/dbgee/log4j2_rce](https://github.com/dbgee/log4j2_rce)
 3. redis RCE [https://github.com/Ridter/redis-rce](https://github.com/Ridter/redis-rce)
@@ -15,4 +14,5 @@
 2. 后续的HW、CTF 等活动可以快速定位、利用漏洞.
 ## 问题反馈 
 在使用中有任何问题，欢迎反馈给我，可以直接发起 PR或issue.
-
+## 优秀项目收录
+如果需要在本项目中添加自己的github 项目，可以直接修改readme 添加项目地址，然后提交PR即可（open pull request）
