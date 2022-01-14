@@ -15,4 +15,4 @@
 ## 问题反馈 
 在使用中有任何问题，欢迎反馈给我，可以直接发起 PR或issue.
 ## 优秀项目收录
-如果需要在本项目中添加自己的github 项目，可以直接修改readme 添加项目地址，然后提交PR即可（open pull request）
+如果需要在本项目中展示自己的github 项目，请readme 添加项目地址，然后提交PR即可（open pull request）
