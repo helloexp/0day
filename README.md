@@ -1,6 +1,6 @@
 # 0day
 [![GitHub forks](https://img.shields.io/github/forks/helloexp/0day)](https://github.com/helloexp/0day/network) [![GitHub stars](https://img.shields.io/github/stars/helloexp/0day)](https://github.com/helloexp/0day/stargazers) [![GitHub issues](https://img.shields.io/github/issues/helloexp/0day)](https://github.com/helloexp/0day/issues)  
-  
+### [README in English](./README-en.md)    
 各种CMS、各种平台、各种系统、各种软件漏洞的EXP、POC ,该项目将不断更新
 ## 优秀项目列表
 1. Fastjson RCE [https://github.com/dbgee/fastjson-rce](https://github.com/dbgee/fastjson-rce)
@@ -16,5 +16,14 @@
 2. 后续的HW、CTF、或日常的渗透等活动可以快速定位、利用漏洞.
 ## 问题反馈 
 在使用中有任何问题，欢迎反馈给我，可以直接发起 PR或issue.
+## POC、EXP 贡献
+1. Fork [本项目](https://github.com/helloexp/0day) 到自己的github 账号下
+2. Clone 自己的项目代码到本地
+3. 在本地修改代码（新增poc、exp，或修复bug）
+4. push 代码到自己的项目下
+5. PR (open pull requests) 到本项目
+    1. 贡献类型可以有很多，  
+    readme 更新、readme 翻译、bug修复、功能优化、功能新增等等等等
+    2. star、fork 支持本项目的人气也非常感谢
 ## 优秀项目收录
 如果需要在本项目中展示自己的github 项目，请在[README.md](https://github.com/helloexp/0day/edit/master/README.md) 添加项目地址，然后提交PR即可（open pull request）
