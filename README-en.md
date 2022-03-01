@@ -26,4 +26,4 @@ Any issues about this project you can feedback to me，or open pull request dire
     readme update、readme translate、bug fix、function improvement、new features,etc.  
     2. star、fork to support this project is also grateful
 ## Excellent project inclusion
-If you need to show your excellent work in this project，please add prject address here [README.md](https://github.com/helloexp/0day/edit/master/README.md) and open pull request
+If you need to show your excellent work in this project，please add prject address here [README-en.md](https://github.com/helloexp/0day/edit/master/README-en.md) and open pull request
