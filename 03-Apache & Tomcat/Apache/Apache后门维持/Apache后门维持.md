@@ -18,7 +18,7 @@ https://github.com/ianxtianxt/apache-
 
     apxs -i -a -c mod_backdoor.c && service apache2 restart
 
-![](./resource/Apache后门维持/media/rId25.jpg)
+![](Documents/GitHub/0day/03-Apache & Tomcat/Apache/Apache后门维持/resource/Apache后门维持/media/rId25.jpg)
 
 ### 2、控制端执行方法
 
