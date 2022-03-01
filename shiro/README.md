@@ -2,7 +2,7 @@
 
 > 利用工具下载 [https://github.com/helloexp/0day/releases/tag/v1.0_shiro](https://github.com/helloexp/0day/releases/tag/v1.0_shiro)
 
-```
+```shell script
 
 > java -jar shiro_tool.jar
 Usage: java -jar shiro_tool.jar https://xx.xx.xx.xx
