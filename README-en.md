@@ -1,6 +1,6 @@
 # 0day
 [![GitHub forks](https://img.shields.io/github/forks/helloexp/0day)](https://github.com/helloexp/0day/network) [![GitHub stars](https://img.shields.io/github/stars/helloexp/0day)](https://github.com/helloexp/0day/stargazers) [![GitHub issues](https://img.shields.io/github/issues/helloexp/0day)](https://github.com/helloexp/0day/issues)    
-### [中文版本](./README.md)    
+### [中文](./README.md)    | English
 EXP, POC of various CMS,  platforms,  systems,  software vulnerabilities, the project will be constantly updated
 ## Excellent project list
 1. Fastjson RCE [https://github.com/dbgee/fastjson-rce](https://github.com/dbgee/fastjson-rce)
@@ -10,6 +10,8 @@ EXP, POC of various CMS,  platforms,  systems,  software vulnerabilities, the pr
 5. Windows RCE [https://github.com/smgorelik/Windows-RCE-exploits](https://github.com/smgorelik/Windows-RCE-exploits)
 6. shiro deserialization [https://github.com/helloexp/0day/tree/master/shiro](https://github.com/helloexp/0day/tree/master/shiro)
 7. VPS2SUSE [https://github.com/U2FsdGVkX1/vps2suse](https://github.com/U2FsdGVkX1/vps2suse)
+8. Cassandra code injection [https://github.com/QHpix/CVE-2021-44521](https://github.com/QHpix/CVE-2021-44521) 
+
 
 ## Why start this project？
 1. A few months ago, I participated in an AWD offensive and defensive game and found that collecting POC in advance is very good way, and I can learn a lot in the process of collecting these `payloads`.

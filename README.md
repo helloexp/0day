@@ -1,6 +1,6 @@
 # 0day
 [![GitHub forks](https://img.shields.io/github/forks/helloexp/0day)](https://github.com/helloexp/0day/network) [![GitHub stars](https://img.shields.io/github/stars/helloexp/0day)](https://github.com/helloexp/0day/stargazers) [![GitHub issues](https://img.shields.io/github/issues/helloexp/0day)](https://github.com/helloexp/0day/issues)  
-### [README in English](./README-en.md)    
+### [English](./README-en.md)    | 中文
 各种CMS、各种平台、各种系统、各种软件漏洞的EXP、POC ,该项目将不断更新
 ## 优秀项目列表
 1. Fastjson RCE [https://github.com/dbgee/fastjson-rce](https://github.com/dbgee/fastjson-rce)
@@ -10,6 +10,7 @@
 5. Windows RCE [https://github.com/smgorelik/Windows-RCE-exploits](https://github.com/smgorelik/Windows-RCE-exploits)
 6. shiro 发序列化 [https://github.com/helloexp/0day/tree/master/shiro](https://github.com/helloexp/0day/tree/master/shiro)
 7. VPS2SUSE [https://github.com/U2FsdGVkX1/vps2suse](https://github.com/U2FsdGVkX1/vps2suse)
+8. Cassandra 代码注入 [https://github.com/QHpix/CVE-2021-44521](https://github.com/QHpix/CVE-2021-44521) 
 
 ## 为什么发起这个项目？
 1. 几个月前，我参加了一场AWD攻防比赛，发现提前收集POC 对比赛很有好处，而且在收集这些 `payload` 的过程中，也能学到许多东西.
