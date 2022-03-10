@@ -11,6 +11,7 @@ EXP, POC of various CMS,  platforms,  systems,  software vulnerabilities, the pr
 6. shiro deserialization [https://github.com/helloexp/0day/tree/master/shiro](https://github.com/helloexp/0day/tree/master/shiro)
 7. VPS2SUSE [https://github.com/U2FsdGVkX1/vps2suse](https://github.com/U2FsdGVkX1/vps2suse)
 8. Cassandra code injection [https://github.com/QHpix/CVE-2021-44521](https://github.com/QHpix/CVE-2021-44521) 
+9. Reapoc -- Poc && Vulnerable-Target Storage Box [https://github.com/cckuailong/reapoc](https://github.com/cckuailong/reapoc)
 
 
 > **_Excellent project inclusion_**  
