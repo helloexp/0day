@@ -1,7 +1,7 @@
 # 0day
 [![GitHub forks](https://img.shields.io/github/forks/helloexp/0day)](https://github.com/helloexp/0day/network) [![GitHub stars](https://img.shields.io/github/stars/helloexp/0day)](https://github.com/helloexp/0day/stargazers) [![GitHub issues](https://img.shields.io/github/issues/helloexp/0day)](https://github.com/helloexp/0day/issues)    
 ### [中文](./README.md)    | English
-EXP, POC of various CMS,  platforms,  systems,  software vulnerabilities, the project will be constantly updated
+EXP, POC of various CMS,  platforms,  systems,  software vulnerabilities, the project will continually update
 ## Excellent project list
 1. Fastjson RCE [https://github.com/dbgee/fastjson-rce](https://github.com/dbgee/fastjson-rce)
 2. Log4j RCE [https://github.com/dbgee/log4j2_rce](https://github.com/dbgee/log4j2_rce)
@@ -13,20 +13,22 @@ EXP, POC of various CMS,  platforms,  systems,  software vulnerabilities, the pr
 8. Cassandra code injection [https://github.com/QHpix/CVE-2021-44521](https://github.com/QHpix/CVE-2021-44521) 
 
 
+> **_Excellent project inclusion_**  
+> If you need to show your excellent work in this project，please add project address here [README-en.md](https://github.com/helloexp/0day/edit/master/README-en.md) and open pull request
+
+
 ## Why start this project？
 1. A few months ago, I participated in an AWD offensive and defensive game and found that collecting POC in advance is very good way, and I can learn a lot in the process of collecting these `payloads`.
 2. Subsequent HW, CTF, or daily infiltration activities can quickly locate and exploit.
-## Feedback on the issues
-Any issues about this project you can feedback to me，or open pull request directly.
+## Feedback on issues
+Any issues about this project you can feed back to me，or open pull request directly.
 ## POC、EXP contribution
-1. Fork [This project](https://github.com/helloexp/0day) your github accout
+1. Fork [This project](https://github.com/helloexp/0day) to your own github account
 2. Clone repo to your local PC
-3. Modify code at your local pc（Add poc、exp Or fix bug）
-4. push code to your account
+3. Modify code at your local pc（Add poc、exp Or fix bugs）
+4. Push code to your own repo
 5. PR (open pull requests) to this project
 
     1. Contributions，  
     readme update、readme translate、bug fix、function improvement、new features,etc.  
     2. star、fork to support this project is also grateful
-## Excellent project inclusion
-If you need to show your excellent work in this project，please add prject address here [README-en.md](https://github.com/helloexp/0day/edit/master/README-en.md) and open pull request

@@ -1,7 +1,7 @@
 # 0day
 [![GitHub forks](https://img.shields.io/github/forks/helloexp/0day)](https://github.com/helloexp/0day/network) [![GitHub stars](https://img.shields.io/github/stars/helloexp/0day)](https://github.com/helloexp/0day/stargazers) [![GitHub issues](https://img.shields.io/github/issues/helloexp/0day)](https://github.com/helloexp/0day/issues)  
 ### [English](./README-en.md)    | 中文
-各种CMS、各种平台、各种系统、各种软件漏洞的EXP、POC ,该项目将不断更新
+各种CMS、各种平台、各种系统、各种软件漏洞的EXP、POC ,该项目将持续更新
 ## 优秀项目列表
 1. Fastjson RCE [https://github.com/dbgee/fastjson-rce](https://github.com/dbgee/fastjson-rce)
 2. Log4j RCE [https://github.com/dbgee/log4j2_rce](https://github.com/dbgee/log4j2_rce)
@@ -12,6 +12,11 @@
 7. VPS2SUSE [https://github.com/U2FsdGVkX1/vps2suse](https://github.com/U2FsdGVkX1/vps2suse)
 8. Cassandra 代码注入 [https://github.com/QHpix/CVE-2021-44521](https://github.com/QHpix/CVE-2021-44521) 
 
+
+> **_优秀项目收录_**  
+> 如果需要在本项目中展示自己的github 项目，请在[README.md](https://github.com/helloexp/0day/edit/master/README.md) 添加项目地址，更新上面列表，然后提交PR即可（open pull request）
+
+
 ## 为什么发起这个项目？
 1. 几个月前，我参加了一场AWD攻防比赛，发现提前收集POC 对比赛很有好处，而且在收集这些 `payload` 的过程中，也能学到许多东西.
 2. 后续的HW、CTF、或日常的渗透等活动可以快速定位、利用漏洞.
@@ -21,10 +26,8 @@
 1. Fork [本项目](https://github.com/helloexp/0day) 到自己的github 账号下
 2. Clone 自己的项目代码到本地
 3. 在本地修改代码（新增poc、exp，或修复bug）
-4. push 代码到自己的项目下
+4. push 修改后的代码到自己的项目下
 5. PR (open pull requests) 到本项目
-    1. 贡献类型可以有很多，  
+    1. 贡献类型可以有很多  
     readme 更新、readme 翻译、bug修复、功能优化、功能新增等等等等
     2. star、fork 支持本项目的人气也非常感谢
-## 优秀项目收录
-如果需要在本项目中展示自己的github 项目，请在[README.md](https://github.com/helloexp/0day/edit/master/README.md) 添加项目地址，然后提交PR即可（open pull request）
