@@ -1,7 +1,8 @@
 # 0day
 [![GitHub forks](https://img.shields.io/github/forks/helloexp/0day)](https://github.com/helloexp/0day/network) [![GitHub stars](https://img.shields.io/github/stars/helloexp/0day)](https://github.com/helloexp/0day/stargazers) [![GitHub issues](https://img.shields.io/github/issues/helloexp/0day)](https://github.com/helloexp/0day/issues)  
 > 由于众所周知的原因，原始仓库被删除，但保留了副本，forks和stars 清零  
-> 不过请放心，还是原来的配方，原来的味道。
+> 不过请放心，还是原来的配方，原来的味道。  
+> >为了避免再次出现这种情况找不到此项目，可以[Follow](https://github.com/helloexp) 一下
 ### [English](./README-en.md)    | 中文
 各种CMS、各种平台、各种系统、各种软件漏洞的EXP、POC ,该项目将持续更新
 ## 优秀项目列表
