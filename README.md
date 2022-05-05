@@ -15,7 +15,6 @@
 7. VPS2SUSE [https://github.com/U2FsdGVkX1/vps2suse](https://github.com/U2FsdGVkX1/vps2suse)
 8. Cassandra 代码注入 [https://github.com/QHpix/CVE-2021-44521](https://github.com/QHpix/CVE-2021-44521) 
 9. Reapoc -- 标准化Poc & 漏洞环境收集盒 [https://github.com/cckuailong/reapoc](https://github.com/cckuailong/reapoc)
-10. Penetration_Testing_POC [https://github.com/Mr-xn/Penetration_Testing_POC](https://github.com/Mr-xn/Penetration_Testing_POC)
 
 
 > **_优秀项目收录_**  
