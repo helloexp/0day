@@ -2,7 +2,9 @@
 [![GitHub forks](https://img.shields.io/github/forks/helloexp/0day)](https://github.com/helloexp/0day/network) [![GitHub stars](https://img.shields.io/github/stars/helloexp/0day)](https://github.com/helloexp/0day/stargazers) [![GitHub issues](https://img.shields.io/github/issues/helloexp/0day)](https://github.com/helloexp/0day/issues)    
 > For reasons known to us, the original repository was deleted, but local repo were kept, forks and stars cleared  
 > But rest assured, it's still the original recipe, the original taste.
-> > In case of this issue,please [Follow Me](https://github.com/helloexp) 
+> > In case of this issue,please [Follow Me](https://github.com/helloexp)
+> 
+> Education use only
 ### [中文](./README.md)    | English
 EXP, POC of various CMS,  platforms,  systems,  software vulnerabilities, the project will continually update
 ## Excellent project list
