@@ -157,12 +157,3 @@ review database account permissions on regular basis.
 ensure database accounts have strong passwords, and rotate passwords regularly if possible.
 perform VA (vulnerability assesment) scans on regular basis.
 pro-actively patch your systems and database systems.
-
-
-*****************************************
-References:
-https://www.oracle.com/security-alerts/cpuoct2021.html
-https://databasesecurityninja.wordpress.com/2021/10/22/oracle-database-privilege-escalation-through-oracle-spatial-component/comment-page-1/
-
-Credit:
-Security-In-Depth Contributors: Emad Al-Mousa
