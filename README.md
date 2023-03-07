@@ -13,7 +13,7 @@
 3. redis RCE [https://github.com/Ridter/redis-rce](https://github.com/Ridter/redis-rce)
 4. Thinkphp RCE [https://github.com/helloexp/0day](https://github.com/helloexp/0day/tree/master/Thinkphp)
 5. Windows RCE [https://github.com/smgorelik/Windows-RCE-exploits](https://github.com/smgorelik/Windows-RCE-exploits)
-6. shiro 发序列化 [https://github.com/helloexp/0day/tree/master/shiro](https://github.com/helloexp/0day/tree/master/shiro)
+6. shiro 反序列化 [https://github.com/helloexp/0day/tree/master/shiro](https://github.com/helloexp/0day/tree/master/shiro)
 7. VPS2SUSE [https://github.com/U2FsdGVkX1/vps2suse](https://github.com/U2FsdGVkX1/vps2suse)
 8. Cassandra 代码注入 [https://github.com/QHpix/CVE-2021-44521](https://github.com/QHpix/CVE-2021-44521) 
 9. Reapoc -- 标准化Poc & 漏洞环境收集盒 [https://github.com/cckuailong/reapoc](https://github.com/cckuailong/reapoc)
